@@ -154,21 +154,25 @@ app.post('/api/summarize', async (req, res) => {
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: `당신은 시스템행거 상담 대화를 분석해서 고객 정보를 JSON으로 추출하는 역할입니다.
+      system: `당신은 시스템행거 상담 대화를 분석해서 견적서 항목을 JSON으로 추출하는 역할입니다.
 아래 형식의 JSON만 반환하세요. 대화에서 확인되지 않은 항목은 null로 표시하세요.
+치수는 "가로×세로×높이 mm" 형식으로 내용 필드에 포함하세요.
+추가옵션 항목은 대화에서 언급된 것만 true, 언급 없으면 false로 표시하세요.
 {
   "이름": null,
   "연락처": null,
-  "설치지역": null,
-  "공간가로mm": null,
-  "공간세로mm": null,
-  "공간높이mm": null,
-  "공간형태": null,
-  "추가옵션": null,
+  "주소": null,
+  "결제방식": null,
   "프레임색상": null,
   "선반색상": null,
-  "요청사항": null,
-  "개인정보동의": null,
+  "천장커튼박스": false,
+  "내용": null,
+  "2단서랍": false,
+  "3단서랍": false,
+  "기둥추가": false,
+  "5단선반": false,
+  "배송비": null,
+  "참고사항": null,
   "상담요약": "한 문장으로 요약"
 }`,
       messages: [

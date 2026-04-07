@@ -598,6 +598,132 @@
     .h-save-btn:hover { background: rgba(255,220,100,.4); }
     .h-save-btn:disabled { opacity: .5; cursor: not-allowed; }
 
+    /* ── 견적서 오버레이 ─────────────────────────────── */
+    .quote-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 400;
+      align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .quote-overlay.open { display: flex; }
+
+    .quote-box {
+      background: var(--white);
+      border-radius: 12px;
+      width: 100%; max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,.4);
+      animation: tboxIn .25s ease;
+    }
+    .quote-inner { padding: 0; }
+
+    /* 견적서 타이틀 */
+    .qt-title {
+      background: #c0392b;
+      color: #fff;
+      text-align: center;
+      font-size: 17px; font-weight: 900;
+      padding: 10px;
+      letter-spacing: .5px;
+    }
+
+    /* 견적서 테이블 */
+    .qt-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .qt-table td {
+      border: 1px solid #999;
+      padding: 5px 7px;
+      vertical-align: middle;
+      color: #111;
+    }
+    .qt-table td.lbl {
+      background: #d9d9d9;
+      font-weight: 700;
+      white-space: nowrap;
+      width: 56px;
+      text-align: center;
+    }
+    .qt-table td.section-head {
+      background: #c0392b;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      font-size: 13px;
+      padding: 6px;
+    }
+    .qt-table td.sub-lbl {
+      background: #efefef;
+      font-size: 11.5px;
+      color: #444;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .qt-table td.footer-lbl {
+      background: #555;
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      text-align: center;
+    }
+    .qt-table td.footer-val {
+      font-size: 10.5px;
+      color: #333;
+    }
+
+    /* 편집 가능 셀 */
+    .qt-table td[contenteditable="true"] {
+      outline: none;
+      min-width: 40px;
+    }
+    .qt-table td[contenteditable="true"]:focus {
+      background: #fef9e7;
+      box-shadow: inset 0 0 0 2px #f39c12;
+    }
+
+    /* 체크박스 셀 */
+    .qt-check-wrap {
+      display: flex; align-items: center; gap: 5px;
+    }
+    .qt-check-wrap input[type="checkbox"] {
+      width: 14px; height: 14px; cursor: pointer;
+      accent-color: #c0392b;
+    }
+
+    /* 평면도 영역 */
+    .qt-floor-plan {
+      background: #e0e0e0;
+      min-height: 80px;
+      text-align: center;
+      color: #888;
+      font-size: 11.5px;
+      padding: 16px 8px;
+    }
+
+    /* 하단 버튼 */
+    .quote-actions {
+      display: flex; gap: 8px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--gray-200);
+      background: var(--white);
+      border-radius: 0 0 12px 12px;
+    }
+    .quote-actions button {
+      flex: 1; padding: 10px;
+      border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+    }
+    .qa-print { background: var(--purple); color: #fff; }
+    .qa-close { background: var(--gray-200); color: var(--gray-900); }
+    .qa-print:hover { opacity: .88; }
+    .qa-close:hover { background: var(--gray-400); color: #fff; }
+
     .collect-drawer {
       background: var(--white);
       border-bottom: 2px solid var(--purple-pale);
@@ -708,6 +834,103 @@
         <span style="font-size:10.5px;color:#9ca3af;font-weight:400;margin-left:4px">(목업 데이터 · 실제 저장 전)</span>
       </div>
       <div id="historyList"><!-- JS로 렌더링 --></div>
+    </div>
+  </div>
+
+  <!-- 견적서 오버레이 -->
+  <div class="quote-overlay" id="quoteOverlay" onclick="closeQuote(event)">
+    <div class="quote-box" id="quoteBox">
+      <div class="quote-inner">
+        <div class="qt-title">케이트블랑 드레스룸 견적서</div>
+        <table class="qt-table">
+          <tbody>
+            <!-- 기본 정보 -->
+            <tr>
+              <td class="lbl">고객명</td>
+              <td id="q-이름" contenteditable="true"></td>
+              <td class="lbl">날짜</td>
+              <td id="q-날짜" contenteditable="true"></td>
+              <td class="lbl">전화</td>
+              <td id="q-연락처" contenteditable="true"></td>
+            </tr>
+            <tr>
+              <td class="lbl">주소</td>
+              <td colspan="5" id="q-주소" contenteditable="true"></td>
+            </tr>
+            <tr>
+              <td class="lbl">견적</td>
+              <td colspan="3" id="q-견적" contenteditable="true"></td>
+              <td class="lbl">결제방식</td>
+              <td id="q-결제방식" contenteditable="true"></td>
+            </tr>
+            <!-- 주문내역 헤더 -->
+            <tr>
+              <td class="section-head" colspan="6">주문내역</td>
+            </tr>
+            <!-- 색상 + 천장커튼박스 -->
+            <tr>
+              <td class="lbl" rowspan="2">색상</td>
+              <td colspan="3" id="q-색상" contenteditable="true"></td>
+              <td class="sub-lbl">천장<br>커튼박스</td>
+              <td>
+                <div class="qt-check-wrap">
+                  <input type="checkbox" id="q-천장커튼박스">
+                  <label for="q-천장커튼박스" style="font-size:11.5px">포함</label>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="4" style="font-size:11px;color:#888">프레임색상 / 선반색상</td>
+            </tr>
+            <!-- 내용 -->
+            <tr>
+              <td class="lbl">내용</td>
+              <td colspan="5" id="q-내용" contenteditable="true" style="min-height:36px"></td>
+            </tr>
+            <!-- 추가 옵션 -->
+            <tr>
+              <td class="lbl" rowspan="3">추가<br>옵션</td>
+              <td class="sub-lbl">2단 서랍</td>
+              <td><div class="qt-check-wrap"><input type="checkbox" id="q-2단서랍"><label for="q-2단서랍" style="font-size:11px">포함</label></div></td>
+              <td class="sub-lbl">5단선반</td>
+              <td colspan="2"><div class="qt-check-wrap"><input type="checkbox" id="q-5단선반"><label for="q-5단선반" style="font-size:11px">포함</label></div></td>
+            </tr>
+            <tr>
+              <td class="sub-lbl">3단 서랍</td>
+              <td><div class="qt-check-wrap"><input type="checkbox" id="q-3단서랍"><label for="q-3단서랍" style="font-size:11px">포함</label></div></td>
+              <td class="sub-lbl">배송비</td>
+              <td colspan="2" id="q-배송비" contenteditable="true"></td>
+            </tr>
+            <tr>
+              <td class="sub-lbl">기둥추가</td>
+              <td colspan="4"><div class="qt-check-wrap"><input type="checkbox" id="q-기둥추가"><label for="q-기둥추가" style="font-size:11px">포함</label></div></td>
+            </tr>
+            <!-- 참고사항 -->
+            <tr>
+              <td class="lbl">참고<br>사항</td>
+              <td colspan="5" id="q-참고사항" contenteditable="true" style="min-height:36px"></td>
+            </tr>
+            <!-- 평면도 -->
+            <tr>
+              <td class="section-head" colspan="6">평면도</td>
+            </tr>
+            <tr>
+              <td colspan="6" class="qt-floor-plan">평면도 이미지 또는 메모 영역</td>
+            </tr>
+            <!-- 푸터 -->
+            <tr>
+              <td class="footer-lbl" colspan="2">(주)루마네시스템</td>
+              <td class="footer-val" colspan="2">기업은행<br>660-041655-04-011</td>
+              <td class="footer-val">사업자번호 : 793-81-02453</td>
+              <td class="footer-val">TEL 010-3784-5215</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="quote-actions">
+        <button class="qa-print" onclick="printQuote()">🖨️ 인쇄</button>
+        <button class="qa-close" onclick="closeQuote()">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -1784,8 +2007,7 @@ async function saveConversation() {
 
     if (data.success) {
       btn.textContent = '✅ 저장완료';
-      const s = data.summary;
-      alert(`상담이 저장되었습니다!\n\n고객: ${s.이름 || '미확인'}\n연락처: ${s.연락처 || '미확인'}\n지역: ${s.설치지역 || '미확인'}\n요약: ${s.상담요약 || ''}`);
+      openQuote(data.summary);
     } else {
       throw new Error(data.error);
     }
@@ -1795,6 +2017,65 @@ async function saveConversation() {
     btn.disabled = false;
     btn.textContent = '💾 상담저장';
   }
+}
+
+/* ── 견적서 오버레이 ─────────────────────────────── */
+function openQuote(s) {
+  const today = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' });
+
+  // 텍스트 셀 채우기
+  document.getElementById('q-이름').textContent       = s.이름 || '';
+  document.getElementById('q-날짜').textContent       = today;
+  document.getElementById('q-연락처').textContent     = s.연락처 || '';
+  document.getElementById('q-주소').textContent       = s.주소 || '';
+  document.getElementById('q-결제방식').textContent   = s.결제방식 || '';
+  document.getElementById('q-견적').textContent       = '';
+  document.getElementById('q-배송비').textContent     = s.배송비 || '';
+  document.getElementById('q-참고사항').textContent   = s.참고사항 || '';
+  document.getElementById('q-내용').textContent       = s.내용 || '';
+
+  // 색상
+  const 색상parts = [s.프레임색상, s.선반색상].filter(Boolean);
+  document.getElementById('q-색상').textContent = 색상parts.join(' / ') || '';
+
+  // 체크박스
+  document.getElementById('q-천장커튼박스').checked = !!s.천장커튼박스;
+  document.getElementById('q-2단서랍').checked       = !!s['2단서랍'];
+  document.getElementById('q-3단서랍').checked       = !!s['3단서랍'];
+  document.getElementById('q-기둥추가').checked      = !!s.기둥추가;
+  document.getElementById('q-5단선반').checked       = !!s['5단선반'];
+
+  document.getElementById('quoteOverlay').classList.add('open');
+}
+
+function closeQuote(e) {
+  if (e && e.target !== document.getElementById('quoteOverlay')) return;
+  document.getElementById('quoteOverlay').classList.remove('open');
+}
+
+function printQuote() {
+  const box = document.getElementById('quoteBox').innerHTML;
+  const win = window.open('', '_blank', 'width=600,height=800');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>케이트블랑 드레스룸 견적서</title>
+    <style>
+      body { font-family: 'Malgun Gothic', sans-serif; margin: 20px; }
+      .quote-actions { display: none; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      td { border: 1px solid #999; padding: 5px 7px; vertical-align: middle; }
+      td.lbl { background: #d9d9d9; font-weight: bold; text-align: center; }
+      td.section-head { background: #c0392b; color: #fff; font-weight: bold; text-align: center; padding: 6px; }
+      td.sub-lbl { background: #efefef; font-size: 11px; text-align: center; }
+      td.footer-lbl { background: #555; color: #fff; font-weight: bold; text-align: center; font-size: 11px; }
+      td.footer-val { font-size: 10px; }
+      .qt-title { background: #c0392b; color: #fff; text-align: center; font-size: 17px; font-weight: 900; padding: 10px; }
+      .qt-floor-plan { background: #e0e0e0; min-height: 80px; text-align: center; color: #888; font-size: 11px; padding: 16px; }
+    </style>
+  </head><body>${box}</body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
 }
 </script>
 </body>
