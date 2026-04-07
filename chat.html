@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://lumane-server.onrender.com; img-src 'self' data:; frame-ancestors 'none';" />
   <title>케이트블랑 드레스룸 · AI 상담</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -59,14 +61,16 @@
         border-radius: 40px;
         overflow: hidden;
         position: relative;
+        transform: translateZ(0); /* fixed 자식의 포함 블록을 .shell로 고정 */
         box-shadow:
           0 0 0 8px rgba(255,255,255,.12),
           0 0 0 10px rgba(255,255,255,.06),
           0 32px 80px rgba(0,0,0,.5);
       }
-      /* 오버레이를 폰 프레임 안에 가둠 */
-      .transcript-overlay {
-        position: absolute;
+      /* 데스크탑: transcript-box를 폰 프레임 너비에 맞게 제한 */
+      .transcript-box {
+        max-width: 358px;
+        max-height: calc(min(820px, 100vh - 64px) - 64px);
       }
     }
 
@@ -1212,9 +1216,9 @@ function showConfirm(quote) {
   function cfRow(lbl, val, badgeClass = '') {
     if (!val || val === '-' || /^없어요$|^없음$/.test(String(val).trim())) return '';
     const v = badgeClass
-      ? `<span class="rc-val ${badgeClass}">${val}</span>`
-      : `<span class="rc-val">${val}</span>`;
-    return `<div class="rc-row"><span class="rc-lbl">${lbl}</span>${v}</div>`;
+      ? `<span class="rc-val ${badgeClass}">${esc(String(val))}</span>`
+      : `<span class="rc-val">${esc(String(val))}</span>`;
+    return `<div class="rc-row"><span class="rc-lbl">${esc(String(lbl))}</span>${v}</div>`;
   }
 
   $confirmCard.innerHTML = `
@@ -1319,9 +1323,9 @@ function showDone(quote) {
   function rcRow(lbl, val, badge=false) {
     if (!val || val === '-' || val === '없음') return '';
     const v = badge
-      ? `<span class="rc-val badge">${val}</span>`
-      : `<span class="rc-val">${val}</span>`;
-    return `<div class="rc-row"><span class="rc-lbl">${lbl}</span>${v}</div>`;
+      ? `<span class="rc-val badge">${esc(String(val))}</span>`
+      : `<span class="rc-val">${esc(String(val))}</span>`;
+    return `<div class="rc-row"><span class="rc-lbl">${esc(String(lbl))}</span>${v}</div>`;
   }
 
   $receipt.innerHTML = `
@@ -1522,15 +1526,15 @@ function renderHistoryList() {
         ${s.재상담여부 ? '<span class="hs-rebadge">재상담</span>' : ''}
       </div>
       <div class="history-session-body">
-        <div class="hs-summary">${s.요약}</div>
+        <div class="hs-summary">${esc(s.요약)}</div>
         <div class="hs-tags">
           ${Object.entries(s.주요항목 || {}).map(([k,v]) =>
-            `<span class="hs-tag">${k}: ${v}</span>`
+            `<span class="hs-tag">${esc(k)}: ${esc(v)}</span>`
           ).join('')}
         </div>
         <div class="hs-last">
-          <b>마지막 질문:</b> ${s.마지막질문}<br>
-          <b>마지막 답변:</b> ${s.마지막답변}
+          <b>마지막 질문:</b> ${esc(s.마지막질문)}<br>
+          <b>마지막 답변:</b> ${esc(s.마지막답변)}
         </div>
       </div>
       <div class="hs-btns">
@@ -1760,7 +1764,7 @@ $dateSep.textContent = todayStr();
 
 // ── 상담 저장 ──────────────────────────────────────────────────
 async function saveConversation() {
-  if (messages.length === 0) {
+  if (history.length === 0) {
     alert('저장할 대화 내용이 없습니다.');
     return;
   }
@@ -1773,7 +1777,7 @@ async function saveConversation() {
     const res = await fetch(`${SERVER}/api/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages: history }),
     });
 
     const data = await res.json();
