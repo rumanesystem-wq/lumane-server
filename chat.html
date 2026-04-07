@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>케이트블랑 드레스룸 · AI 상담</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:      #7c3aed;
+      --purple-l:    #a855f7;
+      --purple-pale: #ede9fe;
+      --purple-mid:  #c4b5fd;
+      --green:       #10b981;
+      --gray-100:    #f3f4f6;
+      --gray-200:    #e5e7eb;
+      --gray-400:    #9ca3af;
+      --gray-600:    #6b7280;
+      --gray-900:    #111827;
+      --white:       #ffffff;
+      --chat-bg:     #f5f0ff;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--chat-bg);
+    }
+
+    /* ── 전체 레이아웃 ─────────────────────────────── */
+    .page  { min-height: 100vh; display: flex; justify-content: center; }
+    .shell {
+      width: 100%; max-width: 720px; min-height: 100vh;
+      background: var(--white);
+      box-shadow: 0 0 48px rgba(124,58,237,.12);
+      display: flex; flex-direction: column;
+    }
+
+    /* ── 헤더 ──────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, var(--purple), var(--purple-l));
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px;
+      color: var(--white);
+      position: sticky; top: 0; z-index: 10;
+      flex-shrink: 0;
+    }
+    .h-back {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,.2); border: none; color: var(--white);
+      cursor: pointer; font-size: 17px; display: flex; align-items: center;
+      justify-content: center; text-decoration: none; flex-shrink: 0;
+      transition: background .15s;
+    }
+    .h-back:hover { background: rgba(255,255,255,.35); }
+    .h-av {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: rgba(255,255,255,.22);
+      border: 2px solid rgba(255,255,255,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .h-info { flex: 1; }
+    .h-name { font-size: 16px; font-weight: 700; }
+    .h-sub  { font-size: 11.5px; opacity: .82; margin-top: 1px; }
+    .h-status { display: flex; align-items: center; gap: 5px; font-size: 12px; opacity: .9; }
+    .dot-live {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80; box-shadow: 0 0 6px #4ade80;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    /* 서버 상태 배너 */
+    .banner {
+      padding: 8px 20px; font-size: 12.5px; text-align: center;
+      display: none; flex-shrink: 0;
+    }
+    .banner.warn { display: block; background: #fef3c7; color: #92400e; }
+    .banner.ok   { display: block; background: #d1fae5; color: #065f46; }
+
+    /* ── 메시지 목록 ────────────────────────────────── */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px 12px;
+      background: var(--chat-bg);
+      display: flex; flex-direction: column; gap: 2px;
+    }
+
+    /* 날짜 구분 */
+    .date-sep {
+      text-align: center; font-size: 12px; color: var(--gray-400);
+      margin: 8px 0 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .date-sep::before, .date-sep::after {
+      content: ''; flex: 1; height: 1px; background: var(--gray-200);
+    }
+
+    /* 메시지 행 */
+    .row      { display: flex; align-items: flex-end; gap: 8px; }
+    .row.user { justify-content: flex-end; }
+    .row.bot  { justify-content: flex-start; }
+
+    .av {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--purple-l));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
+    }
+    .row.user .av { display: none; }
+
+    .bubble {
+      max-width: 74%;
+      padding: 11px 15px;
+      line-height: 1.65; font-size: 14.5px;
+      word-break: break-word; white-space: pre-wrap;
+    }
+    .bubble.bot {
+      background: var(--white);
+      border-radius: 4px 18px 18px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      color: var(--gray-900);
+    }
+    .bubble.user {
+      background: var(--purple);
+      color: var(--white);
+      border-radius: 18px 18px 4px 18px;
+      box-shadow: 0 4px 14px rgba(124,58,237,.28);
+    }
+
+    .msg-time {
+      font-size: 11px; color: var(--gray-400);
+      margin: 3px 4px 10px;
+    }
+    .row.bot  + .msg-time { padding-left: 42px; }
+    .row.user + .msg-time { text-align: right; }
+
+    /* ── 퀵 답변 버튼 ───────────────────────────────── */
+    /* 전체 quick-area: 힌트 라벨 + 버튼들을 세로로 쌓는 구조 */
+    .quick-area {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 8px 16px 6px;
+      background: var(--white);
+      border-top: 1px solid var(--gray-100);
+      flex-shrink: 0;
+      min-height: 0;
+    }
+    .quick-area:empty { display: none; }
+
+    /* 힌트 라벨 (예: "💡 예시 — 직접 입력해도 됩니다") */
+    .quick-hint-label {
+      font-size: 11px;
+      color: var(--gray-400);
+      letter-spacing: .01em;
+    }
+
+    /* 버튼 묶음 */
+    .quick-btns {
+      display: flex; flex-wrap: wrap; gap: 7px;
+    }
+
+    /* 기본 버튼 — 흐린 힌트/예시 스타일 */
+    .qbtn {
+      padding: 5px 13px;
+      border-radius: 16px;
+      border: 1px dashed #d1d5db;
+      background: #f9fafb;
+      color: var(--gray-600);
+      font-size: 13px; font-weight: 400;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      transition: all .15s;
+    }
+    .qbtn:hover { background: var(--gray-100); color: var(--gray-900); }
+
+    /* 선택형 버튼 (형태·개인정보동의) — 좀 더 눈에 띄는 스타일 */
+    .qbtn.choice {
+      background: #f5f3ff;
+      border: 1px solid var(--purple-mid);
+      color: var(--purple);
+      font-weight: 500;
+    }
+    .qbtn.choice:hover { background: var(--purple-pale); }
+
+    /* ── 타이핑 인디케이터 ──────────────────────────── */
+    .typing { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 8px; }
+    .typing-bubble {
+      background: var(--white);
+      border-radius: 4px 18px 18px 18px;
+      padding: 13px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+      display: flex; gap: 5px; align-items: center;
+    }
+    .td { width: 8px; height: 8px; border-radius: 50%; background: var(--purple-mid); }
+    .td:nth-child(1){animation:hop .9s 0s   infinite}
+    .td:nth-child(2){animation:hop .9s .2s  infinite}
+    .td:nth-child(3){animation:hop .9s .4s  infinite}
+    @keyframes hop { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-7px)} }
+
+    /* ── 견적 요청 확인 화면 ───────────────────────── */
+    /* 접수 전 고객이 내용을 확인하는 화면 (고객양식 느낌) */
+    .confirm-view {
+      flex: 1; display: none; flex-direction: column;
+      align-items: center;
+      padding: 28px 20px 36px;
+      gap: 16px;
+      background: var(--chat-bg); overflow-y: auto;
+    }
+    .confirm-view.show { display: flex; }
+
+    /* 상단 헤더 영역 */
+    .cv-header {
+      width: 100%; max-width: 400px;
+      text-align: left;
+    }
+    .cv-title {
+      font-size: 19px; font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 7px;
+    }
+    .cv-desc {
+      font-size: 13px; color: var(--gray-600);
+      line-height: 1.75;
+    }
+
+    /* 확인 카드 (receipt와 동일한 톤) */
+    .cv-card {
+      width: 100%; max-width: 400px;
+      background: var(--white); border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.07);
+      border: 1.5px solid var(--gray-200);
+      text-align: left;
+    }
+
+    /* cv-card 안 섹션 구분자 — 아래 .rc-section / .rc-row 등을 그대로 재사용 */
+
+    /* 안내 문구 */
+    .cv-notice {
+      width: 100%; max-width: 400px;
+      font-size: 12.5px; color: var(--gray-600);
+      line-height: 1.8;
+      background: #f9fafb;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 11px 16px;
+    }
+    .cv-notice strong { color: var(--purple); }
+
+    /* 하단 버튼 2개 */
+    .cv-btns {
+      width: 100%; max-width: 400px;
+      display: flex; gap: 10px;
+    }
+    .cv-btn-edit {
+      flex: 1; padding: 13px 0;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 24px;
+      background: var(--white); color: var(--gray-600);
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      transition: background .15s, border-color .15s;
+    }
+    .cv-btn-edit:hover { background: var(--gray-100); border-color: var(--gray-400); }
+
+    .cv-btn-submit {
+      flex: 2; padding: 13px 0;
+      background: linear-gradient(135deg, var(--purple), var(--purple-l));
+      color: var(--white); border: none; border-radius: 24px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      box-shadow: 0 4px 14px rgba(124,58,237,.28);
+      transition: transform .15s;
+    }
+    .cv-btn-submit:hover { transform: translateY(-1px); }
+
+    /* ── 완료 화면 ─────────────────────────────────── */
+    .done-view {
+      flex: 1; display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 48px 24px; gap: 18px; text-align: center;
+      background: var(--chat-bg); overflow-y: auto;
+    }
+    .done-view.show { display: flex; }
+    .done-icon  { font-size: 78px; line-height: 1; animation: pop .5s cubic-bezier(.175,.885,.32,1.275); }
+    @keyframes pop { from{transform:scale(.3);opacity:0} to{transform:scale(1);opacity:1} }
+    .done-title { font-size: 23px; font-weight: 900; color: var(--purple); }
+    .done-sub   { font-size: 14.5px; color: var(--gray-600); line-height: 1.75; }
+
+    .receipt {
+      width: 100%; max-width: 400px;
+      background: var(--white); border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 6px 24px rgba(124,58,237,.13);
+      border: 1.5px solid var(--purple-pale); text-align: left;
+    }
+    .rc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .rc-title { font-size: 13.5px; font-weight: 700; color: var(--purple); }
+    .rc-num   { font-size: 13px; font-weight: 800; color: var(--white); background: var(--purple); padding: 3px 12px; border-radius: 20px; }
+    .rc-row   { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100); font-size: 13.5px; }
+    .rc-row:last-child { border-bottom: none; }
+    .rc-lbl   { color: var(--gray-600); }
+    .rc-val   { font-weight: 700; color: var(--gray-900); }
+    .rc-val.badge { background: var(--green); color: var(--white); padding: 2px 10px; border-radius: 20px; font-size: 12px; }
+
+    .btn-new {
+      padding: 14px 36px;
+      background: linear-gradient(135deg, var(--purple), var(--purple-l));
+      color: var(--white); border: none; border-radius: 30px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+      box-shadow: 0 4px 14px rgba(124,58,237,.3);
+      transition: transform .15s;
+    }
+    .btn-new:hover { transform: translateY(-2px); }
+
+    /* ── 입력창 ─────────────────────────────────────── */
+    .input-bar {
+      display: flex; align-items: flex-end; gap: 10px;
+      padding: 14px 16px;
+      background: var(--white);
+      border-top: 1px solid var(--gray-200);
+      flex-shrink: 0;
+    }
+    .inp {
+      flex: 1; padding: 11px 16px;
+      border: 2px solid var(--gray-200); border-radius: 24px;
+      font-size: 14.5px; font-family: 'Noto Sans KR', sans-serif;
+      outline: none; resize: none; max-height: 120px; line-height: 1.55;
+      background: var(--gray-100); transition: border-color .2s, background .2s;
+    }
+    .inp:focus { border-color: var(--purple); background: var(--white); }
+    .inp::placeholder { color: var(--gray-400); }
+    .inp:disabled { opacity: .5; cursor: not-allowed; }
+
+    .send {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--purple-l));
+      color: var(--white); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(124,58,237,.3);
+      transition: transform .15s, opacity .15s;
+    }
+    .send:hover:not(:disabled) { transform: scale(1.08); }
+    .send:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+    @media (max-width: 480px) {
+      .bubble { max-width: 85%; font-size: 14px; }
+    }
+
+    /* ── 이전 상담 버튼 & 드로어 ────────────────── */
+    .h-history-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 11px;
+      background: rgba(255,255,255,.18);
+      border: 1.5px solid rgba(255,255,255,.35);
+      border-radius: 16px;
+      color: var(--white);
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      transition: background .15s;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .h-history-btn:hover { background: rgba(255,255,255,.28); }
+    .h-history-dot {
+      position: absolute; top: -3px; right: -3px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80; border: 1.5px solid var(--purple);
+    }
+
+    .history-drawer {
+      background: var(--white);
+      border-bottom: 2px solid #dbeafe;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .35s ease, padding .3s ease;
+      flex-shrink: 0;
+    }
+    .history-drawer.open { max-height: 600px; overflow-y: auto; }
+    .history-drawer-inner { padding: 14px 16px 14px; }
+
+    .history-drawer-title {
+      font-size: 12px; font-weight: 700; color: #2563eb;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .history-count-badge {
+      background: #2563eb; color: var(--white);
+      font-size: 10px; font-weight: 700;
+      padding: 1px 7px; border-radius: 10px;
+    }
+
+    /* 각 이전 상담 세션 카드 */
+    .history-session {
+      border: 1.5px solid #e0e7ff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .history-session-head {
+      padding: 10px 14px;
+      background: #eff6ff;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .hs-num {
+      font-size: 10.5px; font-weight: 700;
+      background: #2563eb; color: var(--white);
+      padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
+    }
+    .hs-date { font-size: 11.5px; color: #374151; font-weight: 600; flex: 1; }
+    .hs-sid  { font-size: 10px; color: #9ca3af; }
+    .hs-rebadge {
+      font-size: 10px; font-weight: 700;
+      background: #fef3c7; color: #92400e;
+      padding: 2px 7px; border-radius: 8px;
+    }
+
+    .history-session-body { padding: 10px 14px 4px; }
+    .hs-summary {
+      font-size: 12.5px; color: #374151; line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .hs-tags {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;
+    }
+    .hs-tag {
+      font-size: 11px; font-weight: 600;
+      background: #f0fdf4; color: #16a34a;
+      border: 1px solid #bbf7d0;
+      padding: 2px 9px; border-radius: 10px;
+    }
+    .hs-last {
+      font-size: 11.5px; color: #6b7280;
+      border-top: 1px solid var(--gray-100);
+      padding-top: 7px; margin-top: 4px;
+      line-height: 1.55;
+    }
+    .hs-last b { color: #374151; }
+
+    .hs-btns {
+      display: flex; gap: 8px;
+      padding: 8px 14px 12px;
+    }
+    .hs-btn {
+      flex: 1; padding: 7px 0;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      transition: all .15s; border: none;
+    }
+    .hs-btn.primary { background: #2563eb; color: var(--white); }
+    .hs-btn.primary:hover { background: #1d4ed8; }
+    .hs-btn.outline { background: var(--white); color: #374151; border: 1.5px solid var(--gray-200); }
+    .hs-btn.outline:hover { background: var(--gray-100); }
+
+    /* 채팅 원문 오버레이 */
+    .transcript-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 300;
+      align-items: center; justify-content: center;
+    }
+    .transcript-overlay.open { display: flex; }
+    .transcript-box {
+      background: var(--white);
+      border-radius: 20px;
+      width: 100%; max-width: 680px;
+      max-height: 88vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 64px rgba(0,0,0,.3);
+      animation: tboxIn .25s ease;
+      margin: 16px;
+    }
+    @keyframes tboxIn {
+      from { opacity:0; transform:scale(.95) translateY(12px); }
+      to   { opacity:1; transform:scale(1) translateY(0); }
+    }
+    .transcript-box-head {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .transcript-box-head h3 { font-size: 15px; font-weight: 700; flex: 1; }
+    .transcript-box-head .close-btn {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--gray-100); border: none;
+      cursor: pointer; font-size: 16px; color: #6b7280;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .transcript-box-head .close-btn:hover { background: var(--gray-200); }
+    .transcript-box-meta {
+      font-size: 11px; color: var(--gray-400);
+    }
+    .transcript-msgs {
+      flex: 1; overflow-y: auto;
+      padding: 16px 18px;
+      background: var(--chat-bg);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .t-row { display: flex; align-items: flex-end; gap: 7px; }
+    .t-row.user { justify-content: flex-end; }
+    .t-av {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--purple-l));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .t-row.user .t-av { display: none; }
+    .t-bubble {
+      max-width: 74%; padding: 9px 13px;
+      font-size: 13px; line-height: 1.6;
+      word-break: break-word; white-space: pre-wrap;
+    }
+    .t-bubble.bot {
+      background: var(--white);
+      border-radius: 4px 16px 16px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .t-bubble.user {
+      background: var(--purple);
+      color: var(--white);
+      border-radius: 16px 16px 4px 16px;
+    }
+    .t-time { font-size: 10px; color: var(--gray-400); margin: 0 4px 6px; }
+    .t-row.bot + .t-time { padding-left: 35px; }
+    .t-row.user + .t-time { text-align: right; }
+
+    /* ── 수집현황 버튼 & 드로어 ─────────────────── */
+    .h-collect-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 11px;
+      background: rgba(255,255,255,.18);
+      border: 1.5px solid rgba(255,255,255,.35);
+      border-radius: 16px;
+      color: var(--white);
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .h-collect-btn:hover { background: rgba(255,255,255,.28); }
+
+    .collect-drawer {
+      background: var(--white);
+      border-bottom: 2px solid var(--purple-pale);
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .3s ease, padding .3s ease;
+      flex-shrink: 0;
+    }
+    .collect-drawer.open { max-height: 420px; }
+    .collect-drawer-inner { padding: 14px 16px 12px; }
+
+    .collect-title {
+      font-size: 12px; font-weight: 700; color: var(--purple);
+      margin-bottom: 10px; letter-spacing: .3px;
+    }
+
+    /* 필수/선택 섹션 */
+    .collect-section { margin-bottom: 10px; }
+    .collect-section-label {
+      font-size: 10.5px; font-weight: 700; color: var(--gray-400);
+      text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+    .collect-items {
+      display: flex; flex-wrap: wrap; gap: 5px;
+    }
+    .collect-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 11.5px; font-weight: 500;
+      transition: all .2s;
+    }
+    .collect-chip.pending {
+      background: var(--gray-100); color: var(--gray-400);
+      border: 1px dashed var(--gray-200);
+    }
+    .collect-chip.done {
+      background: #dcfce7; color: #15803d;
+      border: 1px solid #86efac;
+    }
+    .collect-chip.done::before { content: '✓  '; font-weight: 700; }
+
+    /* 진행률 바 */
+    .collect-progress {
+      margin-top: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .collect-bar-wrap {
+      flex: 1; height: 5px; background: var(--gray-200); border-radius: 4px; overflow: hidden;
+    }
+    .collect-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--purple), var(--purple-l));
+      border-radius: 4px;
+      transition: width .4s ease;
+    }
+    .collect-pct { font-size: 11px; font-weight: 700; color: var(--purple); min-width: 28px; text-align: right; }
+
+    /* 완료 뷰 receipt 섹션 스타일 */
+    .rc-section { margin-top: 14px; }
+    .rc-section-title {
+      font-size: 10.5px; font-weight: 700; color: var(--gray-400);
+      text-transform: uppercase; letter-spacing: .5px;
+      padding: 6px 0 4px;
+      border-bottom: 1px solid var(--gray-100);
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+<div class="shell">
+
+  <!-- 헤더 -->
+  <header class="header">
+    <a class="h-back" href="index.html">←</a>
+    <div class="h-av">👩‍💼</div>
+    <div class="h-info">
+      <div class="h-name">루마네 상담원</div>
+      <div class="h-sub">케이트블랑 드레스룸 AI 상담</div>
+    </div>
+    <div class="h-status">
+      <div class="dot-live"></div>
+      <span id="statusText">연결 중…</span>
+    </div>
+    <!-- 이전 상담 이력 버튼 -->
+    <button class="h-history-btn" onclick="toggleHistory()" id="historyBtn">
+      <span class="h-history-dot"></span>
+      📚 이전상담
+    </button>
+    <!-- 수집현황 토글 버튼 -->
+    <button class="h-collect-btn" onclick="toggleCollect()" id="collectBtn">
+      📋 수집현황
+    </button>
+  </header>
+
+  <!-- 이전 상담 이력 드로어 -->
+  <div class="history-drawer" id="historyDrawer">
+    <div class="history-drawer-inner">
+      <div class="history-drawer-title">
+        📚 이전 상담 이력
+        <span class="history-count-badge" id="historyCountBadge">1건</span>
+        <span style="font-size:10.5px;color:#9ca3af;font-weight:400;margin-left:4px">(목업 데이터 · 실제 저장 전)</span>
+      </div>
+      <div id="historyList"><!-- JS로 렌더링 --></div>
+    </div>
+  </div>
+
+  <!-- 채팅 원문 오버레이 -->
+  <div class="transcript-overlay" id="transcriptOverlay" onclick="closeTranscript(event)">
+    <div class="transcript-box" id="transcriptBox">
+      <div class="transcript-box-head">
+        <div>
+          <h3 id="tTitle">채팅 원문</h3>
+          <div class="transcript-box-meta" id="tMeta"></div>
+        </div>
+        <button class="close-btn" onclick="closeTranscript()">✕</button>
+      </div>
+      <div class="transcript-msgs" id="tMsgs"></div>
+    </div>
+  </div>
+
+  <!-- 수집현황 드로어 (채팅 중 항목 수집 상태 표시) -->
+  <div class="collect-drawer" id="collectDrawer">
+    <div class="collect-drawer-inner">
+      <div class="collect-title">📋 상담DB 수집 현황</div>
+
+      <div class="collect-section">
+        <div class="collect-section-label">필수 항목</div>
+        <div class="collect-items" id="collectRequired">
+          <span class="collect-chip pending" id="cc-이름">이름</span>
+          <span class="collect-chip pending" id="cc-연락처">연락처</span>
+          <span class="collect-chip pending" id="cc-설치지역">설치지역</span>
+          <span class="collect-chip pending" id="cc-공간사이즈">공간사이즈</span>
+          <span class="collect-chip pending" id="cc-형태">드레스룸 형태</span>
+          <span class="collect-chip pending" id="cc-접수일시">접수일시</span>
+          <span class="collect-chip pending" id="cc-현재상태">현재상태</span>
+        </div>
+      </div>
+
+      <div class="collect-section">
+        <div class="collect-section-label">선택 항목</div>
+        <div class="collect-items" id="collectOptional">
+          <span class="collect-chip pending" id="cc-추가옵션">추가옵션</span>
+          <span class="collect-chip pending" id="cc-프레임색상">프레임색상</span>
+          <span class="collect-chip pending" id="cc-선반색상">선반색상</span>
+          <span class="collect-chip pending" id="cc-요청사항">요청사항</span>
+          <span class="collect-chip pending" id="cc-개인정보동의">개인정보동의</span>
+        </div>
+      </div>
+
+      <div class="collect-progress">
+        <div class="collect-bar-wrap">
+          <div class="collect-bar" id="collectBar" style="width:0%"></div>
+        </div>
+        <div class="collect-pct" id="collectPct">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 서버 상태 배너 -->
+  <div class="banner" id="banner"></div>
+
+  <!-- 채팅 뷰 -->
+  <div id="chatView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="messages" id="messages">
+      <div class="date-sep" id="dateSep"></div>
+    </div>
+    <div class="quick-area" id="quickArea"></div>
+    <div class="input-bar">
+      <textarea class="inp" id="inp" rows="1"
+        placeholder="여기에 입력해 주세요 (Enter 전송)"></textarea>
+      <button class="send" id="sendBtn" disabled>➤</button>
+    </div>
+  </div>
+
+  <!-- 견적 요청 확인 뷰 (접수 전 고객 확인 단계) -->
+  <div class="confirm-view" id="confirmView">
+    <div class="cv-header">
+      <div class="cv-title">견적 요청 확인</div>
+      <div class="cv-desc">채팅 상담 내용을 바탕으로 자동 정리된 견적 요청서입니다.<br>아래 내용을 확인하신 후 접수를 진행해 주세요.</div>
+    </div>
+    <div class="cv-card" id="confirmCard"></div>
+    <div class="cv-notice">
+      수정이 필요하면 <strong>수정하기</strong>를 눌러주세요.<br>이상이 없으면 <strong>이 내용으로 접수하기</strong>를 눌러주세요.
+    </div>
+    <div class="cv-btns">
+      <button class="cv-btn-edit" onclick="confirmBack()">수정하기</button>
+      <button class="cv-btn-submit" onclick="confirmSubmit()">이 내용으로 접수하기</button>
+    </div>
+  </div>
+
+  <!-- 완료 뷰 (접수 후 결과 화면) -->
+  <div class="done-view" id="doneView">
+    <div class="done-icon">🎉</div>
+    <div class="done-title">접수가 완료되었습니다!</div>
+    <div class="done-sub">담당자가 입력하신 연락처로<br>빠르게 연락 드리겠습니다. 😊</div>
+    <div class="receipt" id="receipt"></div>
+    <button class="btn-new" onclick="newChat()">새 상담 시작하기</button>
+  </div>
+
+</div>
+</div>
+
+<script>
+/* ================================================================
+   설정
+================================================================ */
+const SERVER = 'http://localhost:3001';
+
+/* ================================================================
+   대화 히스토리 (Anthropic API 형식)
+================================================================ */
+let history = [];
+
+/* ================================================================
+   루마네 데모 스크립트 (서버 없을 때 사용)
+   실제 서버 연결 시 Anthropic AI가 대신 응답
+================================================================ */
+const DEMO = [
+  {
+    say: '안녕하세요! 😊\n저는 케이트블랑 드레스룸의 AI 상담원 루마네입니다.\n\n맞춤 드레스룸 견적을 도와드릴게요.\n먼저 성함을 알려주시겠어요?',
+    quick: [],
+  },
+  {
+    say: '감사합니다! 😊\n연락 가능한 전화번호를 알려주시겠어요?',
+    quick: [],
+  },
+  {
+    say: '설치 지역을 알려주세요.\n예) 서울 강남구, 경기 성남시 분당구',
+    quick: [],
+  },
+  {
+    say: '공간 사이즈를 mm 단위로 알려주세요.\n\n가로 / 세로 / 높이 순서로 말씀해 주세요.\n예) 가로 3600, 세로 2400, 높이 2400',
+    quick: [],
+  },
+  {
+    // 형태는 선택지가 정해져 있으므로 버튼 유지 (choice 스타일)
+    say: '원하시는 드레스룸 형태는 어떻게 되세요?',
+    quick: ['1자형', 'ㄱ자형', 'ㄷ자형', '11자형'],
+    choiceStep: true,
+  },
+  {
+    // 추가 옵션 — 직접 입력 유도, 버튼 없음
+    say: '추가 옵션이 필요하신가요?\n아일랜드장, 거울장, 2단서랍장, 3단서랍장, 악세사리장 등을 원하시면 말씀해 주세요.\n필요 없으시면 "없어요"라고 입력해 주시면 됩니다.',
+    quick: [],
+  },
+  {
+    // 프레임 색상 — 직접 입력 유도, 버튼 없음
+    say: '프레임 색상은 어떻게 하시겠어요?\n화이트, 블랙, 실버, 골드 중에서 선택하시거나, 아직 모르시면 "미정"이라고 입력해 주세요.',
+    quick: [],
+  },
+  {
+    // 선반 색상 — 직접 입력 유도, 버튼 없음
+    say: '선반 색상은 어떻게 하시겠어요?\n솔리드화이트, 화이트오크, 스톤그레이, 진그레이, 다크월넛 중에서 선택해 주세요.\n다른 색상을 원하시면 "기타"라고 입력해 주셔도 됩니다.',
+    quick: [],
+  },
+  {
+    // 요청사항 — 자유입력, 버튼 없음
+    say: '특별히 요청하실 사항이 있으신가요?\n없으시면 그냥 "없어요"라고 입력해 주세요.',
+    quick: [],
+  },
+  {
+    // 개인정보동의는 Yes/No 선택이므로 버튼 유지 (choice 스타일)
+    say: '마지막으로 개인정보 수집 및 이용에 동의해 주시겠어요?\n\n수집된 정보는 드레스룸 견적 상담 목적으로만 사용됩니다.',
+    quick: ['동의합니다', '동의하지 않습니다'],
+    choiceStep: true,
+  },
+  {
+    // 수집된 내용을 보여주고 접수 의사를 확인하는 단계
+    // done 플래그 없음 → 버튼 클릭 시 send()에서 pendingConfirm 체크로 처리
+    say: '지금까지 말씀해 주신 내용을 정리했어요 😊\n\n아래 내용으로 견적 접수를 도와드릴까요?',
+    quick: ['네, 접수할게요!', '아니요, 수정할게요'],
+    choiceStep: true,
+    confirmStep: true,   // ← 이 단계에서 "네" 선택 시에만 접수 완료 처리
+  },
+];
+let demoIdx = 0;
+// pendingConfirm: confirmStep 단계에서 고객이 "네" 를 선택할 때까지 접수를 보류
+let pendingConfirm = false;
+
+/* ================================================================
+   DOM
+================================================================ */
+const $msgs        = document.getElementById('messages');
+const $inp         = document.getElementById('inp');
+const $sendBtn     = document.getElementById('sendBtn');
+const $quickArea   = document.getElementById('quickArea');
+const $chatView    = document.getElementById('chatView');
+const $confirmView = document.getElementById('confirmView');   // 견적 요청 확인 화면
+const $confirmCard = document.getElementById('confirmCard');   // 확인 화면 내 카드 영역
+const $doneView    = document.getElementById('doneView');
+const $receipt     = document.getElementById('receipt');
+const $banner      = document.getElementById('banner');
+const $statusTxt   = document.getElementById('statusText');
+const $dateSep     = document.getElementById('dateSep');
+
+/* ================================================================
+   유틸
+================================================================ */
+let serverOnline = null;
+let isLoading    = false;
+
+function nowStr() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+}
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
+}
+function scrollBottom() { $msgs.scrollTop = $msgs.scrollHeight; }
+
+/* ================================================================
+   메시지 추가
+================================================================ */
+function addMsg(role, text) {
+  // JSON 블록 화면에서 숨기기
+  const clean = text.replace(/```json[\s\S]*?```/g, '').trim();
+
+  const row = document.createElement('div');
+  row.className = `row ${role}`;
+
+  if (role === 'bot') {
+    row.innerHTML = `<div class="av">👩‍💼</div>
+      <div class="bubble bot">${esc(clean)}</div>`;
+  } else {
+    row.innerHTML = `<div class="bubble user">${esc(clean)}</div>`;
+  }
+
+  const time = document.createElement('div');
+  time.className = `msg-time ${role}`;
+  time.textContent = nowStr();
+
+  $msgs.appendChild(row);
+  $msgs.appendChild(time);
+  scrollBottom();
+}
+
+/* ================================================================
+   타이핑 인디케이터
+================================================================ */
+function showTyping() {
+  const el = document.createElement('div');
+  el.className = 'typing'; el.id = 'typing';
+  el.innerHTML = `<div class="av">👩‍💼</div>
+    <div class="typing-bubble">
+      <div class="td"></div><div class="td"></div><div class="td"></div>
+    </div>`;
+  $msgs.appendChild(el);
+  scrollBottom();
+}
+function hideTyping() { document.getElementById('typing')?.remove(); }
+
+/* ================================================================
+   퀵 버튼
+   isChoice: true  → .qbtn.choice 스타일 (형태/개인정보동의 등 선택형)
+   isChoice: false → .qbtn 기본 스타일 (힌트/예시용, 흐린 점선)
+================================================================ */
+function setQuick(labels, isChoice = false) {
+  $quickArea.innerHTML = '';
+  if (!labels || labels.length === 0) return;
+
+  // 힌트 라벨 생성
+  const hint = document.createElement('div');
+  hint.className = 'quick-hint-label';
+  hint.textContent = isChoice
+    ? '아래 버튼을 눌러 선택해 주세요'
+    : '💡 예시 — 직접 입력해도 됩니다';
+  $quickArea.appendChild(hint);
+
+  // 버튼 묶음 컨테이너
+  const wrap = document.createElement('div');
+  wrap.className = 'quick-btns';
+
+  labels.forEach(label => {
+    const b = document.createElement('button');
+    b.className = isChoice ? 'qbtn choice' : 'qbtn';
+    b.textContent = label;
+    b.onclick = () => {
+      $inp.value = label;
+      send();
+    };
+    wrap.appendChild(b);
+  });
+
+  $quickArea.appendChild(wrap);
+}
+
+/* ================================================================
+   서버 상태 확인
+================================================================ */
+async function checkServer() {
+  try {
+    const r = await fetch(`${SERVER}/api/health`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    serverOnline = r.ok;
+  } catch {
+    serverOnline = false;
+  }
+
+  if (serverOnline) {
+    $statusTxt.textContent = '온라인';
+    setBanner('ok', '✅ AI 루마네와 실제 연결되었습니다');
+    setTimeout(() => setBanner(null), 2500);
+  } else {
+    $statusTxt.textContent = '데모 모드';
+    setBanner('warn',
+      '⚠️ 서버 미연결 — 데모 모드로 동작 중입니다. ' +
+      'server 폴더에서 npm start 실행 후 새로고침하세요.');
+  }
+}
+
+function setBanner(type, msg='') {
+  $banner.className = 'banner' + (type ? ' ' + type : '');
+  $banner.textContent = msg;
+}
+
+/* ================================================================
+   메시지 전송
+================================================================ */
+async function send() {
+  const text = $inp.value.trim();
+  if (!text || isLoading) return;
+
+  addMsg('user', text);
+  history.push({ role: 'user', content: text });
+  $inp.value = '';
+  autoResize();
+  setQuick([]);
+
+  /* ──────────────────────────────────────────────────────
+     접수 확인 단계: confirmStep에서 고객 응답 처리
+     - "네, 접수할게요" 계열 → 루마네 확인 메시지 후 접수 완료
+     - "수정" 계열 → 루마네가 수정 안내 후 상담 계속
+  ────────────────────────────────────────────────────── */
+  if (pendingConfirm) {
+    // "네" 계열 판단
+    const isYes = /^(네|예|ㅇ|응|맞아|접수|좋아|확인|ok|yes)/i.test(text);
+    const isNo  = /수정|아니|틀|다시|고칠|변경/i.test(text);
+
+    if (isYes) {
+      // 고객이 접수 동의 → 루마네 확인 메시지 표시 후 완료 화면
+      pendingConfirm = false;
+      setLoading(true);
+      await new Promise(r => setTimeout(r, 600));
+      hideTyping();
+      addMsg('bot', '감사합니다! 😊\n지금까지 말씀해 주신 내용을 정리해 드릴게요.\n아래 내용을 한 번 더 확인해 주세요.');
+      history.push({ role: 'assistant', content: '견적 요청 확인 안내' });
+      setLoading(false);
+      // showDone 대신 showConfirm으로 → 고객이 확인 후 접수 결정
+      setTimeout(() => showConfirm({
+        고객정보: extractFromHistory(),
+      }), 1000);
+      return;
+    }
+
+    if (isNo) {
+      // 고객이 수정 요청 → 수정 안내 메시지 후 상담 계속
+      pendingConfirm = false;
+      setLoading(true);
+      await new Promise(r => setTimeout(r, 600));
+      addMsg('bot', '네, 수정하고 싶으신 내용을 말씀해 주세요.\n성함·연락처·사이즈·형태 등 어느 것이든 다시 알려주시면 수정해 드릴게요 😊');
+      history.push({ role: 'assistant', content: '수정 안내' });
+      setLoading(false);
+      return;
+    }
+
+    // "네"도 "수정"도 아닌 애매한 입력 → 다시 확인
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 500));
+    addMsg('bot', '죄송해요, 잘 이해하지 못했어요 😅\n지금 내용으로 접수하시겠어요? 아니면 수정할 부분이 있으신가요?');
+    history.push({ role: 'assistant', content: '재확인 요청' });
+    setQuick(['네, 접수할게요!', '아니요, 수정할게요'], true);
+    setLoading(false);
+    pendingConfirm = true; // 여전히 대기 중
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    let reply, completedQuote;
+
+    if (serverOnline) {
+      /* ── 실제 서버 AI 응답 ──────────────────────── */
+      const res = await fetch(`${SERVER}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || `서버 오류 (${res.status})`);
+      }
+      const data = await res.json();
+      reply         = data.message;
+      completedQuote = data.completedQuote;
+
+    } else {
+      /* ── 데모 응답 (서버 없을 때) ────────────────── */
+      await new Promise(r => setTimeout(r, 700 + Math.random() * 500));
+      const s = DEMO[Math.min(demoIdx, DEMO.length - 1)];
+      demoIdx++;
+
+      // confirmStep: 수집된 내용을 동적으로 요약하여 메시지에 포함
+      if (s.confirmStep) {
+        const summary = buildConfirmSummary();
+        reply = `지금까지 말씀해 주신 내용을 정리했어요 😊\n\n${summary}\n\n위 내용으로 견적 접수를 도와드릴까요?`;
+      } else {
+        reply = s.say;
+      }
+
+      // choiceStep: true → 선택형 버튼(choice 스타일), 아닌 경우 힌트 스타일
+      setQuick(s.quick || [], s.choiceStep === true);
+      history.push({ role: 'assistant', content: reply });
+      addMsg('bot', reply);
+
+      // 수집현황 드로어 업데이트 (데모 진행에 따라 항목 체크)
+      updateCollectDrawer(demoIdx - 1);
+
+      // confirmStep: 이 단계부터는 고객의 명시적 "네" 응답을 기다림
+      if (s.confirmStep) {
+        pendingConfirm = true;
+      }
+
+      setLoading(false);
+      return;
+    }
+
+    history.push({ role: 'assistant', content: reply });
+    addMsg('bot', reply);
+
+    // AI가 퀵 버튼 힌트를 줄 수 있음 (선택지가 포함된 경우 자동 파싱)
+    updateQuickFromText(reply);
+
+    if (completedQuote) {
+      // 서버 응답으로 견적 완성 시에도 확인 화면 먼저 표시
+      setTimeout(() => showConfirm(completedQuote), 1200);
+    }
+
+  } catch (err) {
+    addMsg('bot', `⚠️ 오류가 발생했습니다.\n${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ================================================================
+   AI 응답에서 퀵 버튼 힌트 자동 감지 (실제 서버 연결 시 사용)
+   규칙: 형태 / 개인정보동의 / 최종확인 만 버튼 표시 (choice 스타일)
+   나머지는 버튼 없이 직접 입력 유도
+================================================================ */
+function updateQuickFromText(text) {
+  // 형태 선택 — choice 버튼
+  if (/(드레스룸\s*형태|형태.*어떻게|1자형|ㄱ자형|ㄷ자형|11자형)/.test(text)) {
+    setQuick(['1자형', 'ㄱ자형', 'ㄷ자형', '11자형'], true); return;
+  }
+  // 개인정보 동의 — choice 버튼
+  if (/(개인정보\s*수집|동의해\s*주시겠어요)/.test(text)) {
+    setQuick(['동의합니다', '동의하지 않습니다'], true); return;
+  }
+  // 최종 확인 — choice 버튼
+  if (/(맞으신가요|확인해\s*주시면\s*접수)/.test(text)) {
+    setQuick(['네, 맞아요! 접수해주세요', '수정할 내용이 있어요'], true); return;
+  }
+  // 나머지는 버튼 없음
+  setQuick([]);
+}
+
+/* ================================================================
+   견적 요청 확인 화면 표시 (접수 전 고객 확인 단계)
+   - 채팅으로 수집된 내용을 고객양식처럼 카드에 정리해 보여줌
+   - pendingQuote에 접수 데이터를 임시 보관
+================================================================ */
+let pendingQuote = null;  // 확인 화면에서 잠시 보관할 접수 데이터
+
+function showConfirm(quote) {
+  // 세 화면 중 confirmView만 보이게 전환
+  $chatView.style.display  = 'none';
+  $doneView.classList.remove('show');
+  $confirmView.classList.add('show');
+
+  pendingQuote = quote;  // 나중에 confirmSubmit()에서 사용
+
+  const info   = quote.고객정보 || {};
+  const size   = info.공간사이즈 || {};
+
+  // 공간사이즈 문자열 구성
+  let sizeStr = '-';
+  if (typeof info.공간사이즈 === 'string' && info.공간사이즈) {
+    sizeStr = info.공간사이즈;
+  } else if (size.raw && size.raw !== '-') {
+    sizeStr = size.raw;
+  } else if (size.가로mm && size.가로mm !== '-') {
+    sizeStr = `${size.가로mm} × ${size.세로mm} × ${size.높이mm} mm`;
+  }
+
+  // 추가옵션 문자열
+  const opts = Array.isArray(info.추가옵션)
+    ? info.추가옵션.join(', ')
+    : (info.추가옵션 || null);
+
+  // 행(row) 생성 헬퍼 — 값이 없거나 '-', '없어요'면 생략
+  function cfRow(lbl, val, badgeClass = '') {
+    if (!val || val === '-' || /^없어요$|^없음$/.test(String(val).trim())) return '';
+    const v = badgeClass
+      ? `<span class="rc-val ${badgeClass}">${val}</span>`
+      : `<span class="rc-val">${val}</span>`;
+    return `<div class="rc-row"><span class="rc-lbl">${lbl}</span>${v}</div>`;
+  }
+
+  $confirmCard.innerHTML = `
+    <!-- 카드 헤더: 접수 경로 표시 -->
+    <div class="rc-head">
+      <span class="rc-title">📝 견적 요청서</span>
+      <span style="font-size:12px;color:var(--gray-400);font-weight:500">접수 대기</span>
+    </div>
+
+    <!-- 기본 정보 -->
+    <div class="rc-section">
+      <div class="rc-section-title">기본 정보</div>
+      ${cfRow('이름',     info.이름)}
+      ${cfRow('연락처',   info.연락처)}
+      ${cfRow('설치지역', info.설치지역)}
+    </div>
+
+    <!-- 공간 정보 -->
+    <div class="rc-section">
+      <div class="rc-section-title">공간 정보</div>
+      ${cfRow('공간 사이즈', sizeStr)}
+      ${cfRow('드레스룸 형태', info.형태 || info.공간형태)}
+    </div>
+
+    <!-- 선택 정보 (입력된 것만 표시) -->
+    ${(opts || info.프레임색상 || info.선반색상 || info.요청사항 || info.개인정보동의) ? `
+    <div class="rc-section">
+      <div class="rc-section-title">선택 정보</div>
+      ${cfRow('추가 옵션',   opts)}
+      ${cfRow('프레임 색상', info.프레임색상)}
+      ${cfRow('선반 색상',   info.선반색상)}
+      ${cfRow('요청사항',    info.요청사항)}
+      ${cfRow('첨부파일',    info.첨부파일 || null)}
+      ${cfRow('개인정보 동의', info.개인정보동의)}
+    </div>` : ''}
+
+    <!-- 접수 정보 -->
+    <div class="rc-section">
+      <div class="rc-section-title">접수 정보</div>
+      <div class="rc-row">
+        <span class="rc-lbl">현재 상태</span>
+        <span class="rc-val" style="color:#92400e;background:#fef3c7;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700">접수 대기</span>
+      </div>
+      <div class="rc-row"><span class="rc-lbl">접수 경로</span><span class="rc-val">AI 루마네 채팅상담</span></div>
+      <div class="rc-row"><span class="rc-lbl">안내</span><span class="rc-val" style="font-size:12px;font-weight:500;color:var(--gray-600)">접수 후 담당자가 연락 드립니다</span></div>
+    </div>`;
+}
+
+/* ================================================================
+   견적 요청 확인 화면 → 수정하기 버튼
+   채팅 화면으로 돌아가 수정할 수 있게 전환
+================================================================ */
+function confirmBack() {
+  $confirmView.classList.remove('show');
+  $chatView.style.display = 'flex';
+  pendingQuote = null;
+}
+
+/* ================================================================
+   견적 요청 확인 화면 → 이 내용으로 접수하기 버튼
+   pendingQuote에 접수번호/시간을 채워서 showDone()으로 전달
+================================================================ */
+function confirmSubmit() {
+  if (!pendingQuote) return;
+  $confirmView.classList.remove('show');
+
+  // 접수번호와 접수시간 최종 확정
+  pendingQuote.접수번호 = pendingQuote.접수번호 || ('KB-' + String(Math.floor(Math.random()*9000)+1000));
+  pendingQuote.접수시간 = new Date().toISOString();
+  pendingQuote.상태     = '접수완료';
+
+  showDone(pendingQuote);
+  pendingQuote = null;
+}
+
+/* ================================================================
+   완료 화면 표시 — 상담DB 항목 구조 기반으로 섹션 분리
+================================================================ */
+function showDone(quote) {
+  // 세 화면 모두 정리 후 done-view만 표시
+  $chatView.style.display = 'none';
+  $confirmView.classList.remove('show');
+  $doneView.classList.add('show');
+
+  const info  = quote.고객정보 || {};
+  const size  = info.공간사이즈 || {};
+  const now   = new Date(quote.접수시간 || Date.now()).toLocaleString('ko-KR');
+
+  // 공간사이즈 문자열 (서버 응답 / 데모 모두 대응)
+  let sizeStr = '-';
+  if (typeof info.공간사이즈 === 'string' && info.공간사이즈) {
+    sizeStr = info.공간사이즈;
+  } else if (size.가로mm) {
+    sizeStr = `${size.가로mm} × ${size.세로mm} × ${size.높이mm} mm`;
+  }
+
+  // 선택 항목 (있는 것만 표시)
+  const opts = Array.isArray(info.추가옵션)
+    ? info.추가옵션.join(', ')
+    : (info.추가옵션 || null);
+
+  function rcRow(lbl, val, badge=false) {
+    if (!val || val === '-' || val === '없음') return '';
+    const v = badge
+      ? `<span class="rc-val badge">${val}</span>`
+      : `<span class="rc-val">${val}</span>`;
+    return `<div class="rc-row"><span class="rc-lbl">${lbl}</span>${v}</div>`;
+  }
+
+  $receipt.innerHTML = `
+    <!-- 접수 헤더 -->
+    <div class="rc-head">
+      <span class="rc-title">📋 접수 정보 요약</span>
+      <span class="rc-num">${quote.접수번호 || 'KB-0001'}</span>
+    </div>
+
+    <!-- 필수 항목 -->
+    <div class="rc-section">
+      <div class="rc-section-title">필수 항목</div>
+      ${rcRow('현재상태', '접수완료', true)}
+      ${rcRow('이름',       info.이름)}
+      ${rcRow('연락처',     info.연락처)}
+      ${rcRow('설치지역',   info.설치지역)}
+      ${rcRow('공간사이즈', sizeStr)}
+      ${rcRow('드레스룸 형태', info.형태 || info.공간형태)}
+    </div>
+
+    <!-- 선택 항목 (있는 것만) -->
+    ${(opts || info.프레임색상 || info.선반색상 || info.요청사항) ? `
+    <div class="rc-section">
+      <div class="rc-section-title">선택 항목</div>
+      ${rcRow('추가옵션',   opts)}
+      ${rcRow('프레임색상', info.프레임색상)}
+      ${rcRow('선반색상',   info.선반색상)}
+      ${rcRow('요청사항',   info.요청사항)}
+      ${rcRow('개인정보동의', info.개인정보동의)}
+    </div>` : ''}
+
+    <!-- 시스템/접수 정보 -->
+    <div class="rc-section">
+      <div class="rc-section-title">접수 정보</div>
+      <div class="rc-row"><span class="rc-lbl">접수번호</span><span class="rc-val">${quote.접수번호 || 'KB-0001'}</span></div>
+      <div class="rc-row"><span class="rc-lbl">접수일시</span><span class="rc-val" style="font-size:12px;font-weight:500">${now}</span></div>
+      <div class="rc-row"><span class="rc-lbl">접수경로</span><span class="rc-val">AI 루마네 채팅상담</span></div>
+    </div>`;
+}
+
+/* ================================================================
+   데모 모드용 — 히스토리에서 고객 정보 추출
+   (DEMO 순서대로 사용자 응답을 인덱스로 매핑)
+================================================================ */
+function extractFromHistory() {
+  const userMsgs = history.filter(m => m.role === 'user').map(m => m.content);
+  return {
+    이름:       userMsgs[0] || '-',
+    연락처:     userMsgs[1] || '-',
+    설치지역:   userMsgs[2] || '-',
+    공간사이즈: { 가로mm: '-', 세로mm: '-', 높이mm: '-', raw: userMsgs[3] || '-' },
+    형태:       userMsgs[4] || '-',
+    추가옵션:   userMsgs[5] || '-',
+    프레임색상: userMsgs[6] || '-',
+    선반색상:   userMsgs[7] || '-',
+    요청사항:   userMsgs[8] || '-',
+    개인정보동의: userMsgs[9] || '-',
+  };
+}
+
+/* ================================================================
+   confirmStep용 — 수집 내용을 텍스트로 요약 (채팅 말풍선에 표시)
+================================================================ */
+function buildConfirmSummary() {
+  const info = extractFromHistory();
+  const lines = [
+    `👤 성함: ${info.이름}`,
+    `📞 연락처: ${info.연락처}`,
+    `📍 설치지역: ${info.설치지역}`,
+    `📐 공간사이즈: ${info.공간사이즈.raw}`,
+    `🪞 드레스룸 형태: ${info.형태}`,
+  ];
+  if (info.추가옵션 && info.추가옵션 !== '-' && !/없어요|없음/i.test(info.추가옵션)) {
+    lines.push(`✨ 추가옵션: ${info.추가옵션}`);
+  }
+  if (info.프레임색상 && info.프레임색상 !== '-') {
+    lines.push(`🎨 프레임색상: ${info.프레임색상}`);
+  }
+  if (info.선반색상 && info.선반색상 !== '-') {
+    lines.push(`🎨 선반색상: ${info.선반색상}`);
+  }
+  if (info.요청사항 && info.요청사항 !== '-' && !/없어요|없음/i.test(info.요청사항)) {
+    lines.push(`📝 요청사항: ${info.요청사항}`);
+  }
+  return lines.join('\n');
+}
+
+/* ================================================================
+   이전 상담 이력 목업 데이터
+   (실제 서비스에서는 서버/DB에서 고객 식별 후 불러옴)
+================================================================ */
+const MOCK_PREV_HISTORY = [
+  {
+    세션ID: 'KB-S-2025-1215-01',
+    시작일시: '2025년 12월 15일 오후 2:23',
+    종료일시: '2025년 12월 15일 오후 2:31',
+    마지막상담일시: '2025년 12월 15일',
+    요약: '강남구 아파트 ㄱ자형 드레스룸 상담. 가로 3200mm 공간, 거울장·2단서랍장 옵션 희망, 화이트오크 선반 선호로 견적 접수 완료.',
+    재상담여부: false,
+    상담이력개수: 1,
+    주요항목: {
+      이름: '이서연',
+      지역: '서울 강남구',
+      형태: 'ㄱ자형',
+      공간: '3200 × 2800 × 2400 mm',
+      프레임: '화이트',
+      선반: '화이트오크',
+      옵션: '거울장, 2단서랍장',
+    },
+    마지막질문: '선반 색상은 어떻게 하시겠어요?',
+    마지막답변: '화이트오크로 할게요',
+    // 메시지목록 (채팅 원문 재현용)
+    메시지목록: [
+      { role:'bot',  content:'안녕하세요! 😊 저는 케이트블랑 드레스룸의 AI 상담원 루마네입니다.\n맞춤 드레스룸 견적을 도와드릴게요.\n먼저 성함을 알려주시겠어요?', time:'14:23' },
+      { role:'user', content:'이서연이에요', time:'14:23' },
+      { role:'bot',  content:'반갑습니다, 이서연님! 😊\n연락 가능한 전화번호를 알려주시겠어요?', time:'14:24' },
+      { role:'user', content:'010-1234-5678', time:'14:24' },
+      { role:'bot',  content:'설치 지역을 알려주세요.\n예) 서울 강남구, 경기 성남시 분당구', time:'14:24' },
+      { role:'user', content:'서울 강남구요', time:'14:25' },
+      { role:'bot',  content:'공간 사이즈를 mm 단위로 알려주세요.\n가로 / 세로 / 높이 순서로 말씀해 주세요.\n예) 가로 3600, 세로 2400, 높이 2400', time:'14:25' },
+      { role:'user', content:'가로 3200, 세로 2800, 높이 2400이에요', time:'14:26' },
+      { role:'bot',  content:'원하시는 드레스룸 형태는 어떻게 되세요?', time:'14:26' },
+      { role:'user', content:'ㄱ자형이요', time:'14:27' },
+      { role:'bot',  content:'추가 옵션이 필요하신가요?\n원하시는 항목을 말씀해 주세요 😊', time:'14:27' },
+      { role:'user', content:'거울장이랑 2단서랍장 넣고 싶어요', time:'14:28' },
+      { role:'bot',  content:'프레임 색상은 어떻게 하시겠어요?', time:'14:28' },
+      { role:'user', content:'화이트로 해주세요', time:'14:29' },
+      { role:'bot',  content:'선반 색상은 어떻게 하시겠어요?', time:'14:30' },
+      { role:'user', content:'화이트오크로 할게요', time:'14:30' },
+      { role:'bot',  content:'마지막으로 개인정보 수집 및 이용에 동의해 주시겠어요?\n수집된 정보는 드레스룸 견적 상담 목적으로만 사용됩니다.', time:'14:30' },
+      { role:'user', content:'동의합니다', time:'14:31' },
+      { role:'bot',  content:'감사합니다! 이서연님의 견적 접수가 완료되었습니다. 😊\n담당자가 빠른 시일 내에 연락 드리겠습니다.', time:'14:31' },
+    ],
+  },
+  {
+    세션ID: 'KB-S-2026-0110-02',
+    시작일시: '2026년 1월 10일 오전 11:05',
+    종료일시: '2026년 1월 10일 오전 11:12',
+    마지막상담일시: '2026년 1월 10일',
+    요약: '재상담 — 공간 사이즈 변경 문의. 가로를 3200mm에서 3600mm로 조정 희망. 아일랜드장 추가 의사 있음.',
+    재상담여부: true,
+    상담이력개수: 2,
+    주요항목: {
+      이름: '이서연',
+      지역: '서울 강남구',
+      형태: 'ㄱ자형',
+      공간: '3600 × 2800 × 2400 mm (변경)',
+      옵션: '거울장, 2단서랍장, 아일랜드장(추가)',
+    },
+    마지막질문: '아일랜드장 추가하는 방향으로 설계를 수정해 드릴까요?',
+    마지막답변: '네, 그렇게 해주세요',
+    메시지목록: [
+      { role:'bot',  content:'안녕하세요, 이서연님! 😊 이전에 상담하셨던 내용이 있네요.\n변경하실 내용이 있으신가요?', time:'11:05' },
+      { role:'user', content:'네, 사이즈를 좀 바꾸고 싶어요. 가로를 3600으로 하려고요', time:'11:06' },
+      { role:'bot',  content:'알겠습니다! 가로를 3200mm에서 3600mm로 변경하는 것이 맞을까요?', time:'11:06' },
+      { role:'user', content:'맞아요. 그리고 아일랜드장도 추가하고 싶어요', time:'11:07' },
+      { role:'bot',  content:'아일랜드장을 추가하는 방향으로 설계를 수정해 드릴까요?', time:'11:07' },
+      { role:'user', content:'네, 그렇게 해주세요', time:'11:08' },
+      { role:'bot',  content:'변경 내용을 담당자에게 전달하겠습니다. 빠른 시일 내에 연락 드리겠습니다. 😊', time:'11:12' },
+    ],
+  },
+];
+
+/* ================================================================
+   이전 상담 드로어 토글 & 렌더링
+================================================================ */
+function toggleHistory() {
+  const drawer = document.getElementById('historyDrawer');
+  const isOpen = drawer.classList.contains('open');
+
+  // 이전상담 열 때 수집현황은 닫기 (UI 정리)
+  if (!isOpen) {
+    document.getElementById('collectDrawer').classList.remove('open');
+  }
+  drawer.classList.toggle('open');
+
+  // 처음 열릴 때 목록 렌더링
+  if (!isOpen) renderHistoryList();
+}
+
+function renderHistoryList() {
+  const container = document.getElementById('historyList');
+  const list = MOCK_PREV_HISTORY;
+
+  document.getElementById('historyCountBadge').textContent = list.length + '건';
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px">이전 상담 내역이 없습니다</div>`;
+    return;
+  }
+
+  container.innerHTML = list.map((s, i) => `
+    <div class="history-session">
+      <div class="history-session-head">
+        <span class="hs-num">${i + 1}회차</span>
+        <span class="hs-date">${s.마지막상담일시}</span>
+        <span class="hs-sid">${s.세션ID}</span>
+        ${s.재상담여부 ? '<span class="hs-rebadge">재상담</span>' : ''}
+      </div>
+      <div class="history-session-body">
+        <div class="hs-summary">${s.요약}</div>
+        <div class="hs-tags">
+          ${Object.entries(s.주요항목 || {}).map(([k,v]) =>
+            `<span class="hs-tag">${k}: ${v}</span>`
+          ).join('')}
+        </div>
+        <div class="hs-last">
+          <b>마지막 질문:</b> ${s.마지막질문}<br>
+          <b>마지막 답변:</b> ${s.마지막답변}
+        </div>
+      </div>
+      <div class="hs-btns">
+        <button class="hs-btn outline" onclick="showTranscript(${i})">💬 원문 보기</button>
+        <button class="hs-btn primary" onclick="continueFromHistory(${i})">이어서 상담하기 →</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ================================================================
+   채팅 원문 오버레이 열기/닫기
+================================================================ */
+function showTranscript(idx) {
+  const s = MOCK_PREV_HISTORY[idx];
+  if (!s) return;
+
+  document.getElementById('tTitle').textContent = `채팅 원문 — ${s.세션ID}`;
+  document.getElementById('tMeta').textContent =
+    `${s.시작일시} ~ ${s.종료일시}  |  ${s.메시지목록.length}개 메시지`;
+
+  const msgs = document.getElementById('tMsgs');
+  msgs.innerHTML = s.메시지목록.map(m => `
+    <div class="t-row ${m.role}">
+      ${m.role === 'bot' ? '<div class="t-av">👩‍💼</div>' : ''}
+      <div class="t-bubble ${m.role}">${esc(m.content)}</div>
+    </div>
+    <div class="t-time ${m.role}">${m.time || ''}</div>
+  `).join('');
+
+  document.getElementById('transcriptOverlay').classList.add('open');
+  // 메시지 스크롤 맨 위
+  msgs.scrollTop = 0;
+}
+
+function closeTranscript(e) {
+  if (e && e.target !== document.getElementById('transcriptOverlay')) return;
+  document.getElementById('transcriptOverlay').classList.remove('open');
+}
+
+/* ================================================================
+   이전 상담에서 이어서 — 목업 (실제 구현 시 고객 식별 후 이전 정보 자동 채우기)
+================================================================ */
+function continueFromHistory(idx) {
+  const s = MOCK_PREV_HISTORY[idx];
+  document.getElementById('historyDrawer').classList.remove('open');
+  // 목업: 이전 정보를 채팅창 첫 메시지에 언급하는 방식으로 표현
+  setTimeout(() => {
+    addMsg('bot',
+      `이전 상담 내역이 있습니다 😊\n\n` +
+      `📅 마지막 상담: ${s.마지막상담일시}\n` +
+      `📍 ${s.주요항목.지역 || '-'} · ${s.주요항목.형태 || '-'}\n\n` +
+      `이전에 상담하셨던 내용을 바탕으로 이어서 진행할까요?\n변경하실 내용이 있으시면 말씀해 주세요!`
+    );
+  }, 400);
+}
+
+/* ================================================================
+   수집현황 드로어 토글
+================================================================ */
+function toggleCollect() {
+  const drawer = document.getElementById('collectDrawer');
+  const isOpen = drawer.classList.contains('open');
+  // 수집현황 열 때 이전상담은 닫기
+  if (!isOpen) {
+    document.getElementById('historyDrawer').classList.remove('open');
+  }
+  drawer.classList.toggle('open');
+}
+
+/* ================================================================
+   수집현황 업데이트 (데모 스크립트 진행에 따라)
+   demoIdx = 루마네가 몇 번째 질문까지 했는지
+================================================================ */
+// 데모 단계별로 어떤 항목이 수집됐는지 매핑
+const COLLECT_MAP = {
+  1:  ['이름'],
+  2:  ['이름', '연락처'],
+  3:  ['이름', '연락처', '설치지역'],
+  4:  ['이름', '연락처', '설치지역', '공간사이즈'],
+  5:  ['이름', '연락처', '설치지역', '공간사이즈', '형태'],
+  6:  ['이름', '연락처', '설치지역', '공간사이즈', '형태', '추가옵션'],
+  7:  ['이름', '연락처', '설치지역', '공간사이즈', '형태', '추가옵션', '프레임색상'],
+  8:  ['이름', '연락처', '설치지역', '공간사이즈', '형태', '추가옵션', '프레임색상', '선반색상'],
+  9:  ['이름', '연락처', '설치지역', '공간사이즈', '형태', '추가옵션', '프레임색상', '선반색상', '요청사항'],
+  10: ['이름', '연락처', '설치지역', '공간사이즈', '형태', '추가옵션', '프레임색상', '선반색상', '요청사항', '개인정보동의'],
+  11: ['이름', '연락처', '설치지역', '공간사이즈', '형태', '추가옵션', '프레임색상', '선반색상', '요청사항', '개인정보동의', '접수일시', '현재상태'],
+};
+
+// 전체 수집 대상 항목 수
+const TOTAL_ITEMS = 12; // 필수 7 + 선택 5
+
+function updateCollectDrawer(idx) {
+  const done = COLLECT_MAP[Math.min(idx, 11)] || [];
+  const allChips = document.querySelectorAll('.collect-chip');
+  allChips.forEach(chip => {
+    const key = chip.id.replace('cc-', '');
+    if (done.includes(key)) {
+      chip.className = 'collect-chip done';
+    } else {
+      chip.className = 'collect-chip pending';
+    }
+  });
+
+  // 진행률 바 업데이트
+  const pct = Math.round((done.length / TOTAL_ITEMS) * 100);
+  document.getElementById('collectBar').style.width = pct + '%';
+  document.getElementById('collectPct').textContent = pct + '%';
+
+  // 수집현황 버튼에 진행 표시
+  const btn = document.getElementById('collectBtn');
+  btn.textContent = `📋 ${done.length}/${TOTAL_ITEMS}`;
+
+  // 완료되면 자동으로 드로어 열기
+  if (done.length >= TOTAL_ITEMS) {
+    document.getElementById('collectDrawer').classList.add('open');
+  }
+}
+
+/* ================================================================
+   새 상담
+================================================================ */
+function newChat() {
+  history = [];
+  demoIdx = 0;
+  pendingConfirm = false;  // 확인 대기 상태 초기화
+  pendingQuote   = null;   // 임시 견적 데이터 초기화
+  $msgs.innerHTML = '';
+  $quickArea.innerHTML = '';
+  $confirmView.classList.remove('show');  // 확인 화면 숨기기
+  $doneView.classList.remove('show');
+  $chatView.style.display = 'flex';
+
+  // 수집현황 초기화
+  updateCollectDrawer(0);
+  document.getElementById('collectDrawer').classList.remove('open');
+  document.getElementById('collectBtn').textContent = '📋 수집현황';
+
+  const sep = document.createElement('div');
+  sep.className = 'date-sep';
+  sep.textContent = todayStr();
+  $msgs.appendChild(sep);
+
+  greet();
+}
+
+/* ================================================================
+   루마네 첫 인사
+================================================================ */
+function greet() {
+  if (serverOnline) {
+    // 서버 연결 시: 빈 메시지로 첫 인사 요청
+    setLoading(true);
+    fetch(`${SERVER}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [] }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      const reply = data.message;
+      history.push({ role: 'assistant', content: reply });
+      addMsg('bot', reply);
+      setLoading(false);
+    })
+    .catch(() => {
+      // 서버 오류 시 데모로 fallback
+      serverOnline = false;
+      demoGreet();
+    });
+  } else {
+    demoGreet();
+  }
+}
+
+function demoGreet() {
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    const s = DEMO[demoIdx++];
+    history.push({ role: 'assistant', content: s.say });
+    addMsg('bot', s.say);
+    // 첫 인사말은 선택 버튼 없음
+    setQuick(s.quick || [], s.choiceStep === true);
+    setLoading(false);
+  }, 800);
+}
+
+/* ================================================================
+   로딩 상태
+================================================================ */
+function setLoading(val) {
+  isLoading = val;
+  $inp.disabled   = val;
+  $sendBtn.disabled = val || !$inp.value.trim();
+  if (val) showTyping(); else hideTyping();
+}
+
+/* ================================================================
+   입력창 편의
+================================================================ */
+function autoResize() {
+  $inp.style.height = 'auto';
+  $inp.style.height = Math.min($inp.scrollHeight, 120) + 'px';
+}
+
+$inp.addEventListener('input', () => {
+  autoResize();
+  $sendBtn.disabled = isLoading || !$inp.value.trim();
+});
+
+$inp.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+$sendBtn.addEventListener('click', send);
+
+/* ================================================================
+   초기화
+================================================================ */
+$dateSep.textContent = todayStr();
+
+(async () => {
+  await checkServer();
+  greet();
+})();
+</script>
+</body>
+</html>
