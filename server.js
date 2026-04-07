@@ -139,6 +139,68 @@ app.get('/api/conversations', async (req, res) => {
   }
 });
 
+// ── 상담 요약 저장 API ─────────────────────────────────────────
+// chat.html에서 "상담 저장" 버튼 클릭 시 호출
+// Claude가 대화 내용을 분석해서 기획서 항목대로 자동 추출 후 Supabase 저장
+app.post('/api/summarize', async (req, res) => {
+  const { messages } = req.body;
+
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages 배열이 필요합니다.' });
+  }
+
+  try {
+    // Claude에게 대화 내용 분석 요청
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: `당신은 시스템행거 상담 대화를 분석해서 고객 정보를 JSON으로 추출하는 역할입니다.
+아래 형식의 JSON만 반환하세요. 대화에서 확인되지 않은 항목은 null로 표시하세요.
+{
+  "이름": null,
+  "연락처": null,
+  "설치지역": null,
+  "공간가로mm": null,
+  "공간세로mm": null,
+  "공간높이mm": null,
+  "공간형태": null,
+  "추가옵션": null,
+  "프레임색상": null,
+  "선반색상": null,
+  "요청사항": null,
+  "개인정보동의": null,
+  "상담요약": "한 문장으로 요약"
+}`,
+      messages: [
+        {
+          role: 'user',
+          content: `다음 상담 대화를 분석해서 JSON으로 추출해주세요:\n\n${messages.map(m => `${m.role === 'user' ? '고객' : '루마네'}: ${m.content}`).join('\n')}`,
+        },
+      ],
+    });
+
+    const raw = response.content[0].text;
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const summary = jsonMatch ? JSON.parse(jsonMatch[0]) : { 상담요약: raw };
+
+    // Supabase에 대화 전체 + 요약 저장
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert([{ messages, summary }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    console.log(`✅ 상담 저장됨: ID ${data.id} / 고객: ${summary.이름 || '미확인'}`);
+    res.json({ success: true, id: data.id, summary });
+
+  } catch (err) {
+    console.error('❌ 상담 요약 오류:', err.message);
+    res.status(500).json({ error: '저장 중 오류가 발생했습니다.' });
+  }
+});
+
 // ── 서버 시작 ─────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ 루마네 서버 실행 중: http://localhost:${PORT}`);

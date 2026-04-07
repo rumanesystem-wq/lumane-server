@@ -549,6 +549,22 @@
     }
     .h-collect-btn:hover { background: rgba(255,255,255,.28); }
 
+    /* ── 상담 저장 버튼 ──────────────────────────── */
+    .h-save-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 11px;
+      background: rgba(255,220,100,.25);
+      border: 1.5px solid rgba(255,220,100,.6);
+      border-radius: 16px;
+      color: var(--white);
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .h-save-btn:hover { background: rgba(255,220,100,.4); }
+    .h-save-btn:disabled { opacity: .5; cursor: not-allowed; }
+
     .collect-drawer {
       background: var(--white);
       border-bottom: 2px solid var(--purple-pale);
@@ -643,6 +659,10 @@
     <!-- 수집현황 토글 버튼 -->
     <button class="h-collect-btn" onclick="toggleCollect()" id="collectBtn">
       📋 수집현황
+    </button>
+    <!-- 상담 저장 버튼 -->
+    <button class="h-save-btn" onclick="saveConversation()" id="saveBtn">
+      💾 상담저장
     </button>
   </header>
 
@@ -1708,6 +1728,41 @@ $dateSep.textContent = todayStr();
   await checkServer();
   greet();
 })();
+
+// ── 상담 저장 ──────────────────────────────────────────────────
+async function saveConversation() {
+  if (messages.length === 0) {
+    alert('저장할 대화 내용이 없습니다.');
+    return;
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 저장 중…';
+
+  try {
+    const res = await fetch(`${SERVER}/api/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      btn.textContent = '✅ 저장완료';
+      const s = data.summary;
+      alert(`상담이 저장되었습니다!\n\n고객: ${s.이름 || '미확인'}\n연락처: ${s.연락처 || '미확인'}\n지역: ${s.설치지역 || '미확인'}\n요약: ${s.상담요약 || ''}`);
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (err) {
+    console.error('저장 오류:', err);
+    alert('저장 중 오류가 발생했습니다.');
+    btn.disabled = false;
+    btn.textContent = '💾 상담저장';
+  }
+}
 </script>
 </body>
 </html>
