@@ -5,187 +5,216 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none';">
-  <title>드레스룸 평면도 예시</title>
+  <title>드레스룸 평면도</title>
   <style>
-    body { background: #f0f0f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
-    .wrap { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,.12); max-width: 620px; width: 100%; box-sizing: border-box; }
-    h1 { font-size: 13px; color: #444; margin: 0 0 14px; text-align: center; font-weight: normal; }
-    svg { width: 100%; height: auto; display: block; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif; }
+    body {
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    }
+    .wrap {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12);
+      max-width: 640px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    h1 {
+      font-size: 13px;
+      color: #444;
+      margin: 0 0 14px;
+      text-align: center;
+      font-weight: normal;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif;
+    }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>케이트블랑 드레스룸 평면도 — ㄷ자 (3000+2000+2100) · 3단서랍장 · 거울장</h1>
+  <h1>케이트블랑 드레스룸 평면도 — ㄷ자 (3000+2000+2100mm) · 3단서랍장 · 거울장</h1>
 
-  <svg viewBox="0 0 520 250"
-       role="img"
-       aria-labelledby="fp-title fp-desc">
+  <!--
+    ===== 좌표 기준 (축척 1:20) =====
+    벽체 두께: 7px = 140mm
+    가구 깊이: 28px = 560mm
 
+    뒷벽 내면: y=35   좌측벽 내면: x=59   우측벽 내면: x=159
+    좌측벽 내부 길이: 150px = 3000mm  (y=35 ~ 185)
+    뒷벽 내부 폭:     100px = 2000mm  (x=59 ~ 159)
+    우측벽 내부 길이: 105px = 2100mm  (y=35 ~ 140)
+
+    좌측 가구: x=59~87 (깊이 28px)
+    뒷벽 가구: y=35~63 (깊이 28px)
+    우측 가구: x=131~159 (깊이 28px)
+
+    좌측벽 유닛 (3000mm = 4×560 + 760서랍장 = 4×28 + 38 = 150px):
+      Unit1 560mm y=35~63, Unit2 560mm y=63~91, Unit3 560mm y=91~119
+      3단서랍장 760mm y=119~157, Unit5 560mm y=157~185
+
+    우측벽 유닛 (2100mm = 600거울장 + 3×500 = 30 + 3×25 = 105px):
+      거울장 600mm y=35~65, Unit2 500mm y=65~90
+      Unit3 500mm y=90~115, Unit4 500mm y=115~140
+
+    뒷벽 가시 중앙 (코너 제외 x=87~131 = 44px = 880mm):
+      중앙1 440mm x=87~109, 중앙2 440mm x=109~131
+  -->
+
+  <svg viewBox="0 0 520 250" role="img" aria-labelledby="fp-title fp-desc">
     <title id="fp-title">케이트블랑 드레스룸 평면도</title>
     <desc id="fp-desc">ㄷ자형 드레스룸. 좌측 3000mm, 뒷벽 2000mm, 우측 2100mm. 3단서랍장, 거울장 포함. 축척 1:20.</desc>
 
     <!-- 배경 -->
     <rect width="520" height="250" fill="#f5f5f5" rx="8"/>
 
-    <!-- 제목 -->
-    <text x="260" y="16" text-anchor="middle" font-size="10" font-weight="bold" fill="#222">케이트블랑 드레스룸 평면도 (1:20)</text>
-
-    <!--
-      ===== 좌표 기준 =====
-      좌측벽 내면: x=59  우측벽 내면: x=159  내부 폭=100px=2000mm
-      뒷벽 내면: y=35  좌측벽 내부 높이: 150px=3000mm (y=35~185)
-      우측벽 내부 높이: 105px=2100mm (y=35~140)
-      가구 깊이: 28px=560mm
-        좌측 가구: x=59~87   뒷벽 가구: y=35~63   우측 가구: x=131~159
-    -->
+    <!-- 도면 제목 -->
+    <text x="105" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="#222">케이트블랑 드레스룸 평면도 (1:20)</text>
 
     <!-- ===== 벽체 ===== -->
-    <rect x="52" y="28" width="114" height="7" fill="#2c2c2c"/>  <!-- 뒷벽 (x=52~166) -->
-    <rect x="52" y="28" width="7"   height="157" fill="#2c2c2c"/> <!-- 좌측벽 (y=28~185) -->
-    <rect x="159" y="28" width="7"  height="112" fill="#2c2c2c"/> <!-- 우측벽 (y=28~140) -->
+    <!-- 뒷벽: x=52~166, y=28~35 -->
+    <rect x="52" y="28" width="114" height="7" fill="#2c2c2c"/>
+    <!-- 좌측벽: x=52~59, y=28~185 -->
+    <rect x="52" y="28" width="7" height="157" fill="#2c2c2c"/>
+    <!-- 우측벽: x=159~166, y=28~140 -->
+    <rect x="159" y="28" width="7" height="112" fill="#2c2c2c"/>
 
-    <!-- ===== 뒷벽 가구 (전체 폭, 먼저 그린 후 좌·우측 가구가 코너 덮음) ===== -->
-    <!-- x=59~159, y=35~63 (28px 깊이) — 중앙 표시 구역: x=87~131 -->
-    <rect x="59" y="35" width="100" height="28" fill="white" stroke="#333" stroke-width="0.8"/>
-    <!-- 중앙 구분선 -->
-    <line x1="109" y1="35" x2="109" y2="63" stroke="#333" stroke-width="0.7"/>
-    <!-- 뒷벽 기둥 (벽 안쪽, 경계마다) -->
-    <rect x="85" y="32" width="5" height="3" fill="white" stroke="#333" stroke-width="0.7"/> <!-- x=87 경계 -->
-    <rect x="107" y="32" width="5" height="3" fill="white" stroke="#333" stroke-width="0.7"/> <!-- x=109 경계 -->
-    <rect x="129" y="32" width="5" height="3" fill="white" stroke="#333" stroke-width="0.7"/> <!-- x=131 경계 -->
+    <!-- ===== 뒷벽 가구 (먼저 그림 — 코너는 좌·우 가구에 덮임) ===== -->
+    <!-- 좌측 코너 구역 (x=59~87): 좌측 가구에 가려짐 -->
+    <rect x="59" y="35" width="28" height="28" fill="#e0e0e0" stroke="#bbb" stroke-width="0.5"/>
+    <!-- 중앙 유닛 1 (x=87~109, 22px=440mm) -->
+    <rect x="87" y="35" width="22" height="28" fill="white" stroke="#555" stroke-width="0.8"/>
+    <text x="98" y="47" text-anchor="middle" font-size="4.5" fill="#555">440</text>
+    <text x="98" y="55" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- 중앙 유닛 2 (x=109~131, 22px=440mm) -->
+    <rect x="109" y="35" width="22" height="28" fill="white" stroke="#555" stroke-width="0.8"/>
+    <text x="120" y="47" text-anchor="middle" font-size="4.5" fill="#555">440</text>
+    <text x="120" y="55" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- 우측 코너 구역 (x=131~159): 우측 가구에 가려짐 -->
+    <rect x="131" y="35" width="28" height="28" fill="#e0e0e0" stroke="#bbb" stroke-width="0.5"/>
 
-    <!-- ===== 좌측벽 가구 (코너 포함, 뒷벽 위에 덮어 그림) ===== -->
-    <!-- 좌측 Unit 1: 560mm=28px, y=35~63 -->
+    <!-- ===== 좌측벽 가구 (3000mm = 4×560 + 760서랍장 = 150px) ===== -->
+    <!-- Unit 1: 560mm = 28px (y=35~63) -->
     <rect x="59" y="35" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
-    <!-- 좌측 Unit 2: 560mm=28px, y=63~91 -->
+    <text x="73" y="47" text-anchor="middle" font-size="4.5" fill="#555">560</text>
+    <text x="73" y="55" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- Unit 2: 560mm = 28px (y=63~91) -->
     <rect x="59" y="63" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
-    <!-- 좌측 Unit 3: 560mm=28px, y=91~119 -->
+    <text x="73" y="75" text-anchor="middle" font-size="4.5" fill="#555">560</text>
+    <text x="73" y="83" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- Unit 3: 560mm = 28px (y=91~119) -->
     <rect x="59" y="91" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
-    <!-- 좌측 Unit 4: 560mm=28px, y=119~147 -->
-    <rect x="59" y="119" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
-    <!-- 좌측 Unit 5: 760mm=38px 3단서랍장, y=147~185 (노란색) -->
-    <rect x="59" y="147" width="28" height="38" fill="#fbbf24" stroke="#d97706" stroke-width="1.2"/>
-    <line x1="59" y1="160" x2="87" y2="160" stroke="#333" stroke-width="0.6"/>
-    <line x1="59" y1="173" x2="87" y2="173" stroke="#333" stroke-width="0.6"/>
-
+    <text x="73" y="103" text-anchor="middle" font-size="4.5" fill="#555">560</text>
+    <text x="73" y="111" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- Unit 4: 3단서랍장 760mm = 38px (y=119~157) — 노란색 -->
+    <rect x="59" y="119" width="28" height="38" fill="#fef08a" stroke="#ca8a04" stroke-width="1.2"/>
+    <line x1="59" y1="132" x2="87" y2="132" stroke="#ca8a04" stroke-width="0.6"/>
+    <line x1="59" y1="145" x2="87" y2="145" stroke="#ca8a04" stroke-width="0.6"/>
+    <text x="73" y="130" text-anchor="middle" font-size="5" font-weight="bold" fill="#92400e">760</text>
+    <text x="73" y="140" text-anchor="middle" font-size="3.8" fill="#92400e">3단서랍장</text>
+    <!-- Unit 5: 560mm = 28px (y=157~185) -->
+    <rect x="59" y="157" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
+    <text x="73" y="169" text-anchor="middle" font-size="4.5" fill="#555">560</text>
+    <text x="73" y="177" text-anchor="middle" font-size="4" fill="#888">상하</text>
     <!-- 좌측 기둥 (벽 내면 x=56, 경계마다) -->
-    <rect x="56" y="35"  width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="56" y="63"  width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="56" y="91"  width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="56" y="119" width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="56" y="147" width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="56" y="180" width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
+    <rect x="56" y="35"  width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="56" y="63"  width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="56" y="91"  width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="56" y="119" width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="56" y="157" width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="56" y="185" width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
 
-    <!-- 좌측 유닛 레이블 -->
-    <text x="73" y="47" text-anchor="middle" font-size="5"   fill="#444">560</text>
-    <text x="73" y="55" text-anchor="middle" font-size="4"   fill="#888">상하</text>
-    <text x="73" y="75" text-anchor="middle" font-size="5"   fill="#444">560</text>
-    <text x="73" y="83" text-anchor="middle" font-size="4"   fill="#888">상하</text>
-    <text x="73" y="103" text-anchor="middle" font-size="5"  fill="#444">560</text>
-    <text x="73" y="111" text-anchor="middle" font-size="4"  fill="#888">상하</text>
-    <text x="73" y="131" text-anchor="middle" font-size="5"  fill="#444">560</text>
-    <text x="73" y="139" text-anchor="middle" font-size="4"  fill="#888">상하</text>
-    <text x="73" y="161" text-anchor="middle" font-size="5"  font-weight="bold" fill="#1a1a1a">760</text>
-    <text x="73" y="170" text-anchor="middle" font-size="4"  fill="#1a1a1a">3단서랍장</text>
-
-    <!-- ===== 뒷벽 중앙 레이블 (코너 제외 가시 영역: x=87~131) ===== -->
-    <!-- 좌 중앙 유닛 (x=87~109, 중심 x=98) -->
-    <text x="98" y="47" text-anchor="middle" font-size="4.5" fill="#444">~440</text>
-    <text x="98" y="54" text-anchor="middle" font-size="4"   fill="#888">상하</text>
-    <!-- 우 중앙 유닛 (x=109~131, 중심 x=120) -->
-    <text x="120" y="47" text-anchor="middle" font-size="4.5" fill="#444">~440</text>
-    <text x="120" y="54" text-anchor="middle" font-size="4"   fill="#888">상하</text>
-
-    <!-- ===== 우측벽 가구 (코너 포함, 뒷벽 위에 덮어 그림) ===== -->
-    <!-- 우측 Unit 1: 570mm=28px, y=35~63 -->
-    <rect x="131" y="35" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
-    <!-- 우측 Unit 2: 352mm 거울장=18px, y=63~81 (노란색) -->
-    <rect x="131" y="63" width="28" height="18" fill="#fbbf24" stroke="#d97706" stroke-width="1.2"/>
-    <line x1="131" y1="63" x2="159" y2="81" stroke="#555" stroke-width="0.6" opacity="0.5"/>
-    <line x1="159" y1="63" x2="131" y2="81" stroke="#555" stroke-width="0.6" opacity="0.5"/>
-    <!-- 우측 Unit 3: 570mm=28px, y=81~109 -->
-    <rect x="131" y="81" width="28" height="28" fill="white" stroke="#333" stroke-width="1"/>
-    <!-- 우측 Unit 4: ~620mm=31px, y=109~140 -->
-    <rect x="131" y="109" width="28" height="31" fill="white" stroke="#333" stroke-width="1"/>
-
-    <!-- 우측 기둥 (가구 우측면 x=156, 경계마다) -->
-    <rect x="156" y="35"  width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="156" y="63"  width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="156" y="81"  width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="156" y="109" width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="156" y="135" width="3" height="5" fill="white" stroke="#333" stroke-width="0.7"/>
-
-    <!-- 우측 유닛 레이블 -->
-    <text x="145" y="47"  text-anchor="middle" font-size="5"  fill="#444">560</text>
-    <text x="145" y="55"  text-anchor="middle" font-size="4"  fill="#888">상하</text>
-    <text x="145" y="70"  text-anchor="middle" font-size="5"  font-weight="bold" fill="#1a1a1a">~360</text>
-    <text x="145" y="76"  text-anchor="middle" font-size="4"  fill="#1a1a1a">거울장</text>
-    <text x="145" y="93"  text-anchor="middle" font-size="5"  fill="#444">560</text>
-    <text x="145" y="101" text-anchor="middle" font-size="4"  fill="#888">상하</text>
-    <text x="145" y="122" text-anchor="middle" font-size="5"  fill="#444">~620</text>
-    <text x="145" y="130" text-anchor="middle" font-size="4"  fill="#888">상하</text>
+    <!-- ===== 우측벽 가구 (2100mm = 600거울장 + 3×500 = 105px) ===== -->
+    <!-- 거울장: 600mm = 30px (y=35~65) — 파란색 -->
+    <rect x="131" y="35" width="28" height="30" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.2"/>
+    <line x1="131" y1="35" x2="159" y2="65" stroke="#60a5fa" stroke-width="0.8" opacity="0.6"/>
+    <line x1="159" y1="35" x2="131" y2="65" stroke="#60a5fa" stroke-width="0.8" opacity="0.6"/>
+    <text x="145" y="51" text-anchor="middle" font-size="5" font-weight="bold" fill="#1d4ed8">거울장</text>
+    <text x="145" y="59" text-anchor="middle" font-size="4" fill="#1d4ed8">600</text>
+    <!-- Unit 2: 500mm = 25px (y=65~90) -->
+    <rect x="131" y="65" width="28" height="25" fill="white" stroke="#333" stroke-width="1"/>
+    <text x="145" y="76" text-anchor="middle" font-size="4.5" fill="#555">500</text>
+    <text x="145" y="83" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- Unit 3: 500mm = 25px (y=90~115) -->
+    <rect x="131" y="90" width="28" height="25" fill="white" stroke="#333" stroke-width="1"/>
+    <text x="145" y="101" text-anchor="middle" font-size="4.5" fill="#555">500</text>
+    <text x="145" y="108" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- Unit 4: 500mm = 25px (y=115~140) -->
+    <rect x="131" y="115" width="28" height="25" fill="white" stroke="#333" stroke-width="1"/>
+    <text x="145" y="126" text-anchor="middle" font-size="4.5" fill="#555">500</text>
+    <text x="145" y="133" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <!-- 우측 기둥 (가구 우측면 x=156) -->
+    <rect x="156" y="35"  width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="156" y="65"  width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="156" y="90"  width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="156" y="115" width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
+    <rect x="156" y="140" width="3" height="4" fill="white" stroke="#333" stroke-width="0.5"/>
 
     <!-- ===== 출입구 ===== -->
-    <line x1="59" y1="188" x2="159" y2="188" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
-    <polygon points="109,194 105,188 113,188" fill="#bbb"/>
-    <text x="109" y="205" text-anchor="middle" font-size="8" fill="#aaa">출 입 구</text>
+    <line x1="59" y1="185" x2="159" y2="185" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="109,191 104,185 114,185" fill="#bbb"/>
+    <text x="109" y="204" text-anchor="middle" font-size="8" fill="#999">출  입  구</text>
 
     <!-- ===== 치수선 ===== -->
-    <!-- 좌측 3000mm -->
+    <!-- 좌측벽 3000mm (x=39) -->
     <line x1="39" y1="35"  x2="39" y2="185" stroke="#555" stroke-width="0.8"/>
     <line x1="36" y1="35"  x2="42" y2="35"  stroke="#555" stroke-width="0.8"/>
     <line x1="36" y1="185" x2="42" y2="185" stroke="#555" stroke-width="0.8"/>
     <text x="30" y="113" text-anchor="middle" font-size="8" fill="#444" transform="rotate(-90,30,113)">3000mm</text>
-
-    <!-- 뒷벽 2000mm -->
-    <line x1="59"  y1="20" x2="159" y2="20" stroke="#555" stroke-width="0.8"/>
-    <line x1="59"  y1="17" x2="59"  y2="23" stroke="#555" stroke-width="0.8"/>
-    <line x1="159" y1="17" x2="159" y2="23" stroke="#555" stroke-width="0.8"/>
-    <text x="109" y="18" text-anchor="middle" font-size="8" fill="#444">2000mm</text>
-
-    <!-- 우측 2100mm -->
+    <!-- 뒷벽 2000mm (y=21) -->
+    <line x1="59"  y1="21" x2="159" y2="21" stroke="#555" stroke-width="0.8"/>
+    <line x1="59"  y1="18" x2="59"  y2="24" stroke="#555" stroke-width="0.8"/>
+    <line x1="159" y1="18" x2="159" y2="24" stroke="#555" stroke-width="0.8"/>
+    <text x="109" y="19" text-anchor="middle" font-size="8" fill="#444">2000mm</text>
+    <!-- 우측벽 2100mm (x=177) -->
     <line x1="177" y1="35"  x2="177" y2="140" stroke="#555" stroke-width="0.8"/>
     <line x1="174" y1="35"  x2="180" y2="35"  stroke="#555" stroke-width="0.8"/>
     <line x1="174" y1="140" x2="180" y2="140" stroke="#555" stroke-width="0.8"/>
     <text x="188" y="90" text-anchor="middle" font-size="8" fill="#444" transform="rotate(90,188,90)">2100mm</text>
 
-    <!-- ===== 범례 ===== -->
-    <rect x="200" y="28" width="308" height="152" fill="white" stroke="#e0e0e0" stroke-width="1" rx="7"/>
-    <text x="354" y="43" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#333">범례</text>
+    <!-- ===== 범례 (우측 패널) ===== -->
+    <rect x="200" y="25" width="308" height="165" fill="white" stroke="#ddd" stroke-width="1" rx="7"/>
+    <text x="354" y="42" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">범  례</text>
 
     <!-- 표준 행거 -->
-    <rect x="213" y="52" width="28" height="16" fill="white" stroke="#333" stroke-width="1"/>
-    <rect x="210" y="53" width="3"  height="5"  fill="white" stroke="#333" stroke-width="0.7"/>
-    <rect x="210" y="63" width="3"  height="5"  fill="white" stroke="#333" stroke-width="0.7"/>
-    <text x="227" y="60" text-anchor="middle" font-size="5"   fill="#444">560</text>
-    <text x="227" y="66" text-anchor="middle" font-size="4"   fill="#888">상하</text>
-    <text x="247" y="64" font-size="8.5" fill="#444">표준 행거 (560mm 등)</text>
+    <rect x="215" y="51" width="28" height="18" fill="white" stroke="#333" stroke-width="1"/>
+    <text x="229" y="59" text-anchor="middle" font-size="4.5" fill="#555">560</text>
+    <text x="229" y="65" text-anchor="middle" font-size="4" fill="#888">상하</text>
+    <text x="250" y="63" font-size="8.5" fill="#444">표준 상하 행거 (560mm 기준)</text>
 
-    <!-- 선택 옵션 -->
-    <rect x="213" y="76" width="28" height="16" fill="#fbbf24" stroke="#d97706" stroke-width="1"/>
-    <rect x="210" y="77" width="3"  height="5"  fill="#fbbf24" stroke="#333" stroke-width="0.7"/>
-    <rect x="210" y="87" width="3"  height="5"  fill="#fbbf24" stroke="#333" stroke-width="0.7"/>
-    <text x="247" y="88" font-size="8.5" fill="#444">선택 옵션 (서랍장·거울장)</text>
+    <!-- 3단서랍장 -->
+    <rect x="215" y="79" width="28" height="22" fill="#fef08a" stroke="#ca8a04" stroke-width="1"/>
+    <line x1="215" y1="86" x2="243" y2="86" stroke="#ca8a04" stroke-width="0.6"/>
+    <line x1="215" y1="93" x2="243" y2="93" stroke="#ca8a04" stroke-width="0.6"/>
+    <text x="229" y="91" text-anchor="middle" font-size="4" fill="#92400e">서랍장</text>
+    <text x="250" y="93" font-size="8.5" fill="#444">3단 서랍장 (760mm) — 옵션</text>
 
-    <!-- 기둥 -->
-    <rect x="213" y="101" width="3" height="6" fill="white" stroke="#333" stroke-width="1"/>
-    <text x="247" y="109" font-size="8.5" fill="#444">기둥 (프레임 포스트)</text>
+    <!-- 거울장 -->
+    <rect x="215" y="111" width="28" height="20" fill="#dbeafe" stroke="#3b82f6" stroke-width="1"/>
+    <line x1="215" y1="111" x2="243" y2="131" stroke="#60a5fa" stroke-width="0.8" opacity="0.6"/>
+    <line x1="243" y1="111" x2="215" y2="131" stroke="#60a5fa" stroke-width="0.8" opacity="0.6"/>
+    <text x="229" y="123" text-anchor="middle" font-size="4" fill="#1d4ed8">거울장</text>
+    <text x="250" y="124" font-size="8.5" fill="#444">거울장 (600mm) — 옵션</text>
 
     <!-- 벽체 -->
-    <rect x="213" y="117" width="28" height="7" fill="#2c2c2c"/>
-    <text x="247" y="127" font-size="8.5" fill="#444">벽체</text>
+    <rect x="215" y="143" width="28" height="7" fill="#2c2c2c"/>
+    <text x="250" y="151" font-size="8.5" fill="#444">벽체 / 기둥</text>
 
-    <!-- 거울 기호 -->
-    <rect x="213" y="131" width="28" height="16" fill="#fbbf24" stroke="#d97706" stroke-width="1"/>
-    <line x1="213" y1="131" x2="241" y2="147" stroke="#555" stroke-width="0.6" opacity="0.5"/>
-    <line x1="241" y1="131" x2="213" y2="147" stroke="#555" stroke-width="0.6" opacity="0.5"/>
-    <text x="247" y="142" font-size="8.5" fill="#444">거울장 (X = 반사면)</text>
+    <!-- 안내 -->
+    <text x="215" y="170" font-size="7.5" fill="#aaa">축척 1:20 / 단위 mm</text>
+    <text x="215" y="181" font-size="7.5" fill="#aaa">* 본 도면은 참고용이며 현장 측정 기준 적용</text>
 
-    <text x="213" y="168" font-size="7.5" fill="#aaa">축척 1:20 / 단위 mm</text>
-
-    <!-- 하단 주석 -->
-    <text x="260" y="238" text-anchor="middle" font-size="7" fill="#bbb">* 본 도면은 참고용이며 실제 설치 시 현장 측정 기준 적용</text>
-
+    <!-- 하단 워터마크 -->
+    <text x="260" y="241" text-anchor="middle" font-size="7" fill="#ccc">케이트블랑 드레스룸 시스템행거 — 루마네 상담 서비스</text>
   </svg>
 </div>
 </body>
