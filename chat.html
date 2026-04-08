@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-Frame-Options" content="DENY" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://lumane-server.onrender.com; img-src 'self' data:; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://lumane-server.onrender.com; img-src 'self' data: https://lumane-server.onrender.com; frame-ancestors 'none';" />
   <title>케이트블랑 드레스룸 · AI 상담</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -223,6 +223,21 @@
       color: var(--white);
       border-radius: 18px 18px 4px 18px;
       box-shadow: 0 4px 14px rgba(124,58,237,.28);
+    }
+
+    /* 예시 이미지 버블 */
+    .row.bot .img-example {
+      max-width: 260px;
+      border-radius: 12px;
+      margin-top: 6px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      display: block;
+      cursor: pointer;
+    }
+    .img-example-label {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 4px;
     }
 
     .msg-time {
@@ -1252,6 +1267,45 @@ function addMsg(role, text) {
 }
 
 /* ================================================================
+   예시 이미지 메시지 추가
+================================================================ */
+function addImageMsg(imgUrl, label) {
+  const row = document.createElement('div');
+  row.className = 'row bot';
+
+  const av = document.createElement('div');
+  av.className = 'av';
+  av.textContent = '👩‍💼';
+  row.appendChild(av);
+
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+
+  const img = document.createElement('img');
+  img.src = imgUrl;
+  img.className = 'img-example';
+  img.alt = label || '드레스룸 예시 이미지';
+  img.onclick = () => window.open(imgUrl, '_blank', 'noopener,noreferrer');
+  img.onerror = () => { wrap.remove(); };
+
+  const lbl = document.createElement('div');
+  lbl.className = 'img-example-label';
+  lbl.textContent = label || '📐 고객님 구성과 유사한 예시입니다';
+
+  wrap.appendChild(img);
+  wrap.appendChild(lbl);
+  row.appendChild(wrap);
+
+  $msgs.appendChild(row);
+  const time = document.createElement('div');
+  time.className = 'msg-time bot';
+  time.textContent = nowStr();
+  $msgs.appendChild(time);
+  scrollBottom();
+}
+
+/* ================================================================
    타이핑 인디케이터
 ================================================================ */
 function showTyping() {
@@ -1446,6 +1500,24 @@ async function send() {
 
       setLoading(false);
       return;
+    }
+
+    // [SHOW_EXAMPLE:형태:칸수:옵션] 태그 파싱 후 제거
+    const exTag = reply.match(/\[SHOW_EXAMPLE:([^\]]*)\]/);
+    if (exTag) {
+      reply = reply.replace(/\[SHOW_EXAMPLE:[^\]]*\]/, '').trim();
+      const parts = exTag[1].split(':');
+      const exShape = parts[0] || '';
+      const exUnits = parts[1] || '';
+      const exOpts  = parts[2] || '';
+      fetch(`${SERVER}/api/find-example?shape=${encodeURIComponent(exShape)}&units=${encodeURIComponent(exUnits)}&options=${encodeURIComponent(exOpts)}`)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(d => {
+          if (d.success && typeof d.url === 'string' && d.url.startsWith('/')) {
+            setTimeout(() => addImageMsg(`${SERVER}${d.url}`, `📐 ${exShape} 예시`), 600);
+          }
+        })
+        .catch(e => console.warn('예시 이미지 로딩 실패:', e));
     }
 
     history.push({ role: 'assistant', content: reply });

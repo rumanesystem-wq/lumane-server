@@ -45,6 +45,7 @@ const MD_FILES = [
   '12_실제상담예시_초기응대.md',
   '13_실제상담예시_견적안내.md',
   '14_실제상담예시_이미지응대.md',
+  '15_예시이미지_트리거규칙.md',
 ];
 
 const mdContents = MD_FILES.map(file => {
@@ -70,6 +71,65 @@ app.use(express.static(__dirname));
 // ── 헬스 체크 ─────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '루마네 서버 정상 작동 중' });
+});
+
+// ── 예시 이미지 매칭 API ──────────────────────────────────────
+// 고객 형태·칸수·옵션 기반으로 드레스룸 폴더에서 가장 유사한 이미지를 반환
+app.get('/api/find-example', (req, res) => {
+  const { shape = '', units = '', options = '' } = req.query;
+  const drPath = path.join(__dirname, '드레스룸');
+  const optList = options.split(',').map(s => s.trim()).filter(Boolean);
+  const unitsNum = parseInt(units) || 0;
+
+  let best = null;
+  let bestScore = -1;
+
+  function scoreFile(relPath) {
+    let score = 0;
+    // 형태 일치 (최우선)
+    if (shape && relPath.includes(shape)) score += 100;
+    // 칸수 근접도
+    if (unitsNum > 0) {
+      const m = relPath.match(/[\/\\](\d+)칸[\/\\]/);
+      if (m) {
+        const diff = Math.abs(parseInt(m[1]) - unitsNum);
+        score += Math.max(0, 50 - diff * 15);
+      }
+    }
+    // 옵션 키워드 매칭
+    for (const opt of optList) {
+      if (relPath.includes(opt)) score += 20;
+    }
+    return score;
+  }
+
+  function walk(dir, relDir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+    catch { return; }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      const rel  = relDir + '/' + e.name;
+      if (e.isDirectory()) {
+        walk(full, rel);
+      } else if (/\.(jpg|jpeg|png)$/i.test(e.name)) {
+        const score = scoreFile(rel);
+        if (score > bestScore) { bestScore = score; best = rel; }
+      }
+    }
+  }
+
+  try {
+    walk(drPath, '/드레스룸');
+    if (best) {
+      res.json({ success: true, url: best, score: bestScore });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    console.error('예시 이미지 매칭 오류:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── 채팅 API ──────────────────────────────────────────────────
