@@ -1,2 +1,6 @@
 .env
 node_modules/
+드레스룸/
+.claude/
+*.bak
+루마네_프로젝트_대화기록.md
