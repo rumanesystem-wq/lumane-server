@@ -270,7 +270,13 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_PROMPT,
+          cache_control: { type: 'ephemeral' },  // 시스템 프롬프트 캐싱 (5분간 유지, 재사용 시 90% 절감)
+        },
+      ],
       messages: apiMessages,
     });
 
