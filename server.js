@@ -11,6 +11,7 @@ const cors      = require('cors');
 const rateLimit = require('express-rate-limit');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
+const { Client: NotionClient } = require('@notionhq/client');
 const fs   = require('fs');
 const path = require('path');
 
@@ -19,6 +20,10 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SECRET_KEY
 );
+
+// ── Notion 클라이언트 ─────────────────────────────────────────
+const notion = new NotionClient({ auth: process.env.NOTION_TOKEN });
+const NOTION_DB_ID = '221b622e-5115-4d07-b1fa-ed7fa52c6895'; // 상담 기록 DB
 
 const app  = express();
 const PORT = 3001;
@@ -454,21 +459,28 @@ app.post('/api/summarize', async (req, res) => {
       max_tokens: 1024,
       system: `당신은 시스템행거 상담 대화를 분석해서 견적서 항목을 JSON으로 추출하는 역할입니다.
 아래 형식의 JSON만 반환하세요. 대화에서 확인되지 않은 항목은 null로 표시하세요.
-치수는 "가로×세로×높이 mm" 형식으로 내용 필드에 포함하세요.
 추가옵션 항목은 대화에서 언급된 것만 true, 언급 없으면 false로 표시하세요.
+드레스룸형태는 ㄱ자/ㄴ자/ㄷ자/ㅡ자/11자/기타 중 하나로만 표시하세요.
+치수는 가로/세로/높이를 숫자(mm)로 분리해서 표시하세요.
 {
   "이름": null,
   "연락처": null,
   "주소": null,
+  "드레스룸형태": null,
+  "가로": null,
+  "세로": null,
+  "높이": null,
   "결제방식": null,
   "프레임색상": null,
   "선반색상": null,
   "천장커튼박스": false,
   "내용": null,
+  "아일랜드장": false,
+  "거울장": false,
   "2단서랍": false,
   "3단서랍": false,
+  "악세사리장": false,
   "기둥추가": false,
-  "5단선반": false,
   "배송비": null,
   "참고사항": null,
   "상담요약": "한 문장으로 요약"
@@ -495,6 +507,50 @@ app.post('/api/summarize', async (req, res) => {
     if (error) throw error;
 
     console.log(`✅ 상담 저장됨: ID ${data.id} / 고객: ${summary.이름 || '미확인'}`);
+
+    // ── Notion 저장 ───────────────────────────────────────────
+    if (process.env.NOTION_TOKEN) {
+      try {
+        // 선택된 옵션 목록 수집
+        const optionMap = {
+          '아일랜드장': summary.아일랜드장,
+          '거울장':     summary.거울장,
+          '2단 서랍장': summary['2단서랍'],
+          '3단 서랍장': summary['3단서랍'],
+          '악세사리장': summary.악세사리장,
+          '추가 기둥':  summary.기둥추가,
+        };
+        const selectedOptions = Object.entries(optionMap)
+          .filter(([, v]) => v)
+          .map(([k]) => ({ name: k }));
+
+        await notion.pages.create({
+          parent: { database_id: NOTION_DB_ID },
+          properties: {
+            '고객명':       { title: [{ text: { content: summary.이름 || '미확인' } }] },
+            '연락처':       { phone_number: summary.연락처 || null },
+            '지역':         { rich_text: [{ text: { content: summary.주소 || '' } }] },
+            '드레스룸형태': summary.드레스룸형태
+              ? { select: { name: summary.드레스룸형태 } } : undefined,
+            '가로(mm)':     summary.가로  ? { number: Number(summary.가로) }  : undefined,
+            '세로(mm)':     summary.세로  ? { number: Number(summary.세로) }  : undefined,
+            '높이(mm)':     summary.높이  ? { number: Number(summary.높이) }  : undefined,
+            '프레임색상':   { rich_text: [{ text: { content: summary.프레임색상 || '' } }] },
+            '선반색상':     { rich_text: [{ text: { content: summary.선반색상 || '' } }] },
+            '요청사항':     { rich_text: [{ text: { content: summary.참고사항 || '' } }] },
+            '대화요약':     { rich_text: [{ text: { content: summary.상담요약 || '' } }] },
+            '옵션':         selectedOptions.length ? { multi_select: selectedOptions } : undefined,
+            '상담날짜':     { date: { start: new Date().toISOString().split('T')[0] } },
+            '상담상태':     { select: { name: '견적완료' } },
+          },
+        });
+        console.log(`📋 Notion 저장됨: ${summary.이름 || '미확인'}`);
+      } catch (notionErr) {
+        // Notion 저장 실패해도 상담 저장은 성공으로 처리
+        console.error('⚠️ Notion 저장 실패 (Supabase는 정상):', notionErr.message);
+      }
+    }
+
     res.json({ success: true, id: data.id, summary });
 
   } catch (err) {
