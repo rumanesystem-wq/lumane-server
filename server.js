@@ -261,12 +261,17 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     }
   }
 
+  // Anthropic API는 messages가 비어있으면 에러 — 첫 인사 요청 시 트리거 메시지 삽입
+  const apiMessages = messages.length === 0
+    ? [{ role: 'user', content: '상담 시작' }]
+    : messages;
+
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
-      messages: messages,
+      messages: apiMessages,
     });
 
     const reply = response.content[0].text;
