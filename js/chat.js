@@ -11,7 +11,7 @@ import {
   initInputListeners, initDateSep, appendDateSep,
   clearMessages, clearInput,
 } from './ui.js';
-import { toggleHistory, showTranscript, continueFromHistory, closeTranscript } from './history.js';
+import { toggleHistory, showTranscript, continueFromHistory, closeTranscript, setHistoryData } from './history.js';
 import { toggleCollect, updateCollectDrawer, resetCollect } from './collect.js';
 import { showConfirm, confirmBack, confirmSubmit } from './confirm.js';
 import { autoSaveConversation, openQuote, closeQuote, printQuote } from './quote.js';
@@ -425,6 +425,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (serverOnline) {
       registerSession();
       startPolling();
+      /* 저장된 연락처가 있으면 이전 상담 이력 자동 로드 */
+      const savedPhone = localStorage.getItem('루마네_연락처');
+      if (savedPhone) fetchConsultationHistory(savedPhone);
     }
   });
 
@@ -434,6 +437,22 @@ document.addEventListener('DOMContentLoaded', () => {
   /* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
   startUpdateChecker();
 });
+
+/* ================================================================
+   이전 상담 이력 조회 (Supabase, 연락처 기반)
+================================================================ */
+async function fetchConsultationHistory(phone) {
+  if (!phone || !serverOnline) return;
+  try {
+    const clean = phone.replace(/[-\s]/g, '');
+    const r = await fetch(`${SERVER}/api/consultation-history?phone=${encodeURIComponent(clean)}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (Array.isArray(data.consultations)) {
+      setHistoryData(data.consultations);
+    }
+  } catch { /* 무시 */ }
+}
 
 /* ================================================================
    배포 자동감지 (30초마다 /api/version 체크)
