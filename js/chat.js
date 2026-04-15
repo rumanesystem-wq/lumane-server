@@ -1,7 +1,18 @@
 /* ================================================================
    메인 채팅 로직 — 진입점 (ES Module)
 ================================================================ */
-import { SERVER, DEMO, SESSION_ID } from './config.js';
+import { SERVER, DEMO } from './config.js';
+
+/* ── 세션 ID: localStorage에 저장하여 새로고침해도 유지 ── */
+const SESSION_ID = (() => {
+  const KEY = '루마네_세션ID';
+  let id = localStorage.getItem(KEY);
+  if (!id || !/^S-\d{13}-[a-z0-9]{5}$/.test(id)) {
+    id = 'S-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    localStorage.setItem(KEY, id);
+  }
+  return id;
+})();
 import { todayStr } from './utils.js';
 import {
   initUI, setLoading, getIsLoading,
@@ -21,6 +32,22 @@ let history        = [];
 let demoIdx        = 0;
 let pendingConfirm = false;
 let serverOnline   = null;
+
+/* ── 대화 내용 localStorage 저장/복원 ── */
+const HISTORY_KEY = '루마네_히스토리';
+
+function saveHistory() {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* 무시 */ }
+}
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  localStorage.removeItem('루마네_세션ID');
+}
 
 /* ── Admin 난입 상태 ── */
 let adminMode      = false;   // true = admin이 현재 대화 중
@@ -307,6 +334,7 @@ async function send() {
     history.push({ role: 'assistant', content: reply });
     addMsg('bot', reply);
     updateQuickFromText(reply);
+    saveHistory();
 
     if (completedQuote) {
       setTimeout(() => showConfirm(completedQuote), 1200);
@@ -336,6 +364,7 @@ function greet() {
       if (!reply) throw new Error('no message');
       history.push({ role: 'assistant', content: reply });
       addMsg('bot', reply);
+      saveHistory();
       setLoading(false);
     })
     .catch(() => {
@@ -366,6 +395,7 @@ export function newChat() {
   history        = [];
   demoIdx        = 0;
   pendingConfirm = false;
+  clearHistory();
   if (adminMode) {
     adminMode = false;
     showAdminBanner(false);
@@ -442,13 +472,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* 서버 확인 후 인사 + 세션 등록 + 폴링 시작 */
-  checkServer().then(() => {
-    greet();
+  /* 서버 확인 후 인사 or 복원 + 세션 등록 + 폴링 시작 */
+  checkServer().then(async () => {
+    const savedHistory = loadHistory();
+
+    if (savedHistory.length > 0) {
+      /* ── 새로고침 복원: 저장된 대화 화면에 다시 표시 ── */
+      history = savedHistory;
+      for (const m of savedHistory) {
+        addMsg(m.role === 'assistant' ? 'bot' : 'user', m.content);
+      }
+      /* 서버 세션에도 재동기화 */
+      if (serverOnline) {
+        registerSession();
+        try {
+          await fetch(`${SERVER}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
+          });
+        } catch { /* 무시 */ }
+        startPolling();
+      }
+    } else {
+      /* ── 최초 진입: 인사 ── */
+      greet();
+      if (serverOnline) {
+        registerSession();
+        startPolling();
+      }
+    }
+
     if (serverOnline) {
-      registerSession();
-      startPolling();
-      /* 저장된 연락처가 있으면 이전 상담 이력 자동 로드 */
       const savedPhone = localStorage.getItem('루마네_연락처');
       if (savedPhone) fetchConsultationHistory(savedPhone);
     }
