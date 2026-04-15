@@ -142,6 +142,7 @@ function addContextMenu(el, rawText) {
   /* PC: 우클릭 → 컨텍스트 메뉴 */
   el.addEventListener('contextmenu', e => {
     e.preventDefault();
+    e.stopPropagation(); // document 버블링 차단 → 연속 우클릭 정상 동작
     showMsgContextMenu(el, e.clientX, e.clientY, rawText);
   });
 }

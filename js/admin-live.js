@@ -517,6 +517,7 @@ function initAdminCtxMenuListener() {
     const row = e.target.closest('.live-msg-row');
     if (!row) return;
     e.preventDefault();
+    e.stopPropagation(); // document 버블링 차단 → 연속 우클릭 정상 동작
     const role    = row.dataset.role;
     const content = decodeURIComponent(row.dataset.content || '');
     showAdminCtxMenu(e.clientX, e.clientY, role, content);
