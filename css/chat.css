@@ -1082,25 +1082,28 @@ html, body {
 .img-preview-send:hover { background: var(--purple-l); }
 
 /* ================================================================
-   메시지 액션바 (답장·수정·삭제)
+   우클릭 / 길게누르기 컨텍스트 메뉴
 ================================================================ */
-.msg-action-bar {
-  display: flex; gap: 2px; opacity: 0; pointer-events: none;
-  transition: opacity .15s; align-self: flex-end;
-  flex-shrink: 0; margin-bottom: 4px;
+.ctx-menu {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+  border: 1px solid var(--gray-200);
+  overflow: hidden; min-width: 130px;
+  animation: ctxFadeIn .1s ease;
 }
-.mab-user { margin-right: 4px; order: -1; } /* 말풍선 왼쪽 */
-.mab-bot  { margin-left: 4px; }             /* 말풍선 오른쪽 */
-.msg-group:hover .msg-action-bar,
-.msg-action-bar.visible { opacity: 1; pointer-events: auto; }
-
-.mab-btn {
-  background: #fff; border: 1px solid var(--gray-200);
-  border-radius: 8px; padding: 4px 7px; font-size: 13px;
-  cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.08);
-  transition: background .1s;
+@keyframes ctxFadeIn {
+  from { opacity: 0; transform: scale(.95); }
+  to   { opacity: 1; transform: scale(1); }
 }
-.mab-btn:hover { background: var(--gray-100); }
+.ctx-item {
+  display: block; width: 100%; padding: 11px 16px;
+  background: none; border: none; text-align: left;
+  font-size: 14px; font-family: inherit; cursor: pointer;
+  color: var(--gray-800);
+}
+.ctx-item:hover { background: var(--gray-100); }
+.ctx-danger { color: #ef4444; }
+.ctx-danger:hover { background: #fef2f2; }
 
 /* 수정 중 하이라이트 */
 .msg-editing .bubble.user { outline: 2px solid var(--purple); }

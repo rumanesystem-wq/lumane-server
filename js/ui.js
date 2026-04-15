@@ -128,20 +128,82 @@ function fallbackCopy(text) {
 
 function addContextMenu(el, rawText) {
   let pressTimer;
-  /* 모바일: 600ms 길게 누르기 → 액션바 표시 */
-  el.addEventListener('touchstart', () => {
+
+  /* 모바일: 600ms 길게 누르기 → 컨텍스트 메뉴 */
+  el.addEventListener('touchstart', e => {
     pressTimer = setTimeout(() => {
-      el.querySelector('.msg-action-bar')?.classList.add('visible');
+      const touch = e.touches[0];
+      showMsgContextMenu(el, touch.clientX, touch.clientY, rawText);
     }, 600);
   }, { passive: true });
   el.addEventListener('touchend',  () => clearTimeout(pressTimer), { passive: true });
   el.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
 
-  /* 데스크탑: 우클릭 → 복사 (기존 동작 유지) */
+  /* PC: 우클릭 → 컨텍스트 메뉴 */
   el.addEventListener('contextmenu', e => {
     e.preventDefault();
-    copyText(rawText);
+    showMsgContextMenu(el, e.clientX, e.clientY, rawText);
   });
+}
+
+/* ── 글로벌 컨텍스트 메뉴 ── */
+let _ctxMenu = null;
+
+function showMsgContextMenu(groupEl, x, y, text) {
+  closeMsgContextMenu();
+
+  const mid  = groupEl.dataset.mid;
+  const role = groupEl.classList.contains('user') ? 'user' : 'bot';
+
+  const items = [
+    { label: '↩ 답장',  action: 'reply' },
+    { label: '📋 복사',  action: 'copy'  },
+  ];
+  if (role === 'user') {
+    items.push({ label: '✏️ 수정', action: 'edit'   });
+    items.push({ label: '🗑 삭제', action: 'delete', danger: true });
+  }
+
+  const menu = document.createElement('div');
+  menu.id = 'msgCtxMenu';
+  menu.className = 'ctx-menu';
+
+  items.forEach(({ label, action, danger }) => {
+    const btn = document.createElement('button');
+    btn.className = 'ctx-item' + (danger ? ' ctx-danger' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      closeMsgContextMenu();
+      if (action === 'copy')   copyText(text);
+      if (action === 'reply'  && _onReply)  _onReply(mid, role, text);
+      if (action === 'edit'   && _onEdit)   _onEdit(mid, text);
+      if (action === 'delete' && _onDelete) _onDelete(mid);
+    });
+    menu.appendChild(btn);
+  });
+
+  /* 화면 밖으로 나가지 않도록 위치 보정 */
+  menu.style.cssText = `position:fixed;left:${x}px;top:${y}px;z-index:9990;`;
+  document.body.appendChild(menu);
+  _ctxMenu = menu;
+
+  /* 메뉴가 오른쪽/아래 경계를 넘어가면 반대쪽으로 */
+  requestAnimationFrame(() => {
+    const r = menu.getBoundingClientRect();
+    if (r.right  > window.innerWidth)  menu.style.left = (x - r.width)  + 'px';
+    if (r.bottom > window.innerHeight) menu.style.top  = (y - r.height) + 'px';
+  });
+
+  /* 메뉴 바깥 클릭 시 닫기 */
+  setTimeout(() => {
+    document.addEventListener('click', closeMsgContextMenu, { once: true });
+    document.addEventListener('contextmenu', closeMsgContextMenu, { once: true });
+  }, 0);
+}
+
+function closeMsgContextMenu() {
+  _ctxMenu?.remove();
+  _ctxMenu = null;
 }
 
 /* ── 메시지 액션바 생성 ── */
@@ -303,7 +365,6 @@ export function addMsg(role, text, { mid = null, replyTo = null } = {}) {
 
     bubblesRow.appendChild(bubblesCol);
     bubblesRow.appendChild(meta);
-    bubblesRow.appendChild(makeActionBar(msgMid, 'bot', clean));
     body.appendChild(bubblesRow);
     group.appendChild(body);
 
@@ -353,7 +414,6 @@ export function addMsg(role, text, { mid = null, replyTo = null } = {}) {
       bubblesCol.appendChild(b);
     }
 
-    bubblesRow.appendChild(makeActionBar(msgMid, 'user', clean));
     bubblesRow.appendChild(meta);
     bubblesRow.appendChild(bubblesCol);
     group.appendChild(bubblesRow);
