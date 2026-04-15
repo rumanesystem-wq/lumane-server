@@ -219,8 +219,10 @@ function renderLiveChatPanel(sess) {
       bubbleInner = (isAdminMsg ? '<span style="font-size:10px;color:#7c3aed;font-weight:700;display:block;margin-bottom:3px;">담당자</span>' : '') + escAdmin(m.content);
     }
 
+    const encodedContent = encodeURIComponent(m.content || '');
     return `
-      <div style="display:flex;${isUser ? 'justify-content:flex-end' : 'justify-content:flex-start'};gap:8px;align-items:flex-end;">
+      <div class="live-msg-row" data-role="${isUser ? 'user' : (isAdminMsg ? 'admin' : 'bot')}" data-content="${encodedContent}"
+           style="display:flex;${isUser ? 'justify-content:flex-end' : 'justify-content:flex-start'};gap:8px;align-items:flex-end;">
         ${!isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:${isAdminMsg ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'linear-gradient(135deg,#6b7280,#9ca3af)'};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${isAdminMsg ? '👩‍💼' : '🤖'}</div>` : ''}
         <div style="max-width:70%;padding:${imgMatch ? '6px' : '11px 15px'};font-size:14.5px;line-height:1.65;word-break:break-word;white-space:pre-wrap;border-radius:${isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px'};background:${isUser ? '#7c3aed' : (isAdminMsg ? '#ede9fe' : '#fff')};color:${isUser ? '#fff' : '#1a1a2e'};box-shadow:0 1px 3px rgba(0,0,0,.07);">${bubbleInner}</div>
         ${isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>` : ''}
@@ -433,6 +435,107 @@ function initAdminPaste() {
     const file = imageItem.getAsFile();
     if (file) showAdminAttachBar(file);
   });
+}
+
+/* ── admin 메시지 우클릭 컨텍스트 메뉴 ── */
+let _adminCtxMenu = null;
+
+function closeAdminCtxMenu() {
+  if (_adminCtxMenu) { _adminCtxMenu.remove(); _adminCtxMenu = null; }
+  document.removeEventListener('click', closeAdminCtxMenu, { once: true });
+  document.removeEventListener('contextmenu', closeAdminCtxMenu, { once: true });
+}
+
+function showAdminCtxMenu(x, y, role, content) {
+  closeAdminCtxMenu();
+
+  const items = [
+    { label: '📋 복사', action: 'copy' },
+    { label: '↩ 답장', action: 'reply' },
+  ];
+
+  const menu = document.createElement('div');
+  menu.style.cssText = `
+    position:fixed;left:${x}px;top:${y}px;z-index:9990;
+    background:#fff;border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,.18);
+    border:1px solid rgba(0,0,0,.06);
+    padding:5px 0;min-width:130px;
+    animation:ctxFadeIn .1s ease;
+  `;
+  menu.innerHTML = items.map(it => `
+    <button data-action="${it.action}" style="display:block;width:100%;padding:10px 15px;text-align:left;background:none;border:none;font-size:13.5px;color:#374151;cursor:pointer;white-space:nowrap;"
+      onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='none'">
+      ${it.label}
+    </button>
+  `).join('');
+
+  /* 뷰포트 경계 보정 */
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  if (rect.right  > window.innerWidth  - 8) menu.style.left = (x - rect.width)  + 'px';
+  if (rect.bottom > window.innerHeight - 8) menu.style.top  = (y - rect.height) + 'px';
+
+  menu.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    closeAdminCtxMenu();
+    if (action === 'copy') {
+      navigator.clipboard.writeText(content).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = content; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+      });
+      showToast('✅ 복사됨', 'success');
+    } else if (action === 'reply') {
+      const input = document.getElementById('liveInput');
+      if (!input || !liveAdminMode) { showToast('난입 후 답장 가능합니다', 'info'); return; }
+      const preview = content.length > 40 ? content.slice(0, 40) + '…' : content;
+      const label = role === 'user' ? '고객' : role === 'admin' ? '담당자' : 'AI';
+      input.value = `[${label}: ${preview}]\n` + input.value;
+      input.focus();
+      refreshAdminSendBtn();
+    }
+  });
+
+  _adminCtxMenu = menu;
+  setTimeout(() => {
+    document.addEventListener('click', closeAdminCtxMenu, { once: true });
+    document.addEventListener('contextmenu', closeAdminCtxMenu, { once: true });
+  }, 0);
+}
+
+/**
+ * admin 라이브 채팅창 우클릭 이벤트 위임 초기화
+ */
+function initAdminCtxMenuListener() {
+  const liveMsgs = document.getElementById('liveMsgs');
+  if (!liveMsgs) return;
+  liveMsgs.addEventListener('contextmenu', e => {
+    const row = e.target.closest('.live-msg-row');
+    if (!row) return;
+    e.preventDefault();
+    const role    = row.dataset.role;
+    const content = decodeURIComponent(row.dataset.content || '');
+    showAdminCtxMenu(e.clientX, e.clientY, role, content);
+  });
+
+  /* 모바일 롱프레스 (600ms) */
+  let pressTimer = null;
+  liveMsgs.addEventListener('touchstart', e => {
+    const row = e.target.closest('.live-msg-row');
+    if (!row) return;
+    pressTimer = setTimeout(() => {
+      const touch = e.touches[0];
+      const role    = row.dataset.role;
+      const content = decodeURIComponent(row.dataset.content || '');
+      showAdminCtxMenu(touch.clientX, touch.clientY, role, content);
+    }, 600);
+  }, { passive: true });
+  liveMsgs.addEventListener('touchend',   () => clearTimeout(pressTimer));
+  liveMsgs.addEventListener('touchmove',  () => clearTimeout(pressTimer));
 }
 
 /**

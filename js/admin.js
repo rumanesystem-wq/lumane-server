@@ -420,6 +420,7 @@ checkServer().then(() => startBgPolling());
 setInterval(checkServer, 30000);
 initAdminFileUpload();
 initAdminPaste();
+initAdminCtxMenuListener();
 
 /* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
 (async function startUpdateChecker() {
