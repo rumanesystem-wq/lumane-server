@@ -1,7 +1,7 @@
 /* ================================================================
    이전 상담 이력 드로어 — 목록 렌더링, 채팅 원문 오버레이
 ================================================================ */
-import { MOCK_PREV_HISTORY } from './config.js';
+import { MOCK_PREV_HISTORY, SERVER } from './config.js';
 import { esc } from './utils.js';
 import { addMsg } from './ui.js';
 
@@ -64,6 +64,28 @@ function currentList() {
   return MOCK_PREV_HISTORY;
 }
 
+/* 전화번호로 직접 Supabase 조회 */
+async function fetchByPhone(phone) {
+  const clean = phone.replace(/[-\s]/g, '');
+  if (!clean) return;
+
+  const badge = document.getElementById('historyCountBadge');
+  if (badge) badge.textContent = '조회 중…';
+
+  try {
+    const r = await fetch(`${SERVER}/api/consultation-history?phone=${encodeURIComponent(clean)}`);
+    if (!r.ok) throw new Error('조회 실패');
+    const data = await r.json();
+    setHistoryData(data.consultations || []);
+
+    /* localStorage에도 저장 (다음 방문 시 자동 로드) */
+    localStorage.setItem('루마네_연락처', clean);
+    renderHistoryList();
+  } catch {
+    if (badge) badge.textContent = '오류';
+  }
+}
+
 export function toggleHistory() {
   const drawer = document.getElementById('historyDrawer');
   const isOpen = drawer.classList.contains('open');
@@ -87,12 +109,24 @@ function renderHistoryList() {
 
   badge.textContent = list.length + '건';
 
+  /* 실제 데이터가 없으면(null = 아직 미조회) 상단에 전화번호 입력창 표시 */
+  const phoneFormHtml = realHistoryData === null ? `
+    <div class="history-phone-form">
+      <div class="hpf-label">연락처로 이전 상담 찾기</div>
+      <div class="hpf-row">
+        <input class="hpf-input" id="hpfInput" type="tel" placeholder="010-0000-0000" inputmode="tel" />
+        <button class="hpf-btn" id="hpfBtn">조회</button>
+      </div>
+    </div>
+  ` : '';
+
   if (list.length === 0) {
-    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px">이전 상담 내역이 없습니다</div>`;
+    container.innerHTML = phoneFormHtml + `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px">이전 상담 내역이 없습니다</div>`;
+    bindPhoneForm();
     return;
   }
 
-  container.innerHTML = list.map((s, i) => `
+  container.innerHTML = phoneFormHtml + list.map((s, i) => `
     <div class="history-session">
       <div class="history-session-head">
         <span class="hs-num">${i + 1}회차</span>
@@ -118,6 +152,15 @@ function renderHistoryList() {
       </div>
     </div>
   `).join('');
+  bindPhoneForm();
+}
+
+function bindPhoneForm() {
+  const btn   = document.getElementById('hpfBtn');
+  const input = document.getElementById('hpfInput');
+  if (!btn || !input) return;
+  btn.addEventListener('click', () => fetchByPhone(input.value));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') fetchByPhone(input.value); });
 }
 
 export function showTranscript(idx) {

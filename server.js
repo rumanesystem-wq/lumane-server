@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { Client: NotionClient } = require('@notionhq/client');
+const multer = require('multer');
 const fs   = require('fs');
 const path = require('path');
 
@@ -186,6 +187,78 @@ app.get('/api/consultation-history', async (req, res) => {
 const SERVER_VERSION = Date.now().toString();
 app.get('/api/version', (req, res) => {
   res.json({ v: SERVER_VERSION });
+});
+
+// ── 파일 업로드 (multer) ──────────────────────────────────────
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename:    (req, file, cb) => {
+    const ext  = path.extname(file.originalname).toLowerCase();
+    const name = Date.now() + '-' + Math.random().toString(36).slice(2, 7) + ext;
+    cb(null, name);
+  },
+});
+const uploadMw = multer({
+  storage: uploadStorage,
+  limits:  { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(jpe?g|png|gif|webp|pdf)$/i.test(path.extname(file.originalname));
+    cb(ok ? null : new Error('지원하지 않는 형식'), ok);
+  },
+});
+
+app.post('/api/upload', uploadMw.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '파일이 없습니다' });
+  const ext     = path.extname(req.file.originalname).toLowerCase();
+  const isImage = /\.(jpe?g|png|gif|webp)$/i.test(ext);
+  res.json({
+    success: true,
+    url:     `/uploads/${req.file.filename}`,
+    name:    req.file.originalname,
+    isImage,
+  });
+});
+
+// uploads 폴더 정적 제공
+app.use('/uploads', express.static(UPLOAD_DIR));
+
+// ── OG 링크 미리보기 API ─────────────────────────────────────
+app.get('/api/og', async (req, res) => {
+  const { url } = req.query;
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ error: 'url 파라미터가 필요합니다' });
+  }
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LumaneBot/1.0)' },
+      signal:  AbortSignal.timeout(5000),
+    });
+    const html = await resp.text();
+
+    const getMeta = (...names) => {
+      for (const n of names) {
+        const m = html.match(new RegExp(
+          `<meta[^>]+(?:property|name)=["']${n}["'][^>]+content=["']([^"'<>]+)["']`, 'i'
+        )) || html.match(new RegExp(
+          `<meta[^>]+content=["']([^"'<>]+)["'][^>]+(?:property|name)=["']${n}["']`, 'i'
+        ));
+        if (m?.[1]) return m[1].trim();
+      }
+      return '';
+    };
+
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    res.json({
+      title:       getMeta('og:title', 'twitter:title') || titleMatch?.[1]?.trim() || '',
+      description: getMeta('og:description', 'description', 'twitter:description') || '',
+      domain:      new URL(url).hostname.replace(/^www\./, ''),
+    });
+  } catch {
+    res.status(500).json({ error: '미리보기를 가져오지 못했습니다' });
+  }
 });
 
 // ── 예시 이미지 매칭 API ──────────────────────────────────────

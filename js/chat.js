@@ -5,7 +5,7 @@ import { SERVER, DEMO, SESSION_ID } from './config.js';
 import { todayStr } from './utils.js';
 import {
   initUI, setLoading, getIsLoading,
-  addMsg, addImageMsg,
+  addMsg, addImageMsg, addFileMsg, initFileInput,
   setQuick, updateQuickFromText,
   setBanner, setStatusText,
   initInputListeners, initDateSep, appendDateSep,
@@ -418,6 +418,12 @@ document.addEventListener('DOMContentLoaded', () => {
   window.showTranscript     = showTranscript;
   window.continueFromHistory = continueFromHistory;
   window.closeTranscript    = closeTranscript;
+
+  /* 파일 업로드 초기화 */
+  initFileInput((url, name, isImage) => {
+    addFileMsg(url, name, isImage);
+    history.push({ role: 'user', content: isImage ? `[이미지: ${name}]` : `[파일: ${name}]` });
+  });
 
   /* 서버 확인 후 인사 + 세션 등록 + 폴링 시작 */
   checkServer().then(() => {

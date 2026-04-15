@@ -206,15 +206,60 @@ function renderLiveChatPanel(sess) {
 
   if (wasAtBottom) msgs.scrollTop = msgs.scrollHeight;
 
-  const input   = document.getElementById('liveInput');
-  const sendBtn = document.getElementById('liveSendBtn');
-  input.disabled   = !isAdmin;
-  sendBtn.disabled = !isAdmin;
+  const input      = document.getElementById('liveInput');
+  const sendBtn    = document.getElementById('liveSendBtn');
+  const uploadBtn  = document.getElementById('adminUploadBtn');
+  input.disabled      = !isAdmin;
+  sendBtn.disabled    = !isAdmin;
+  if (uploadBtn) uploadBtn.disabled = !isAdmin;
   input.placeholder = isAdmin
     ? '고객에게 직접 메시지를 입력하세요...'
     : '난입하기를 눌러야 입력 가능합니다';
 
   if (isAdmin) input.focus();
+}
+
+/**
+ * admin 파일 업로드 초기화 (페이지 로드 시 1회 실행)
+ */
+function initAdminFileUpload() {
+  const input = document.getElementById('adminFileInput');
+  if (!input) return;
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('파일은 10MB 이하만 첨부 가능합니다', 'error');
+      return;
+    }
+    showToast('업로드 중...', 'info');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (!data.success) throw new Error();
+
+      /* URL을 메시지로 전송 (이미지면 [image:url] 형식, 아니면 링크) */
+      const msgContent = data.isImage
+        ? `[이미지]\n${location.origin}${data.url}`
+        : `[파일: ${data.name}]\n${location.origin}${data.url}`;
+
+      const res = await fetch(`${SERVER}/api/admin/message`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ sessionId: liveSelectedId, message: msgContent }),
+      });
+      if (!res.ok) throw new Error();
+      await fetchLiveSessionMsgs();
+      showToast('✅ 파일 전송 완료', 'success');
+    } catch {
+      showToast('❌ 파일 업로드/전송 실패', 'error');
+    }
+  });
 }
 
 /**

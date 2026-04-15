@@ -2,6 +2,9 @@
    UI 조작 — 메시지 렌더링, 타이핑 인디케이터, 퀵버튼, 배너, 로딩
 ================================================================ */
 import { esc, nowStr } from './utils.js';
+import { SERVER } from './config.js';
+
+const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/g;
 
 /* ── 이모티콘 목록 ── */
 const EMOJIS = ['😊','😄','🥰','😅','🤔','😂','🙏','👍','💜','✨','❤️','🎉','👋','😍','😢','🙌','💪','🤩'];
@@ -47,7 +50,20 @@ export function initInputListeners(onSend) {
     $sendBtn.disabled = isLoading || !$inp.value.trim();
   });
   $inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        /* Shift+Enter → 줄바꿈 */
+        e.preventDefault();
+        const pos = $inp.selectionStart;
+        $inp.value = $inp.value.slice(0, pos) + '\n' + $inp.value.slice($inp.selectionEnd);
+        $inp.selectionStart = $inp.selectionEnd = pos + 1;
+        autoResize();
+        $sendBtn.disabled = isLoading || !$inp.value.trim();
+      } else {
+        e.preventDefault();
+        onSend();
+      }
+    }
   });
   $sendBtn.addEventListener('click', onSend);
 }
@@ -169,6 +185,7 @@ export function addMsg(role, text) {
 
     $msgs.appendChild(group);
     addContextMenu(group, clean);
+    appendLinkPreviews(bubblesCol, clean);
 
   } else {
     /* 내 메시지 */
@@ -206,9 +223,35 @@ export function addMsg(role, text) {
 
     $msgs.appendChild(group);
     addContextMenu(group, clean);
+    appendLinkPreviews(bubblesCol, clean);
   }
 
   scrollBottom();
+}
+
+/* ── 링크 미리보기 (비동기) ── */
+async function appendLinkPreviews(container, text) {
+  const urls = [...new Set(text.match(URL_REGEX) || [])];
+  for (const url of urls.slice(0, 1)) { // 첫 번째 링크만
+    try {
+      const r = await fetch(`${SERVER}/api/og?url=${encodeURIComponent(url)}`);
+      if (!r.ok) continue;
+      const d = await r.json();
+      if (!d.title && !d.description) continue;
+
+      const card = document.createElement('a');
+      card.className = 'link-preview';
+      card.href = url;
+      card.target = '_blank';
+      card.rel = 'noopener noreferrer';
+      card.innerHTML =
+        `<div class="lp-domain">${esc(d.domain || new URL(url).hostname)}</div>` +
+        (d.title       ? `<div class="lp-title">${esc(d.title)}</div>`       : '') +
+        (d.description ? `<div class="lp-desc">${esc(d.description)}</div>`  : '');
+      container.appendChild(card);
+      scrollBottom();
+    } catch { /* 무시 */ }
+  }
 }
 
 /* ── 예시 이미지 메시지 ── */
@@ -396,11 +439,86 @@ function initEmojiPicker() {
   document.addEventListener('click', () => picker.classList.remove('open'));
 }
 
-/* ── 파일 첨부 버튼 (준비 중 안내) ── */
+/* ── 파일 첨부 버튼 ── */
 function initAttachBtn() {
-  const btn = document.getElementById('attachBtn');
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    showCopyToast('파일 첨부는 준비 중입니다 😊');
+  const btn   = document.getElementById('attachBtn');
+  const input = document.getElementById('fileInput');
+  if (!btn || !input) return;
+
+  btn.addEventListener('click', () => input.click());
+}
+
+/* ── 파일 업로드 후 이미지/파일 메시지 렌더 ── */
+export function addFileMsg(url, name, isImage) {
+  const group = document.createElement('div');
+  group.className = 'msg-group user';
+
+  const bubblesRow = document.createElement('div');
+  bubblesRow.className = 'msg-bubbles-row';
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  const receipt = document.createElement('span');
+  receipt.className = 'read-receipt';
+  receipt.textContent = '1';
+  const timeEl = document.createElement('span');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = nowStr();
+  meta.appendChild(receipt);
+  meta.appendChild(timeEl);
+
+  const bubblesCol = document.createElement('div');
+  bubblesCol.className = 'msg-bubbles';
+
+  if (isImage) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.className = 'img-example';
+    img.alt = name || '첨부 이미지';
+    img.style.maxWidth = '220px';
+    img.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
+    bubblesCol.appendChild(img);
+  } else {
+    const b = document.createElement('div');
+    b.className = 'bubble user';
+    b.innerHTML = `📎 <a href="${url}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">${esc(name || '파일')}</a>`;
+    bubblesCol.appendChild(b);
+  }
+
+  bubblesRow.appendChild(meta);
+  bubblesRow.appendChild(bubblesCol);
+  group.appendChild(bubblesRow);
+  $msgs.appendChild(group);
+  scrollBottom();
+}
+
+/* ── 파일 업로드 핸들러 초기화 (chat.js에서 onFileSend 콜백 전달) ── */
+export function initFileInput(onFileSend) {
+  const input = document.getElementById('fileInput');
+  if (!input) return;
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    // 10MB 초과 차단
+    if (file.size > 10 * 1024 * 1024) {
+      showCopyToast('파일은 10MB 이하만 첨부 가능합니다');
+      return;
+    }
+
+    showCopyToast('업로드 중...');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
+      if (!r.ok) throw new Error('업로드 실패');
+      const data = await r.json();
+      if (data.success) {
+        onFileSend(data.url, data.name, data.isImage);
+      }
+    } catch (e) {
+      showCopyToast('업로드에 실패했습니다 😢');
+    }
   });
 }
