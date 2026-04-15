@@ -14,7 +14,7 @@ import {
 import { toggleHistory, showTranscript, continueFromHistory, closeTranscript } from './history.js';
 import { toggleCollect, updateCollectDrawer, resetCollect } from './collect.js';
 import { showConfirm, confirmBack, confirmSubmit } from './confirm.js';
-import { saveConversation, openQuote, closeQuote, printQuote } from './quote.js';
+import { autoSaveConversation, openQuote, closeQuote, printQuote } from './quote.js';
 
 /* ── 대화 상태 ── */
 let history        = [];
@@ -410,9 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
   /* HTML onclick에서 호출 가능하도록 window에 등록 */
   window.toggleHistory      = toggleHistory;
   window.toggleCollect      = toggleCollect;
-  window.saveConversation   = () => saveConversation(history);
   window.confirmBack        = confirmBack;
-  window.confirmSubmit      = confirmSubmit;
+  window.confirmSubmit      = () => { confirmSubmit(); autoSaveConversation(history); };
   window.newChat            = newChat;
   window.closeQuote         = closeQuote;
   window.printQuote         = printQuote;

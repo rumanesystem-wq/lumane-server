@@ -122,51 +122,19 @@ export function printQuote() {
   win.print();
 }
 
-/* ── 상담 저장 (history를 외부에서 주입받음) ── */
-export async function saveConversation(history) {
-  if (history.length === 0) {
-    alert('저장할 대화 내용이 없습니다.');
-    return;
-  }
-
-  const btn   = document.getElementById('saveBtn');
-  const pcBtn = document.getElementById('pcSaveBtn');
-
-  function setSaveBtns(disabled, stateText, restoreOriginal) {
-    if (btn) {
-      btn.disabled = disabled;
-      if (restoreOriginal) {
-        btn.innerHTML = '💾<span class="h-save-text"> 상담저장</span>';
-      } else {
-        btn.textContent = stateText;
-      }
-    }
-    if (pcBtn) {
-      pcBtn.disabled = disabled;
-      pcBtn.textContent = restoreOriginal ? '💾 상담 저장' : stateText;
-    }
-  }
-  setSaveBtns(true, '⏳ 저장 중…', false);
-
+/* ── 상담 자동 저장 (접수 확정 시 자동 호출, 버튼 없음) ── */
+export async function autoSaveConversation(history) {
+  if (!history || history.length === 0) return;
   try {
     const res = await fetch(`${SERVER}/api/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: history }),
     });
-
     const data = await res.json();
-
-    if (data.success) {
-      setSaveBtns(false, '✅ 저장완료', false);
-      openQuote(data.summary);
-      setTimeout(() => setSaveBtns(false, null, true), 2000);
-    } else {
-      throw new Error(data.error);
-    }
+    if (!data.success) throw new Error(data.error || '저장 실패');
+    console.log('✅ 상담 자동 저장 완료:', data.summary?.이름 || '(이름 미확인)');
   } catch (err) {
-    console.error('저장 오류:', err);
-    alert('저장 중 오류가 발생했습니다.');
-    setSaveBtns(false, null, true);
+    console.error('⚠️ 상담 자동 저장 실패 (재시도 없음):', err.message);
   }
 }
