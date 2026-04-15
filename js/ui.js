@@ -428,7 +428,7 @@ async function appendLinkPreviews(container, text) {
       const r = await fetch(`${SERVER}/api/og?url=${encodeURIComponent(url)}`);
       if (!r.ok) continue;
       const d = await r.json();
-      if (!d.title && !d.description) continue;
+      if (!d.domain && !d.title && !d.description) continue; // 아무것도 없으면 스킵
 
       const card = document.createElement('a');
       card.className = 'link-preview';
