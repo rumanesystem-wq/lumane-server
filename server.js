@@ -416,7 +416,14 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
 
   } catch (err) {
     console.error('Anthropic API 오류:', err.message);
-    res.status(500).json({ error: '서버 오류가 발생했습니다: ' + err.message });
+
+    // 고객에게는 담당자 연결 안내 메시지 표시 (API 크레딧 부족 등 오류 숨김)
+    const fallback = '잠시만요! 😊\n담당자를 연결해 드리겠습니다.\n곧 직접 안내해 드릴게요, 조금만 기다려 주세요 🙏';
+    if (sessionId && sessions.has(sessionId)) {
+      sessions.get(sessionId).messages.push({ role: 'assistant', content: fallback });
+      sessions.get(sessionId).lastActivity = new Date();
+    }
+    res.json({ message: fallback });
   }
 });
 
