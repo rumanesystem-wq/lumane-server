@@ -418,3 +418,24 @@ function switchTab(tab) {
 
 checkServer().then(() => startBgPolling());
 setInterval(checkServer, 30000);
+
+/* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
+(async function startUpdateChecker() {
+  let currentVersion = null;
+  try {
+    const r = await fetch(`${SERVER}/api/version`);
+    if (r.ok) currentVersion = (await r.json()).v;
+  } catch { /* 무시 */ }
+
+  setInterval(async () => {
+    if (!serverOnline) return;
+    try {
+      const r = await fetch(`${SERVER}/api/version?t=${Date.now()}`);
+      if (!r.ok) return;
+      const { v } = await r.json();
+      if (currentVersion && v !== currentVersion) {
+        location.reload(true);
+      }
+    } catch { /* 무시 */ }
+  }, 30000);
+})();

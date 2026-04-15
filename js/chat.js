@@ -430,4 +430,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* 오프라인이면 30초마다 서버 재확인 (Render.com 절전 후 복귀 대응) */
   setInterval(checkServerSilent, 30000);
+
+  /* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
+  startUpdateChecker();
 });
+
+/* ================================================================
+   배포 자동감지 (30초마다 /api/version 체크)
+================================================================ */
+let _deployedVersion = null;
+
+async function startUpdateChecker() {
+  // 현재 버전 초기화
+  try {
+    const r = await fetch(`${SERVER}/api/version`);
+    if (r.ok) _deployedVersion = (await r.json()).v;
+  } catch { /* 무시 */ }
+
+  setInterval(async () => {
+    if (!serverOnline) return;
+    try {
+      const r = await fetch(`${SERVER}/api/version?t=${Date.now()}`);
+      if (!r.ok) return;
+      const { v } = await r.json();
+      if (_deployedVersion && v !== _deployedVersion) {
+        // 새 배포 감지 → 캐시 무시하고 새로고침
+        location.reload(true);
+      }
+    } catch { /* 무시 */ }
+  }, 30000);
+}

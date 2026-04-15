@@ -151,6 +151,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '루마네 서버 정상 작동 중' });
 });
 
+// ── 버전 체크 (배포 자동감지용) ───────────────────────────────
+// 서버 시작 시각 = 버전. 배포마다 서버가 재시작되므로 값이 달라짐.
+const SERVER_VERSION = Date.now().toString();
+app.get('/api/version', (req, res) => {
+  res.json({ v: SERVER_VERSION });
+});
+
 // ── 예시 이미지 매칭 API ──────────────────────────────────────
 // 고객 형태·칸수·옵션 기반으로 드레스룸 폴더에서 가장 유사한 이미지를 반환
 app.get('/api/find-example', (req, res) => {
