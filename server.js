@@ -144,8 +144,16 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
-// ── 정적 파일 제공 (chat.html을 같은 폴더에 두면 바로 접속 가능) ──
-app.use(express.static(__dirname));
+// ── 정적 파일 제공 — HTML/JS/CSS는 캐시 안 함 (항상 최신 버전) ──
+app.use(express.static(__dirname, {
+  setHeaders(res, filePath) {
+    if (/\.(html|js|css)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // ── 헬스 체크 ─────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
