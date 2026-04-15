@@ -328,7 +328,7 @@ function greet() {
     fetch(`${SERVER}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [] }),
+      body: JSON.stringify({ messages: [], sessionId: SESSION_ID }),
     })
     .then(r => { if (!r.ok) throw new Error('greet failed'); return r.json(); })
     .then(data => {
