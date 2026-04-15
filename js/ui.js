@@ -565,10 +565,56 @@ export function initFileInput(onFileSend) {
     $inp.addEventListener('paste', async (e) => {
       const items = Array.from(e.clipboardData?.items || []);
       const imageItem = items.find(item => item.type.startsWith('image/'));
-      if (!imageItem) return; // 이미지 없으면 일반 텍스트 붙여넣기로 처리
+      if (!imageItem) return;
       e.preventDefault();
       const file = imageItem.getAsFile();
-      if (file) await uploadFile(file, onFileSend);
+      if (file) showImagePreview(file, onFileSend);
     });
   }
+}
+
+/* ── 이미지 붙여넣기 미리보기 ── */
+function showImagePreview(file, onFileSend) {
+  /* 기존 미리보기 제거 */
+  document.getElementById('imgPreviewOverlay')?.remove();
+
+  const objectUrl = URL.createObjectURL(file);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'imgPreviewOverlay';
+  overlay.className = 'img-preview-overlay';
+
+  overlay.innerHTML = `
+    <div class="img-preview-box">
+      <div class="img-preview-title">📎 이미지 전송</div>
+      <img src="${objectUrl}" class="img-preview-img" alt="미리보기">
+      <div class="img-preview-btns">
+        <button class="img-preview-cancel">취소</button>
+        <button class="img-preview-send">전송하기</button>
+      </div>
+    </div>
+  `;
+
+  overlay.querySelector('.img-preview-cancel').onclick = () => {
+    URL.revokeObjectURL(objectUrl);
+    overlay.remove();
+    $inp.focus();
+  };
+
+  overlay.querySelector('.img-preview-send').onclick = async () => {
+    URL.revokeObjectURL(objectUrl);
+    overlay.remove();
+    await uploadFile(file, onFileSend);
+    $inp.focus();
+  };
+
+  /* 바깥 클릭 시 취소 */
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      URL.revokeObjectURL(objectUrl);
+      overlay.remove();
+    }
+  });
+
+  document.body.appendChild(overlay);
 }

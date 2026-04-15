@@ -352,6 +352,83 @@ async function sendAdminMsg() {
 }
 
 /**
+ * admin 입력창 Ctrl+V 이미지 붙여넣기
+ */
+function initAdminPaste() {
+  const input = document.getElementById('liveInput');
+  if (!input) return;
+
+  input.addEventListener('paste', async (e) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    showAdminImagePreview(file);
+  });
+}
+
+function showAdminImagePreview(file) {
+  document.getElementById('adminImgPreviewOverlay')?.remove();
+  const objectUrl = URL.createObjectURL(file);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'adminImgPreviewOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+      <div style="font-size:15px;font-weight:700;color:#111827;">📎 이미지 전송</div>
+      <img src="${objectUrl}" style="width:100%;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid #e5e7eb;background:#f3f4f6;" alt="미리보기">
+      <div style="display:flex;gap:8px;">
+        <button id="adminImgCancel" style="flex:1;padding:11px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;font-family:inherit;">취소</button>
+        <button id="adminImgSend" style="flex:2;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">전송하기</button>
+      </div>
+    </div>
+  `;
+
+  overlay.querySelector('#adminImgCancel').onclick = () => {
+    URL.revokeObjectURL(objectUrl);
+    overlay.remove();
+  };
+
+  overlay.querySelector('#adminImgSend').onclick = async () => {
+    URL.revokeObjectURL(objectUrl);
+    overlay.remove();
+
+    showToast('업로드 중...', 'info');
+    try {
+      const name = `screenshot-${Date.now()}.png`;
+      const fd = new FormData();
+      fd.append('file', file, name);
+      const r = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (!data.success) throw new Error();
+
+      const msgContent = `[이미지]\n${location.origin}${data.url}`;
+      const res = await fetch(`${SERVER}/api/admin/message`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ sessionId: liveSelectedId, message: msgContent }),
+      });
+      if (!res.ok) throw new Error();
+      await fetchLiveSessionMsgs();
+      showToast('✅ 이미지 전송 완료', 'success');
+    } catch {
+      showToast('❌ 전송 실패', 'error');
+    }
+  };
+
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { URL.revokeObjectURL(objectUrl); overlay.remove(); }
+  });
+
+  document.body.appendChild(overlay);
+}
+
+/**
  * 경과 시간 표시 (예: "2분 전")
  */
 function timeSince(date) {

@@ -1015,3 +1015,41 @@ html, body {
   font-family: inherit;
 }
 .hpf-btn:hover { background: var(--purple-l); }
+
+/* ── 이미지 붙여넣기 미리보기 오버레이 ─────────── */
+.img-preview-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.img-preview-box {
+  background: #fff; border-radius: 16px;
+  padding: 20px; width: 100%; max-width: 360px;
+  display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+}
+.img-preview-title {
+  font-size: 15px; font-weight: 700; color: var(--gray-900);
+}
+.img-preview-img {
+  width: 100%; max-height: 280px; object-fit: contain;
+  border-radius: 10px; border: 1px solid var(--gray-200);
+  background: var(--gray-100);
+}
+.img-preview-btns {
+  display: flex; gap: 8px;
+}
+.img-preview-cancel {
+  flex: 1; padding: 11px; border-radius: 10px;
+  border: 1px solid var(--gray-200); background: #fff;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  color: var(--gray-600); font-family: inherit;
+}
+.img-preview-send {
+  flex: 2; padding: 11px; border-radius: 10px;
+  border: none; background: var(--purple); color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+}
+.img-preview-send:hover { background: var(--purple-l); }
