@@ -8,7 +8,7 @@
 
 async function checkServer() {
   try {
-    const res  = await fetch(`${SERVER}/api/health`, { signal: AbortSignal.timeout(3000) });
+    const res  = await fetch(`${SERVER}/api/health`, { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
 
     if (data.status === 'ok') {

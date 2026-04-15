@@ -32,7 +32,7 @@ let pollTimer      = null;    // 폴링 타이머
 async function checkServer() {
   try {
     const r = await fetch(`${SERVER}/api/health`, {
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(8000),
     });
     serverOnline = r.ok;
   } catch {
@@ -49,6 +49,50 @@ async function checkServer() {
       '⚠️ 서버 미연결 — 데모 모드로 동작 중입니다. ' +
       'server 폴더에서 npm start 실행 후 새로고침하세요.');
   }
+}
+
+/* ================================================================
+   백그라운드 서버 재확인 (오프라인 상태에서 주기적으로 재시도)
+================================================================ */
+async function checkServerSilent() {
+  if (serverOnline) return; // 이미 온라인이면 스킵
+  try {
+    const r = await fetch(`${SERVER}/api/health`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return;
+
+    // 서버가 다시 살아남!
+    serverOnline = true;
+    setStatusText('온라인');
+    setBanner('ok', '✅ 서버에 다시 연결되었습니다. 이제부터 실시간 상담이 가능합니다.');
+    setTimeout(() => setBanner(null), 3000);
+
+    // 현재 대화 이력을 서버에 등록 (admin이 이전 대화도 볼 수 있도록)
+    await registerSessionWithHistory();
+    if (!pollTimer) startPolling();
+
+  } catch { /* 무시 */ }
+}
+
+/* 세션 등록 + 현재 히스토리 동기화 */
+async function registerSessionWithHistory() {
+  try {
+    // 세션 등록
+    await fetch(`${SERVER}/api/session/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: SESSION_ID }),
+    });
+    // 히스토리가 있으면 /api/chat으로 동기화 (빈 응답 OK)
+    if (history.length > 0) {
+      await fetch(`${SERVER}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
+      });
+    }
+  } catch { /* 무시 */ }
 }
 
 /* ================================================================
@@ -383,4 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
       startPolling();
     }
   });
+
+  /* 오프라인이면 30초마다 서버 재확인 (Render.com 절전 후 복귀 대응) */
+  setInterval(checkServerSilent, 30000);
 });

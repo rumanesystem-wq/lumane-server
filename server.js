@@ -230,7 +230,7 @@ async function isRelevantMessage(userMessage) {
 
 // ── 채팅 API ──────────────────────────────────────────────────
 app.post('/api/chat', chatRateLimit, async (req, res) => {
-  const { messages, sessionId } = req.body;
+  const { messages, sessionId, syncOnly } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages 배열이 필요합니다.' });
@@ -246,6 +246,11 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const firstUser = messages.find(m => m.role === 'user');
     if (firstUser && !sess.customerName) {
       sess.customerName = firstUser.content.slice(0, 20);
+    }
+
+    // syncOnly: 히스토리만 동기화하고 AI 응답 없이 반환
+    if (syncOnly) {
+      return res.json({ ok: true, synced: messages.length });
     }
 
     // admin 모드면 AI 응답 없이 대기 신호만 반환
