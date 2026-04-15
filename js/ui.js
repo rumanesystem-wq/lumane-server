@@ -115,6 +115,9 @@ export function addMsg(role, text) {
   const clean = text.replace(/```json[\s\S]*?```/g, '').trim();
 
   if (role === 'bot') {
+    /* 루마네가 읽었으므로 이전 읽음 "1" 모두 제거 */
+    $msgs.querySelectorAll('.read-receipt').forEach(el => el.remove());
+
     /* 문단 기준으로 말풍선 분리 */
     const parts = clean.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
 
