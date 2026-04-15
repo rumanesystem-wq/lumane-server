@@ -566,12 +566,13 @@ export function addFileMsg(url, name, isImage) {
   bubblesCol.className = 'msg-bubbles';
 
   if (isImage) {
+    const fullUrl = url.startsWith('http') ? url : `${SERVER}${url}`;
     const img = document.createElement('img');
-    img.src = url;
+    img.src = fullUrl;
     img.className = 'img-example';
     img.alt = name || '첨부 이미지';
     img.style.maxWidth = '220px';
-    img.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
+    img.onclick = () => window.open(fullUrl, '_blank', 'noopener,noreferrer');
     bubblesCol.appendChild(img);
   } else {
     const b = document.createElement('div');
