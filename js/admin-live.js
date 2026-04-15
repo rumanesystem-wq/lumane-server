@@ -156,7 +156,7 @@ function renderLiveChatPanel(sess) {
     return `
       <div style="display:flex;${isUser ? 'justify-content:flex-end' : 'justify-content:flex-start'};gap:8px;align-items:flex-end;">
         ${!isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:${isAdminMsg ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'linear-gradient(135deg,#6b7280,#9ca3af)'};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${isAdminMsg ? '👩‍💼' : '🤖'}</div>` : ''}
-        <div style="max-width:70%;padding:9px 13px;font-size:13px;line-height:1.55;word-break:break-word;white-space:pre-wrap;border-radius:${isUser ? '12px 12px 3px 12px' : '3px 12px 12px 12px'};
+        <div style="max-width:70%;padding:11px 15px;font-size:14.5px;line-height:1.65;word-break:break-word;white-space:pre-wrap;border-radius:${isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px'};
           background:${isUser ? '#7c3aed' : (isAdminMsg ? '#ede9fe' : '#fff')};
           color:${isUser ? '#fff' : '#1a1a2e'};
           box-shadow:0 1px 3px rgba(0,0,0,.07);">

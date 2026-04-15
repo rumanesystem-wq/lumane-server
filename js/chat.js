@@ -330,9 +330,10 @@ function greet() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: [] }),
     })
-    .then(r => r.json())
+    .then(r => { if (!r.ok) throw new Error('greet failed'); return r.json(); })
     .then(data => {
       const reply = data.message;
+      if (!reply) throw new Error('no message');
       history.push({ role: 'assistant', content: reply });
       addMsg('bot', reply);
       setLoading(false);
