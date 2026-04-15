@@ -375,9 +375,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const relevant = await isRelevantMessage(lastUserMsg.content);
     if (!relevant) {
       console.warn(`🚫 관련 없는 메시지 차단 (IP: ${req.ip}): "${lastUserMsg.content.slice(0, 40)}"`);
-      return res.json({
-        message: '죄송해요, 저는 케이트블랑 드레스룸 상담만 도와드릴 수 있어요 😊\n드레스룸 관련 질문이 있으시면 편하게 말씀해 주세요!',
-      });
+      const canned = '죄송해요, 저는 케이트블랑 드레스룸 상담만 도와드릴 수 있어요 😊\n드레스룸 관련 질문이 있으시면 편하게 말씀해 주세요!';
+      if (sessionId && sessions.has(sessionId)) {
+        sessions.get(sessionId).messages.push({ role: 'assistant', content: canned });
+        sessions.get(sessionId).lastActivity = new Date();
+      }
+      return res.json({ message: canned });
     }
   }
 
