@@ -233,9 +233,9 @@ function renderLiveChatPanel(sess) {
   const input      = document.getElementById('liveInput');
   const sendBtn    = document.getElementById('liveSendBtn');
   const uploadBtn  = document.getElementById('adminUploadBtn');
-  input.disabled      = !isAdmin;
-  sendBtn.disabled    = !isAdmin;
+  input.disabled = !isAdmin;
   if (uploadBtn) uploadBtn.disabled = !isAdmin;
+  refreshAdminSendBtn();
   input.placeholder = isAdmin
     ? '고객에게 직접 메시지를 입력하세요...'
     : '난입하기를 눌러야 입력 가능합니다';
@@ -249,40 +249,16 @@ function renderLiveChatPanel(sess) {
 function initAdminFileUpload() {
   const input = document.getElementById('adminFileInput');
   if (!input) return;
-  input.addEventListener('change', async () => {
+  /* + 버튼으로 파일 선택 → 칩으로 표시 (전송은 전송 버튼에서) */
+  input.addEventListener('change', () => {
     const file = input.files[0];
     if (!file) return;
     input.value = '';
-
     if (file.size > 10 * 1024 * 1024) {
       showToast('파일은 10MB 이하만 첨부 가능합니다', 'error');
       return;
     }
-    showToast('업로드 중...', 'info');
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const r = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
-      if (!r.ok) throw new Error();
-      const data = await r.json();
-      if (!data.success) throw new Error();
-
-      /* URL을 메시지로 전송 (이미지면 [image:url] 형식, 아니면 링크) */
-      const msgContent = data.isImage
-        ? `[이미지]\n${location.origin}${data.url}`
-        : `[파일: ${data.name}]\n${location.origin}${data.url}`;
-
-      const res = await fetch(`${SERVER}/api/admin/message`, {
-        method: 'POST',
-        headers: adminHeaders(),
-        body: JSON.stringify({ sessionId: liveSelectedId, message: msgContent }),
-      });
-      if (!res.ok) throw new Error();
-      await fetchLiveSessionMsgs();
-      showToast('✅ 파일 전송 완료', 'success');
-    } catch {
-      showToast('❌ 파일 업로드/전송 실패', 'error');
-    }
+    showAdminAttachBar(file);
   });
 }
 
@@ -324,108 +300,122 @@ async function releaseSession() {
   }
 }
 
+/* ── admin 첨부 칩 상태 ── */
+let adminPendingFile      = null;
+let adminPendingObjectUrl = null;
+
+function showAdminAttachBar(file) {
+  adminPendingFile = file;
+  if (adminPendingObjectUrl) URL.revokeObjectURL(adminPendingObjectUrl);
+  adminPendingObjectUrl = URL.createObjectURL(file);
+
+  const bar = document.getElementById('adminAttachBar');
+  if (!bar) return;
+
+  const isImg = file.type.startsWith('image/');
+  bar.innerHTML = (isImg
+    ? `<img src="${adminPendingObjectUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;flex-shrink:0;" alt="">`
+    : `<span style="font-size:22px;flex-shrink:0;">📎</span>`) +
+    `<span style="font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${file.name || 'screenshot.png'}</span>
+     <button id="adminAttachRemove" style="flex-shrink:0;background:none;border:none;font-size:14px;color:#9ca3af;cursor:pointer;padding:4px 6px;border-radius:6px;">✕</button>`;
+
+  bar.style.display = 'flex';
+  document.getElementById('adminAttachRemove').addEventListener('click', () => {
+    clearAdminPendingFile();
+    document.getElementById('liveInput')?.focus();
+  });
+  refreshAdminSendBtn();
+}
+
+function clearAdminPendingFile() {
+  if (adminPendingObjectUrl) { URL.revokeObjectURL(adminPendingObjectUrl); adminPendingObjectUrl = null; }
+  adminPendingFile = null;
+  const bar = document.getElementById('adminAttachBar');
+  if (bar) bar.style.display = 'none';
+  refreshAdminSendBtn();
+}
+
+function refreshAdminSendBtn() {
+  const btn   = document.getElementById('liveSendBtn');
+  const input = document.getElementById('liveInput');
+  if (!btn) return;
+  btn.disabled = !liveAdminMode || !liveSelectedId || (!input?.value.trim() && !adminPendingFile);
+}
+
 /**
  * admin → 고객 메시지 전송
  */
 async function sendAdminMsg() {
-  const input = document.getElementById('liveInput');
-  const text  = input.value.trim();
-  if (!text || !liveSelectedId || !liveAdminMode) return;
+  const input  = document.getElementById('liveInput');
+  const text   = input?.value.trim() || '';
+  const hasPending = !!adminPendingFile;
+  if ((!text && !hasPending) || !liveSelectedId || !liveAdminMode) return;
 
   input.value    = '';
   input.disabled = true;
+  refreshAdminSendBtn();
 
   try {
-    const res = await fetch(`${SERVER}/api/admin/message`, {
-      method: 'POST',
-      headers: adminHeaders(),
-      body: JSON.stringify({ sessionId: liveSelectedId, message: text }),
-    });
-    if (!res.ok) throw new Error();
+    /* 첨부 파일 먼저 전송 */
+    if (hasPending) {
+      const file = adminPendingFile;
+      clearAdminPendingFile();
+      showToast('업로드 중...', 'info');
+      const name = file.name && file.name !== 'image.png' ? file.name : `screenshot-${Date.now()}.png`;
+      const fd   = new FormData();
+      fd.append('file', file, name);
+      const up = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
+      if (!up.ok) throw new Error('upload');
+      const upData = await up.json();
+      if (!upData.success) throw new Error('upload');
+      const fullUrl    = upData.url.startsWith('http') ? upData.url : `${location.origin}${upData.url}`;
+      const msgContent = upData.isImage ? `[이미지]\n${fullUrl}` : `[파일: ${name}]\n${fullUrl}`;
+      const res = await fetch(`${SERVER}/api/admin/message`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ sessionId: liveSelectedId, message: msgContent }),
+      });
+      if (!res.ok) throw new Error('send');
+      showToast('✅ 이미지 전송 완료', 'success');
+    }
+
+    /* 텍스트 전송 */
+    if (text) {
+      const res = await fetch(`${SERVER}/api/admin/message`, {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ sessionId: liveSelectedId, message: text }),
+      });
+      if (!res.ok) throw new Error('send');
+    }
+
     await fetchLiveSessionMsgs();
   } catch {
     showToast('❌ 메시지 전송 실패', 'error');
   } finally {
     input.disabled = false;
     input.focus();
+    refreshAdminSendBtn();
   }
 }
 
 /**
- * admin 입력창 Ctrl+V 이미지 붙여넣기
+ * admin 입력창 Ctrl+V 이미지 붙여넣기 → 칩 방식
  */
 function initAdminPaste() {
   const input = document.getElementById('liveInput');
   if (!input) return;
 
-  input.addEventListener('paste', async (e) => {
-    const items = Array.from(e.clipboardData?.items || []);
+  input.addEventListener('input', refreshAdminSendBtn);
+
+  input.addEventListener('paste', (e) => {
+    const items     = Array.from(e.clipboardData?.items || []);
     const imageItem = items.find(item => item.type.startsWith('image/'));
     if (!imageItem) return;
     e.preventDefault();
     const file = imageItem.getAsFile();
-    if (!file) return;
-    showAdminImagePreview(file);
+    if (file) showAdminAttachBar(file);
   });
-}
-
-function showAdminImagePreview(file) {
-  document.getElementById('adminImgPreviewOverlay')?.remove();
-  const objectUrl = URL.createObjectURL(file);
-
-  const overlay = document.createElement('div');
-  overlay.id = 'adminImgPreviewOverlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;';
-
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.2);">
-      <div style="font-size:15px;font-weight:700;color:#111827;">📎 이미지 전송</div>
-      <img src="${objectUrl}" style="width:100%;max-height:280px;object-fit:contain;border-radius:10px;border:1px solid #e5e7eb;background:#f3f4f6;" alt="미리보기">
-      <div style="display:flex;gap:8px;">
-        <button id="adminImgCancel" style="flex:1;padding:11px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;font-family:inherit;">취소</button>
-        <button id="adminImgSend" style="flex:2;padding:11px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">전송하기</button>
-      </div>
-    </div>
-  `;
-
-  overlay.querySelector('#adminImgCancel').onclick = () => {
-    URL.revokeObjectURL(objectUrl);
-    overlay.remove();
-  };
-
-  overlay.querySelector('#adminImgSend').onclick = async () => {
-    URL.revokeObjectURL(objectUrl);
-    overlay.remove();
-
-    showToast('업로드 중...', 'info');
-    try {
-      const name = `screenshot-${Date.now()}.png`;
-      const fd = new FormData();
-      fd.append('file', file, name);
-      const r = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
-      if (!r.ok) throw new Error();
-      const data = await r.json();
-      if (!data.success) throw new Error();
-
-      const msgContent = `[이미지]\n${location.origin}${data.url}`;
-      const res = await fetch(`${SERVER}/api/admin/message`, {
-        method: 'POST',
-        headers: adminHeaders(),
-        body: JSON.stringify({ sessionId: liveSelectedId, message: msgContent }),
-      });
-      if (!res.ok) throw new Error();
-      await fetchLiveSessionMsgs();
-      showToast('✅ 이미지 전송 완료', 'success');
-    } catch {
-      showToast('❌ 전송 실패', 'error');
-    }
-  };
-
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) { URL.revokeObjectURL(objectUrl); overlay.remove(); }
-  });
-
-  document.body.appendChild(overlay);
 }
 
 /**

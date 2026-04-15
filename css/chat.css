@@ -1016,6 +1016,32 @@ html, body {
 }
 .hpf-btn:hover { background: var(--purple-l); }
 
+/* ── 첨부 칩 바 (input 위에 표시) ─────────────── */
+.attach-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px 4px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  flex-wrap: nowrap; overflow: hidden;
+}
+.attach-thumb {
+  width: 44px; height: 44px; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+.attach-icon { font-size: 22px; flex-shrink: 0; }
+.attach-fname {
+  font-size: 12px; color: var(--gray-700);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+}
+.attach-remove {
+  flex-shrink: 0; background: none; border: none;
+  font-size: 14px; color: var(--gray-500); cursor: pointer;
+  padding: 4px 6px; border-radius: 6px; line-height: 1;
+}
+.attach-remove:hover { background: var(--gray-200); color: var(--gray-800); }
+
 /* ── 이미지 붙여넣기 미리보기 오버레이 ─────────── */
 .img-preview-overlay {
   position: fixed; inset: 0; z-index: 9999;

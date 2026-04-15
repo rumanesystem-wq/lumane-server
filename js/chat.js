@@ -17,6 +17,7 @@ import { todayStr } from './utils.js';
 import {
   initUI, setLoading, getIsLoading,
   addMsg, addImageMsg, addFileMsg, initFileInput,
+  uploadFilePending, getPendingFile,
   setQuick, updateQuickFromText,
   setBanner, setStatusText,
   initInputListeners, initDateSep, appendDateSep,
@@ -221,8 +222,31 @@ function buildConfirmSummary() {
    메시지 전송
 ================================================================ */
 async function send() {
-  const text = document.getElementById('inp').value.trim();
-  if (!text || getIsLoading()) return;
+  const text      = document.getElementById('inp').value.trim();
+  const hasPending = !!getPendingFile();
+  if ((!text && !hasPending) || getIsLoading()) return;
+
+  /* ── 첨부 파일이 있으면 먼저 업로드 & 메시지로 전송 ── */
+  if (hasPending) {
+    await uploadFilePending(async (url, name, isImage) => {
+      addFileMsg(url, name, isImage);
+      const fullUrl = url.startsWith('http') ? url : `${SERVER}${url}`;
+      const content = isImage ? `[이미지]\n${fullUrl}` : `[파일: ${name}]\n${fullUrl}`;
+      history.push({ role: 'user', content });
+      if (serverOnline) {
+        try {
+          await fetch(`${SERVER}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
+          });
+        } catch { /* 무시 */ }
+      }
+    });
+  }
+
+  /* ── 텍스트가 없으면 여기서 종료 ── */
+  if (!text) return;
 
   addMsg('user', text);
   history.push({ role: 'user', content: text });
@@ -449,28 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.continueFromHistory = continueFromHistory;
   window.closeTranscript    = closeTranscript;
 
-  /* 파일 업로드 초기화 */
-  initFileInput(async (url, name, isImage) => {
-    addFileMsg(url, name, isImage);
-
-    /* 절대 URL로 변환 (관리자 패널에서 이미지 렌더링 가능하도록) */
-    const fullUrl = url.startsWith('http') ? url : `${SERVER}${url}`;
-    const content = isImage
-      ? `[이미지]\n${fullUrl}`
-      : `[파일: ${name}]\n${fullUrl}`;
-    history.push({ role: 'user', content });
-
-    /* 서버에 즉시 동기화 → 관리자 패널에 바로 반영 */
-    if (serverOnline) {
-      try {
-        await fetch(`${SERVER}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
-        });
-      } catch { /* 무시 */ }
-    }
-  });
+  /* 파일 업로드 초기화 (칩 방식 — 전송 시 send()에서 처리) */
+  initFileInput();
 
   /* 서버 확인 후 인사 or 복원 + 세션 등록 + 폴링 시작 */
   checkServer().then(async () => {

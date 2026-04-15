@@ -30,8 +30,13 @@ export function getIsLoading() { return isLoading; }
 export function setLoading(val) {
   isLoading = val;
   $inp.disabled = val;
-  $sendBtn.disabled = val || !$inp.value.trim();
+  refreshSendBtn();
   if (val) showTyping(); else hideTyping();
+}
+
+/* ── 전송 버튼 활성화 상태 갱신 (파일 첨부 or 텍스트 기준) ── */
+function refreshSendBtn() {
+  $sendBtn.disabled = isLoading || (!$inp.value.trim() && !pendingFile);
 }
 
 /* ── 입력창 자동 높이 조정 ── */
@@ -47,7 +52,7 @@ export function clearInput() { $inp.value = ''; autoResize(); }
 export function initInputListeners(onSend) {
   $inp.addEventListener('input', () => {
     autoResize();
-    $sendBtn.disabled = isLoading || !$inp.value.trim();
+    refreshSendBtn();
   });
   $inp.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
@@ -58,7 +63,7 @@ export function initInputListeners(onSend) {
         $inp.value = $inp.value.slice(0, pos) + '\n' + $inp.value.slice($inp.selectionEnd);
         $inp.selectionStart = $inp.selectionEnd = pos + 1;
         autoResize();
-        $sendBtn.disabled = isLoading || !$inp.value.trim();
+        refreshSendBtn();
       } else {
         e.preventDefault();
         onSend();
@@ -473,12 +478,56 @@ function initEmojiPicker() {
   document.addEventListener('click', () => picker.classList.remove('open'));
 }
 
+/* ── 대기 중인 첨부 파일 상태 ── */
+let pendingFile      = null;
+let pendingObjectUrl = null;
+
+export function getPendingFile() { return pendingFile; }
+
+export function clearPendingFile() {
+  if (pendingObjectUrl) { URL.revokeObjectURL(pendingObjectUrl); pendingObjectUrl = null; }
+  pendingFile = null;
+  const bar = document.getElementById('attachBar');
+  if (bar) bar.style.display = 'none';
+  refreshSendBtn();
+}
+
+export async function uploadFilePending(onDone) {
+  if (!pendingFile) return;
+  const file = pendingFile;
+  clearPendingFile();
+  await uploadFile(file, onDone);
+}
+
+function showAttachBar(file) {
+  pendingFile = file;
+  if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
+  pendingObjectUrl = URL.createObjectURL(file);
+
+  const bar = document.getElementById('attachBar');
+  if (!bar) return;
+
+  const isImg = file.type.startsWith('image/');
+  bar.innerHTML = isImg
+    ? `<img src="${pendingObjectUrl}" class="attach-thumb" alt="">`
+    : `<span class="attach-icon">📎</span>`;
+  bar.innerHTML += `<span class="attach-fname">${file.name || 'screenshot.png'}</span>
+    <button class="attach-remove" id="attachRemoveBtn">✕</button>`;
+
+  bar.style.display = 'flex';
+  document.getElementById('attachRemoveBtn').addEventListener('click', () => {
+    clearPendingFile();
+    $inp.focus();
+  });
+  refreshSendBtn();
+  $inp.focus();
+}
+
 /* ── 파일 첨부 버튼 ── */
 function initAttachBtn() {
   const btn   = document.getElementById('attachBtn');
   const input = document.getElementById('fileInput');
   if (!btn || !input) return;
-
   btn.addEventListener('click', () => input.click());
 }
 
@@ -527,7 +576,7 @@ export function addFileMsg(url, name, isImage) {
 }
 
 /* ── 파일 공통 업로드 처리 ── */
-async function uploadFile(file, onFileSend) {
+export async function uploadFile(file, onFileSend) {
   if (file.size > 10 * 1024 * 1024) {
     showCopyToast('파일은 10MB 이하만 첨부 가능합니다');
     return;
@@ -547,74 +596,28 @@ async function uploadFile(file, onFileSend) {
   }
 }
 
-/* ── 파일 업로드 핸들러 초기화 (chat.js에서 onFileSend 콜백 전달) ── */
-export function initFileInput(onFileSend) {
+/* ── 파일 업로드 핸들러 초기화 — 칩 방식 (즉시 업로드 없음) ── */
+export function initFileInput() {
   const input = document.getElementById('fileInput');
   if (!input) return;
 
-  /* + 버튼으로 파일 선택 */
-  input.addEventListener('change', async () => {
+  /* + 버튼으로 파일 선택 → 칩으로 표시 */
+  input.addEventListener('change', () => {
     const file = input.files[0];
     if (!file) return;
     input.value = '';
-    await uploadFile(file, onFileSend);
+    showAttachBar(file);
   });
 
-  /* Ctrl+V 클립보드 붙여넣기 (화면 캡처 등) */
+  /* Ctrl+V 클립보드 붙여넣기 → 칩으로 표시 */
   if ($inp) {
-    $inp.addEventListener('paste', async (e) => {
+    $inp.addEventListener('paste', (e) => {
       const items = Array.from(e.clipboardData?.items || []);
       const imageItem = items.find(item => item.type.startsWith('image/'));
       if (!imageItem) return;
       e.preventDefault();
       const file = imageItem.getAsFile();
-      if (file) showImagePreview(file, onFileSend);
+      if (file) showAttachBar(file);
     });
   }
-}
-
-/* ── 이미지 붙여넣기 미리보기 ── */
-function showImagePreview(file, onFileSend) {
-  /* 기존 미리보기 제거 */
-  document.getElementById('imgPreviewOverlay')?.remove();
-
-  const objectUrl = URL.createObjectURL(file);
-
-  const overlay = document.createElement('div');
-  overlay.id = 'imgPreviewOverlay';
-  overlay.className = 'img-preview-overlay';
-
-  overlay.innerHTML = `
-    <div class="img-preview-box">
-      <div class="img-preview-title">📎 이미지 전송</div>
-      <img src="${objectUrl}" class="img-preview-img" alt="미리보기">
-      <div class="img-preview-btns">
-        <button class="img-preview-cancel">취소</button>
-        <button class="img-preview-send">전송하기</button>
-      </div>
-    </div>
-  `;
-
-  overlay.querySelector('.img-preview-cancel').onclick = () => {
-    URL.revokeObjectURL(objectUrl);
-    overlay.remove();
-    $inp.focus();
-  };
-
-  overlay.querySelector('.img-preview-send').onclick = async () => {
-    URL.revokeObjectURL(objectUrl);
-    overlay.remove();
-    await uploadFile(file, onFileSend);
-    $inp.focus();
-  };
-
-  /* 바깥 클릭 시 취소 */
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) {
-      URL.revokeObjectURL(objectUrl);
-      overlay.remove();
-    }
-  });
-
-  document.body.appendChild(overlay);
 }
