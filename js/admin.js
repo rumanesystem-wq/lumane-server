@@ -424,6 +424,24 @@ initAdminCtxMenuListener();
 initAdminSearch();
 window.toggleAdminSearch    = toggleAdminSearch;
 window.clearAdminReplyBar   = clearAdminReplyBar;
+
+/* 모바일 사이드바 토글 */
+window.toggleSidebar = function() {
+  const sidebar  = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  const isOpen   = sidebar.classList.toggle('open');
+  backdrop.classList.toggle('open', isOpen);
+};
+
+/* 탭 전환 시 모바일 사이드바 자동 닫기 (nav-item 클릭 이벤트) */
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    const sidebar  = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+  });
+});
 window.toggleTemplatePanel  = toggleTemplatePanel;
 window.openTemplateEditor   = openTemplateEditor;
 window.closeTemplateEditor  = closeTemplateEditor;

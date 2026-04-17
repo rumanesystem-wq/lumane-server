@@ -54,9 +54,17 @@
 ============================================= -->
 <main class="main">
 
+  <!-- 사이드바 백드롭 (모바일) -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
   <!-- 상단 헤더 -->
   <div class="topbar">
-    <div class="topbar-title" id="topbarTitle">📊 대시보드</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="hamburger" id="hamburger" onclick="toggleSidebar()" title="메뉴">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title" id="topbarTitle">📊 대시보드</div>
+    </div>
     <div class="topbar-right">
       <div class="server-badge offline" id="serverBadge">
         <div class="status-dot"></div>
@@ -195,7 +203,7 @@
   ============================================= -->
   <div class="section" id="section-live">
 
-    <div style="display:grid;grid-template-columns:320px 1fr;gap:16px;height:calc(100vh - 180px);">
+    <div class="live-split" style="display:grid;grid-template-columns:320px 1fr;gap:16px;height:calc(100vh - 180px);">
 
       <!-- 왼쪽: 활성 세션 목록 -->
       <div style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;display:flex;flex-direction:column;overflow:hidden;">

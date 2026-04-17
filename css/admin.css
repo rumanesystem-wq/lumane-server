@@ -774,6 +774,95 @@ body {
   padding: 0 1px;
 }
 
+/* =============================================
+   햄버거 버튼 (모바일에서만 표시)
+============================================= */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px; height: 36px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.hamburger span {
+  display: block;
+  width: 18px; height: 2px;
+  background: #374151;
+  border-radius: 2px;
+  transition: all .2s;
+}
+
+/* 사이드바 백드롭 */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 199;
+}
+.sidebar-backdrop.open { display: block; }
+
+/* =============================================
+   모바일 반응형 (768px 미만)
+============================================= */
+@media (max-width: 767px) {
+  /* 햄버거 표시 */
+  .hamburger { display: flex; }
+
+  /* 사이드바 → 오버레이 슬라이드 */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 200;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* 메인 영역: 좌측 마진 없애기 */
+  .main { margin-left: 0; }
+
+  /* 상단바 패딩 줄이기 */
+  .topbar { padding: 10px 14px; }
+  .topbar-title { font-size: 15px; }
+
+  /* 서버 상태 텍스트 숨기기 (아이콘만) */
+  #serverStatus { display: none; }
+  .server-badge { padding: 5px 8px; }
+
+  /* 탭 바 */
+  .tab-bar { padding: 0 8px; overflow-x: auto; }
+  .tab-btn { padding: 12px 10px; font-size: 12px; white-space: nowrap; }
+
+  /* 섹션 패딩 */
+  .section { padding: 12px; }
+
+  /* 통계 카드: 2열 */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-value { font-size: 22px; }
+
+  /* 라이브 상담 분할 → 단일 컬럼 */
+  .live-split {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+  }
+  /* 세션 목록 고정 높이 */
+  .live-split > div:first-child {
+    height: 280px;
+  }
+  /* 채팅 패널 높이 */
+  .live-split > div:last-child {
+    height: calc(100vh - 200px);
+  }
+}
+
+/* =============================================
+   인쇄 스타일
+============================================= */
 /* 인쇄 스타일 */
 @media print {
   .sidebar, .topbar, .tab-bar, .filter-bar, .btn, .modal-overlay { display: none !important; }
