@@ -887,6 +887,7 @@ body {
     z-index: 150;
     border-radius: 0 !important;
     flex-direction: column;
+    overflow: hidden;
   }
 
   /* 세션 선택 시: 목록 숨기고 채팅 전체화면 */
@@ -900,15 +901,38 @@ body {
   /* 뒤로가기 버튼 표시 */
   .live-back-btn { display: flex; }
 
-  /* 채팅 패널 내부 메시지 높이 */
+  /* 메시지 영역: 남은 공간 전부 차지, 스크롤 */
   #liveMsgs {
-    flex: 1;
-    min-height: 0;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
   }
 
-  /* 어드민 답장 입력창 */
-  #adminReplyBar, #liveInputWrap {
-    flex-shrink: 0;
+  /* 입력창들: 줄어들지 않도록 고정 */
+  #liveInputArea,
+  #adminReplyBar,
+  #adminAttachBar,
+  #templatePanel,
+  #adminSearchBar {
+    flex-shrink: 0 !important;
+  }
+
+  /* 입력창 폰트/패딩 모바일 최적화 */
+  #liveInputArea {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  #liveInput {
+    font-size: 15px !important;
+    padding: 10px 12px !important;
+  }
+  #liveSendBtn {
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+  }
+  #adminUploadBtn, #templateBtn {
+    width: 36px !important;
+    height: 36px !important;
   }
 }
 
