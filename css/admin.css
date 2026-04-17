@@ -896,11 +896,18 @@ body {
     display: none;
   }
   .live-split.session-selected .live-chat-col {
-    display: block !important; /* flex → block으로 변경, 자식 절대위치 사용 */
+    display: block !important;
     position: fixed !important;
-    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
     z-index: 150 !important;
     overflow: hidden;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
   }
 
   /* 뒤로가기 버튼 표시 */
@@ -926,10 +933,13 @@ body {
   .live-split.session-selected #liveInputArea {
     position: absolute;
     bottom: 0; left: 0; right: 0;
+    width: 100%;
     z-index: 2;
     background: #fff;
     border-top: 1px solid #e5e7eb;
     padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
   }
 
   /* 답장/첨부 바: 입력창 바로 위 */
