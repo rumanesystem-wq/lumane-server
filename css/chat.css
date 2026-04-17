@@ -114,9 +114,15 @@ html, body {
   html, body { height: 100%; overflow: hidden; }
   .page { height: 100%; min-height: unset; }
   .shell {
-    height: 100%;
+    height: 100vh;
+    height: 100dvh; /* Android Chrome / iOS Safari 주소창 대응 */
     min-height: unset;
     overflow: hidden;
+  }
+
+  /* 입력창 하단 safe area (안드로이드 제스처 네비 + iOS 홈바) */
+  .input-bar {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   /* 메시지 버블 모바일 최대 너비 확대 (카톡처럼) */
