@@ -525,6 +525,28 @@ export function hideTyping() {
   document.getElementById('typing')?.remove();
 }
 
+/* 상담원 타이핑 표시 (AI 타이핑과 별도 엘리먼트) */
+export function showAdminTyping() {
+  if (document.getElementById('adminTyping')) return;
+  const el = document.createElement('div');
+  el.className = 'typing';
+  el.id = 'adminTyping';
+  el.innerHTML =
+    `<div class="av">👩‍💼</div>` +
+    `<div class="typing-body">` +
+      `<div class="typing-name">담당자</div>` +
+      `<div class="typing-bubble">` +
+        `<div class="td"></div><div class="td"></div><div class="td"></div>` +
+      `</div>` +
+    `</div>`;
+  $msgs.appendChild(el);
+  scrollBottom();
+}
+
+export function hideAdminTyping() {
+  document.getElementById('adminTyping')?.remove();
+}
+
 /* ── 퀵 버튼 ── */
 export function setQuick(labels, isChoice = false) {
   $quickArea.innerHTML = '';
@@ -638,6 +660,40 @@ function initEmojiPicker() {
   document.addEventListener('click', () => picker.classList.remove('open'));
 }
 
+/* ── 이미지 자동 압축 (Canvas API, 클라이언트 사이드) ── */
+async function compressImageIfNeeded(file) {
+  if (!file.type.startsWith('image/')) return file;   // 이미지 아니면 그대로
+  if (file.size < 300 * 1024) return file;            // 300KB 미만은 압축 불필요
+
+  return new Promise(resolve => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      const MAX = 1920;
+      let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) {
+        const ratio = Math.min(MAX / w, MAX / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      const quality = file.type === 'image/png' ? 1 : 0.85;
+      canvas.toBlob(blob => {
+        if (!blob || blob.size >= file.size) { resolve(file); return; } // 압축 효과 없으면 원본
+        const ext  = mime === 'image/png' ? 'png' : 'jpg';
+        const name = (file.name || 'image').replace(/\.[^.]+$/, '') + '.' + ext;
+        resolve(new File([blob], name, { type: mime }));
+      }, mime, quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
+    img.src = blobUrl;
+  });
+}
+
 /* ── 대기 중인 첨부 파일 상태 ── */
 let pendingFile      = null;
 let pendingObjectUrl = null;
@@ -659,7 +715,8 @@ export async function uploadFilePending(onDone) {
   await uploadFile(file, onDone);
 }
 
-function showAttachBar(file) {
+async function showAttachBar(rawFile) {
+  const file = await compressImageIfNeeded(rawFile);
   pendingFile = file;
   if (pendingObjectUrl) URL.revokeObjectURL(pendingObjectUrl);
   pendingObjectUrl = URL.createObjectURL(file);

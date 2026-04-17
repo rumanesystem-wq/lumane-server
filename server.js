@@ -131,7 +131,8 @@ function getOrCreateSession(sessionId) {
       customerName: null,
       startedAt: new Date(),
       lastActivity: new Date(),
-      lastReadAt: null,       // 상담원이 마지막으로 세션을 열어본 시각
+      lastReadAt: null,
+      adminTyping: false,     // 상담원이 입력 중 여부
     });
   }
   return sessions.get(sessionId);
@@ -499,7 +500,7 @@ app.get('/api/session/status', (req, res) => {
   const pending = [...sess.pendingAdminMsgs];
   sess.pendingAdminMsgs = [];
 
-  res.json({ mode: sess.mode, pendingMsgs: pending, adminLastRead: sess.lastReadAt || null });
+  res.json({ mode: sess.mode, pendingMsgs: pending, adminLastRead: sess.lastReadAt || null, adminTyping: sess.adminTyping || false });
 });
 
 // ── 어드민: 활성 세션 목록 ────────────────────────────────────
@@ -526,6 +527,15 @@ app.get('/api/admin/session/:id', (req, res) => {
   if (!sess) return res.status(404).json({ error: '세션 없음' });
   sess.lastReadAt = new Date().toISOString(); // 상담원이 세션을 봤으므로 읽음 처리
   res.json({ session: sess });
+});
+
+// ── 어드민: 타이핑 상태 업데이트 ────────────────────────────
+app.post('/api/admin/typing', (req, res) => {
+  const { sessionId, typing } = req.body;
+  const sess = sessions.get(sessionId);
+  if (!sess) return res.status(404).json({ error: '세션 없음' });
+  sess.adminTyping = !!typing;
+  res.json({ ok: true });
 });
 
 // ── 어드민: 난입 (AI → admin 모드 전환) ──────────────────────

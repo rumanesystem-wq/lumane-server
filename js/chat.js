@@ -23,6 +23,7 @@ import {
   setBanner, setStatusText,
   initInputListeners, initDateSep, appendDateSep,
   clearMessages, clearInput,
+  showAdminTyping, hideAdminTyping,
 } from './ui.js';
 import { getPendingReply, setPendingReply, clearPendingReply } from './reply.js';
 import { getEditingMid, startEdit, cancelEdit, applyEditToDom, deleteFromDom } from './message-actions.js';
@@ -157,10 +158,22 @@ function startPolling() {
         showAdminBanner(false);
       }
 
+      /* 상담원 타이핑 표시 */
+      if (data.adminTyping) showAdminTyping();
+      else hideAdminTyping();
+
       /* admin이 보낸 메시지 표시 */
       for (const msg of (data.pendingMsgs || [])) {
+        hideAdminTyping();
         addMsg('bot', msg.content);
         history.push({ role: 'assistant', content: msg.content });
+        // 탭이 백그라운드일 때 브라우저 알림
+        if (document.visibilityState !== 'visible' && Notification.permission === 'granted') {
+          new Notification('👩‍💼 담당자 메시지', {
+            body: msg.content.slice(0, 80),
+            icon: '/favicon.ico',
+          });
+        }
       }
     } catch { /* 네트워크 오류 무시 */ }
   }, 2000);
@@ -557,6 +570,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (savedPhone) fetchConsultationHistory(savedPhone);
     }
   });
+
+  /* 브라우저 알림 권한 요청 */
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 
   /* 오프라인이면 30초마다 서버 재확인 (Render.com 절전 후 복귀 대응) */
   setInterval(checkServerSilent, 30000);

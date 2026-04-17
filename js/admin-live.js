@@ -76,6 +76,7 @@ async function fetchLiveSessions() {
     const data = await res.json();
     const sessions = data.sessions || [];
     renderLiveSessionList(sessions);
+    if (window._checkNotifications) window._checkNotifications(sessions);
 
     /* ── 세션 자동 선택 ── */
     if (sessions.length > 0 && !liveSelectedId) {
@@ -257,11 +258,13 @@ function renderLiveChatPanel(sess) {
     if (inp?.value.trim()) runAdminSearch(inp.value.trim());
   }
 
-  const input      = document.getElementById('liveInput');
-  const sendBtn    = document.getElementById('liveSendBtn');
-  const uploadBtn  = document.getElementById('adminUploadBtn');
+  const input       = document.getElementById('liveInput');
+  const sendBtn     = document.getElementById('liveSendBtn');
+  const uploadBtn   = document.getElementById('adminUploadBtn');
+  const templateBtn = document.getElementById('templateBtn');
   input.disabled = !isAdmin;
-  if (uploadBtn) uploadBtn.disabled = !isAdmin;
+  if (uploadBtn)   uploadBtn.disabled   = !isAdmin;
+  if (templateBtn) templateBtn.disabled = !isAdmin;
   refreshAdminSendBtn();
   input.placeholder = isAdmin
     ? '고객에게 직접 메시지를 입력하세요...'
@@ -327,11 +330,40 @@ async function releaseSession() {
   }
 }
 
+/* ── 이미지 자동 압축 (admin용, ui.js와 동일 로직) ── */
+async function compressImageIfNeeded(file) {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.size < 300 * 1024) return file;
+  return new Promise(resolve => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      const MAX = 1920;
+      let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) { const r = Math.min(MAX/w, MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      canvas.toBlob(blob => {
+        if (!blob || blob.size >= file.size) { resolve(file); return; }
+        const ext = mime === 'image/png' ? 'png' : 'jpg';
+        const name = (file.name || 'image').replace(/\.[^.]+$/, '') + '.' + ext;
+        resolve(new File([blob], name, { type: mime }));
+      }, mime, 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
+    img.src = blobUrl;
+  });
+}
+
 /* ── admin 첨부 칩 상태 ── */
 let adminPendingFile      = null;
 let adminPendingObjectUrl = null;
 
-function showAdminAttachBar(file) {
+async function showAdminAttachBar(rawFile) {
+  const file = await compressImageIfNeeded(rawFile);
   adminPendingFile = file;
   if (adminPendingObjectUrl) URL.revokeObjectURL(adminPendingObjectUrl);
   adminPendingObjectUrl = URL.createObjectURL(file);
@@ -402,6 +434,8 @@ async function sendAdminMsg() {
     text = `[답장: ${preview}]\n${text}`;
   }
   clearAdminReplyBar();
+  clearTimeout(_typingTimer);
+  sendAdminTyping(false);
 
   input.value    = '';
   input.disabled = true;
@@ -454,11 +488,28 @@ async function sendAdminMsg() {
 /**
  * admin 입력창 Ctrl+V 이미지 붙여넣기 → 칩 방식
  */
+/* ── 타이핑 상태 전송 ── */
+let _typingTimer = null;
+function sendAdminTyping(isTyping) {
+  if (!liveSelectedId) return;
+  fetch(`${SERVER}/api/admin/typing`, {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ sessionId: liveSelectedId, typing: isTyping }),
+  }).catch(() => {});
+}
+
 function initAdminPaste() {
   const input = document.getElementById('liveInput');
   if (!input) return;
 
-  input.addEventListener('input', refreshAdminSendBtn);
+  input.addEventListener('input', () => {
+    refreshAdminSendBtn();
+    // 타이핑 중 → true 전송, 2초 뒤 멈추면 false
+    sendAdminTyping(true);
+    clearTimeout(_typingTimer);
+    _typingTimer = setTimeout(() => sendAdminTyping(false), 2000);
+  });
 
   input.addEventListener('paste', (e) => {
     const items     = Array.from(e.clipboardData?.items || []);
@@ -682,6 +733,120 @@ function initAdminCtxMenuListener() {
   }, { passive: true });
   liveMsgs.addEventListener('touchend',   () => clearTimeout(pressTimer));
   liveMsgs.addEventListener('touchmove',  () => clearTimeout(pressTimer));
+}
+
+/* ================================================================
+   빠른 답변 템플릿 (localStorage 기반)
+================================================================ */
+const TEMPLATE_KEY = 'lumane_admin_templates';
+
+function loadTemplates() {
+  try { return JSON.parse(localStorage.getItem(TEMPLATE_KEY) || '[]'); } catch { return []; }
+}
+
+function saveTemplatesToStorage(list) {
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify(list));
+}
+
+function renderTemplateList() {
+  const panel = document.getElementById('templateList');
+  if (!panel) return;
+  const templates = loadTemplates();
+  if (templates.length === 0) {
+    panel.innerHTML = `<div style="font-size:12px;color:#9ca3af;padding:4px 4px;">템플릿이 없습니다. "+ 추가/편집"을 눌러 추가하세요.</div>`;
+    return;
+  }
+  panel.innerHTML = templates.map((t, i) => `
+    <button onclick="applyTemplate(${i})"
+      style="text-align:left;padding:8px 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;font-size:13px;color:#374151;cursor:pointer;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+      onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='#fff'">
+      ${escAdmin(t)}
+    </button>
+  `).join('');
+}
+
+function applyTemplate(idx) {
+  const templates = loadTemplates();
+  const text = templates[idx];
+  if (!text) return;
+  const input = document.getElementById('liveInput');
+  if (!input || input.disabled) { showToast('난입 후 사용 가능합니다', 'info'); return; }
+  input.value = text;
+  input.focus();
+  refreshAdminSendBtn();
+  toggleTemplatePanel(false);
+}
+
+function toggleTemplatePanel(forceClose) {
+  const panel = document.getElementById('templatePanel');
+  if (!panel) return;
+  const isOpen = panel.style.display === 'flex' || panel.style.display === 'block';
+  if (forceClose === false || isOpen) {
+    panel.style.display = 'none';
+  } else {
+    renderTemplateList();
+    panel.style.display = 'block';
+  }
+}
+
+function openTemplateEditor() {
+  const overlay = document.getElementById('templateEditorOverlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  renderTemplateEditorList();
+}
+
+function closeTemplateEditor(e) {
+  if (e && e.target !== document.getElementById('templateEditorOverlay')) return;
+  document.getElementById('templateEditorOverlay').style.display = 'none';
+}
+
+function renderTemplateEditorList() {
+  const container = document.getElementById('templateEditorList');
+  if (!container) return;
+  const templates = loadTemplates();
+  container.innerHTML = templates.map((t, i) => `
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="text" value="${escAttr(t)}" data-idx="${i}"
+        style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"
+        placeholder="자주 쓰는 문구를 입력하세요">
+      <button onclick="removeTemplateItem(${i})"
+        style="flex-shrink:0;background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px 6px;">🗑</button>
+    </div>
+  `).join('');
+}
+
+function addTemplateItem() {
+  const container = document.getElementById('templateEditorList');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  const idx = container.children.length;
+  div.innerHTML = `
+    <input type="text" data-idx="${idx}"
+      style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"
+      placeholder="자주 쓰는 문구를 입력하세요">
+    <button onclick="this.parentElement.remove()"
+      style="flex-shrink:0;background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px 6px;">🗑</button>
+  `;
+  container.appendChild(div);
+  div.querySelector('input').focus();
+}
+
+function removeTemplateItem(idx) {
+  const templates = loadTemplates();
+  templates.splice(idx, 1);
+  saveTemplatesToStorage(templates);
+  renderTemplateEditorList();
+}
+
+function saveTemplates() {
+  const inputs = document.querySelectorAll('#templateEditorList input[type="text"]');
+  const templates = [...inputs].map(i => i.value.trim()).filter(Boolean);
+  saveTemplatesToStorage(templates);
+  document.getElementById('templateEditorOverlay').style.display = 'none';
+  renderTemplateList();
+  showToast('✅ 템플릿 저장 완료', 'success');
 }
 
 /**

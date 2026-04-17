@@ -422,8 +422,15 @@ initAdminFileUpload();
 initAdminPaste();
 initAdminCtxMenuListener();
 initAdminSearch();
-window.toggleAdminSearch  = toggleAdminSearch;
-window.clearAdminReplyBar = clearAdminReplyBar;
+window.toggleAdminSearch    = toggleAdminSearch;
+window.clearAdminReplyBar   = clearAdminReplyBar;
+window.toggleTemplatePanel  = toggleTemplatePanel;
+window.openTemplateEditor   = openTemplateEditor;
+window.closeTemplateEditor  = closeTemplateEditor;
+window.addTemplateItem      = addTemplateItem;
+window.removeTemplateItem   = removeTemplateItem;
+window.saveTemplates        = saveTemplates;
+window.applyTemplate        = applyTemplate;
 
 /* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
 (async function startUpdateChecker() {
@@ -445,3 +452,52 @@ window.clearAdminReplyBar = clearAdminReplyBar;
     } catch { /* 무시 */ }
   }, 30000);
 })();
+
+/* ================================================================
+   브라우저 알림 (상담원용)
+================================================================ */
+(function initAdminNotifications() {
+  if (!('Notification' in window)) return;
+
+  // 권한 요청 (아직 결정 안 됐을 때만)
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+})();
+
+let _notifiedSessions = new Set();
+let _notifiedMsgCounts = {};
+
+function notifyNewSession(sess) {
+  if (Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible') return; // 탭이 활성화 중이면 알림 불필요
+  new Notification('💬 새 상담 연결', {
+    body: `${sess.customerName || '고객'}님이 상담을 시작했습니다`,
+    icon: '/favicon.ico',
+  });
+}
+
+function notifyNewMessage(sess) {
+  if (Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible') return;
+  new Notification('📩 새 메시지', {
+    body: `${sess.customerName || '고객'}: 새 메시지가 도착했습니다`,
+    icon: '/favicon.ico',
+  });
+}
+
+// fetchLiveSessions 결과를 후킹해서 새 세션/메시지 알림
+const _origFetchLiveSessions = fetchLiveSessions;
+window._checkNotifications = function(sessions) {
+  sessions.forEach(sess => {
+    // 새 세션 알림
+    if (!_notifiedSessions.has(sess.id)) {
+      _notifiedSessions.add(sess.id);
+      if (_notifiedSessions.size > 1) notifyNewSession(sess); // 첫 로드 제외
+    }
+    // 새 메시지 알림
+    const prev = _notifiedMsgCounts[sess.id] ?? sess.messageCount;
+    if (sess.messageCount > prev) notifyNewMessage(sess);
+    _notifiedMsgCounts[sess.id] = sess.messageCount;
+  });
+};

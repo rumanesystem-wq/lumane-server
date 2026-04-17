@@ -260,12 +260,23 @@
         <!-- admin 첨부 칩 바 -->
         <div id="adminAttachBar" style="display:none;align-items:center;gap:8px;padding:6px 12px 4px;background:#f9fafb;border-top:1px solid #e5e7eb;flex-wrap:nowrap;overflow:hidden;"></div>
 
+        <!-- 빠른 답변 템플릿 패널 -->
+        <div id="templatePanel" style="display:none;border-top:1px solid #e5e7eb;background:#f9fafb;max-height:200px;overflow-y:auto;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 4px;">
+            <span style="font-size:12px;font-weight:700;color:#6b7280;">⚡ 빠른 답변</span>
+            <button onclick="openTemplateEditor()" style="font-size:11px;color:#7c3aed;background:none;border:none;cursor:pointer;padding:2px 6px;">+ 추가/편집</button>
+          </div>
+          <div id="templateList" style="padding:4px 10px 8px;display:flex;flex-direction:column;gap:4px;"></div>
+        </div>
+
         <!-- admin 입력창 (난입 중일 때만 활성화) -->
         <div id="liveInputArea" style="padding:12px 16px;border-top:1px solid #e5e7eb;display:flex;gap:8px;align-items:center;">
           <button id="adminUploadBtn" disabled title="파일 첨부"
             onclick="document.getElementById('adminFileInput').click()"
             style="width:38px;height:38px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">＋</button>
           <input type="file" id="adminFileInput" accept="image/*,video/*,audio/*,application/pdf" style="display:none">
+          <button id="templateBtn" onclick="toggleTemplatePanel()" title="빠른 답변" disabled
+            style="width:38px;height:38px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">⚡</button>
           <input type="text" id="liveInput"
             placeholder="세션을 선택하고 난입하기를 눌러야 입력 가능합니다"
             disabled
@@ -283,6 +294,27 @@
   </div>
 
 </main>
+
+<!-- 빠른 답변 템플릿 편집 모달 -->
+<div id="templateEditorOverlay" onclick="closeTemplateEditor(event)"
+  style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()"
+    style="background:#fff;border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="font-size:16px;font-weight:700;">⚡ 빠른 답변 템플릿 편집</h3>
+      <button onclick="closeTemplateEditor()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;">✕</button>
+    </div>
+    <div id="templateEditorList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+    <button onclick="addTemplateItem()"
+      style="width:100%;padding:10px;border:2px dashed #d1d5db;border-radius:10px;background:none;color:#6b7280;font-size:13px;cursor:pointer;">
+      + 새 템플릿 추가
+    </button>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button onclick="closeTemplateEditor()" class="btn btn-outline">취소</button>
+      <button onclick="saveTemplates()" class="btn btn-primary">저장</button>
+    </div>
+  </div>
+</div>
 
 <!-- =============================================
      견적 상세 모달
