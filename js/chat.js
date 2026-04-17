@@ -394,6 +394,9 @@ async function send() {
         .catch(e => console.warn('예시 이미지 로딩 실패:', e));
     }
 
+    // 빈 응답 (API 오류 후 중복 방지용 빈 메시지) 무시
+    if (!reply) { setLoading(false); return; }
+
     history.push({ role: 'assistant', content: reply });
     addMsg('bot', reply);
     updateQuickFromText(reply);

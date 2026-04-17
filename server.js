@@ -133,6 +133,7 @@ function getOrCreateSession(sessionId) {
       lastActivity: new Date(),
       lastReadAt: null,
       adminTyping: false,     // 상담원이 입력 중 여부
+      fallbackSent: false,    // API 오류 fallback 메시지 이미 보냈는지
     });
   }
   return sessions.get(sessionId);
@@ -463,13 +464,17 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
   } catch (err) {
     console.error('Anthropic API 오류:', err.message);
 
-    // 고객에게는 담당자 연결 안내 메시지 표시 (API 크레딧 부족 등 오류 숨김)
-    const fallback = '잠시만요! 😊\n담당자를 연결해 드리겠습니다.\n곧 직접 안내해 드릴게요, 조금만 기다려 주세요 🙏';
-    if (sessionId && sessions.has(sessionId)) {
-      sessions.get(sessionId).messages.push({ role: 'assistant', content: fallback });
-      sessions.get(sessionId).lastActivity = new Date();
+    // 고객에게는 담당자 연결 안내 메시지 표시 — 세션당 최초 1회만
+    const sess = sessionId && sessions.has(sessionId) ? sessions.get(sessionId) : null;
+    if (sess && !sess.fallbackSent) {
+      const fallback = '잠시만요! 😊\n담당자를 연결해 드리겠습니다.\n곧 직접 안내해 드릴게요, 조금만 기다려 주세요 🙏';
+      sess.messages.push({ role: 'assistant', content: fallback });
+      sess.lastActivity = new Date();
+      sess.fallbackSent = true;
+      return res.json({ message: fallback });
     }
-    res.json({ message: fallback });
+    // 이미 fallback을 보낸 세션: 빈 응답 (클라이언트에서 무시)
+    res.json({ message: '' });
   }
 });
 
