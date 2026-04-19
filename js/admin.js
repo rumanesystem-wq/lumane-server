@@ -271,51 +271,47 @@ function updateUI() {
 }
 
 function updateDashboard() {
+  // 대시보드가 세션 목록으로 교체됨 — 구 stat 요소 없으면 스킵
+  if (!document.getElementById('statTotal')) return;
+
   const total = allQuotes.length;
   const cnt = { '접수완료': 0, '상담중': 0, '설계중': 0, '시공완료': 0 };
-
   allQuotes.forEach(q => { if (cnt[q.상태] !== undefined) cnt[q.상태]++; });
 
-  document.getElementById('statTotal').textContent  = total;
-  document.getElementById('statActive').textContent = cnt['접수완료'] + cnt['상담중'];
-  document.getElementById('statDesign').textContent = cnt['설계중'];
-  document.getElementById('statDone').textContent   = cnt['시공완료'];
-  document.getElementById('statDoneRate').textContent =
-    total > 0 ? `전환율 ${Math.round(cnt['시공완료'] / total * 100)}%` : '전환율 0%';
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText('statTotal',   total);
+  setText('statActive',  cnt['접수완료'] + cnt['상담중']);
+  setText('statDesign',  cnt['설계중']);
+  setText('statDone',    cnt['시공완료']);
+  setText('statDoneRate', total > 0 ? `전환율 ${Math.round(cnt['시공완료'] / total * 100)}%` : '전환율 0%');
+  setText('leg0', cnt['접수완료']);
+  setText('leg1', cnt['상담중']);
+  setText('leg2', cnt['설계중']);
+  setText('leg3', cnt['시공완료']);
 
   const bar = document.getElementById('pipelineBar');
-  if (total === 0) {
-    bar.innerHTML = '<div class="pipeline-seg 접수완료" style="flex:1">견적 없음</div>';
-  } else {
-    bar.innerHTML = ['접수완료', '상담중', '설계중', '시공완료'].map(s => {
-      const flex = cnt[s] || 0;
-      if (flex === 0) return '';
-      return `<div class="pipeline-seg ${s}" style="flex:${flex}">${cnt[s]}건</div>`;
-    }).join('');
+  if (bar) {
+    bar.innerHTML = total === 0
+      ? '<div class="pipeline-seg 접수완료" style="flex:1">견적 없음</div>'
+      : ['접수완료', '상담중', '설계중', '시공완료']
+          .filter(s => cnt[s] > 0)
+          .map(s => `<div class="pipeline-seg ${s}" style="flex:${cnt[s]}">${cnt[s]}건</div>`)
+          .join('');
   }
-
-  document.getElementById('leg0').textContent = cnt['접수완료'];
-  document.getElementById('leg1').textContent = cnt['상담중'];
-  document.getElementById('leg2').textContent = cnt['설계중'];
-  document.getElementById('leg3').textContent = cnt['시공완료'];
 
   const recentList = document.getElementById('recentList');
-  const recent     = [...allQuotes].reverse().slice(0, 5);
-
-  if (recent.length === 0) {
-    recentList.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><p>아직 접수된 견적이 없습니다</p></div>`;
-    return;
-  }
-
-  recentList.innerHTML = recent.map(q => `
-    <div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;cursor:pointer;gap:14px;" onclick="openModal('${escAttr(String(q.id))}')">
-      <span style="font-size:13px;font-weight:700;color:#7c3aed;min-width:80px">${q.접수번호}</span>
-      <span style="font-size:14px;font-weight:600;min-width:80px">${q.고객정보?.이름 || '-'}</span>
-      <span style="font-size:13px;color:#6b7280;flex:1">${q.고객정보?.설치지역 || '-'} <span style="color:#c4b5fd;font-weight:600">${q.고객정보?.공간형태 ? '· ' + q.고객정보.공간형태 : ''}</span></span>
-      <span class="status-badge ${q.상태}">${q.상태}</span>
-      <span style="font-size:12px;color:#9ca3af">${formatDate(q.접수시간)}</span>
-    </div>
-  `).join('');
+  if (!recentList) return;
+  const recent = [...allQuotes].reverse().slice(0, 5);
+  recentList.innerHTML = recent.length === 0
+    ? `<div class="empty-state"><div class="emoji">📭</div><p>아직 접수된 견적이 없습니다</p></div>`
+    : recent.map(q => `
+        <div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;cursor:pointer;gap:14px;" onclick="openModal('${escAttr(String(q.id))}')">
+          <span style="font-size:13px;font-weight:700;color:#7c3aed;min-width:80px">${q.접수번호}</span>
+          <span style="font-size:14px;font-weight:600;min-width:80px">${q.고객정보?.이름 || '-'}</span>
+          <span style="font-size:13px;color:#6b7280;flex:1">${q.고객정보?.설치지역 || '-'}</span>
+          <span class="status-badge ${q.상태}">${q.상태}</span>
+          <span style="font-size:12px;color:#9ca3af">${formatDate(q.접수시간)}</span>
+        </div>`).join('');
 }
 
 function updateQuoteList(quotes) {
