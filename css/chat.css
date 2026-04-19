@@ -322,8 +322,8 @@ html, body {
   min-width: 0;
   max-width: 100%;
 }
-/* 내 메시지: 메타(시간/읽음)가 말풍선 왼쪽 */
-.msg-group.user .msg-bubbles-row { flex-direction: row-reverse; }
+/* 내 메시지: 시간이 말풍선 왼쪽에 표시 */
+.msg-group.user .msg-bubbles-row { flex-direction: row; }
 
 /* 말풍선 세로 나열 */
 .msg-bubbles {
