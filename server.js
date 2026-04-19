@@ -433,9 +433,10 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
   }
 
   // Anthropic API는 messages가 비어있으면 에러 — 첫 인사 요청 시 트리거 메시지 삽입
+  // ts/mid 등 extra 필드 제거 후 전송
   const apiMessages = messages.length === 0
     ? [{ role: 'user', content: '상담 시작' }]
-    : messages;
+    : messages.map(({ role, content }) => ({ role, content }));
 
   try {
     const response = await client.messages.create({
@@ -456,7 +457,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // 세션에 AI 응답도 저장
     if (sessionId && sessions.has(sessionId)) {
       const sess = sessions.get(sessionId);
-      sess.messages.push({ role: 'assistant', content: reply });
+      sess.messages.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
       sess.lastActivity = new Date();
     }
 

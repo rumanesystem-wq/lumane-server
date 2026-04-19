@@ -314,14 +314,38 @@ function renderLiveChatPanel(sess) {
     }
 
     const encodedContent = encodeURIComponent(m.content || '');
-    return `
-      <div class="live-msg-row" data-role="${isUser ? 'user' : (isAdminMsg ? 'admin' : 'bot')}" data-content="${encodedContent}"
-           style="display:flex;${isUser ? 'justify-content:flex-end' : 'justify-content:flex-start'};gap:8px;align-items:flex-end;">
-        ${!isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:${isAdminMsg ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'linear-gradient(135deg,#6b7280,#9ca3af)'};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${isAdminMsg ? '👩‍💼' : '🤖'}</div>` : ''}
-        <div style="max-width:calc(100% - 44px);padding:${imgMatch ? '6px' : '10px 13px'};font-size:14.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;border-radius:${isUser ? '16px 16px 2px 16px' : (isAdminMsg ? '16px 16px 16px 2px' : '2px 16px 16px 16px')};background:${isUser ? '#7c3aed' : (isAdminMsg ? '#ede9fe' : '#fff')};color:${isUser ? '#fff' : '#1a1a2e'};box-shadow:0 1px 2px rgba(0,0,0,.08);">${bubbleInner}</div>
-        ${isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>` : ''}
-      </div>
-    `;
+    const timeStr = (m.ts || m.time) ? fmtLiveTime(m.ts || m.time) : '';
+    const timeBadge = timeStr ? `<span style="font-size:10.5px;color:#9ca3af;white-space:nowrap;padding-bottom:3px;flex-shrink:0;">${timeStr}</span>` : '';
+
+    if (isUser) {
+      return `
+        <div class="live-msg-row" data-role="user" data-content="${encodedContent}"
+             style="display:flex;justify-content:flex-end;gap:8px;align-items:flex-start;margin-bottom:8px;">
+          <div style="display:flex;align-items:flex-end;gap:5px;max-width:calc(100% - 48px);min-width:0;">
+            ${timeBadge}
+            <div style="padding:${imgMatch ? '6px' : '10px 13px'};font-size:14.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;border-radius:16px 16px 2px 16px;background:#7c3aed;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);min-width:0;overflow-wrap:break-word;">${bubbleInner}</div>
+          </div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
+        </div>
+      `;
+    } else {
+      const senderName = isAdminMsg ? '담당자' : '루마네';
+      const avBg = isAdminMsg ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'linear-gradient(135deg,#6b7280,#9ca3af)';
+      const avIcon = isAdminMsg ? '👩‍💼' : '🤖';
+      return `
+        <div class="live-msg-row" data-role="${isAdminMsg ? 'admin' : 'bot'}" data-content="${encodedContent}"
+             style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:${avBg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;margin-top:20px;">${avIcon}</div>
+          <div style="flex:1;min-width:0;overflow:hidden;">
+            <div style="font-size:12.5px;font-weight:700;color:#111827;margin-bottom:4px;padding-left:2px;">${senderName}</div>
+            <div style="display:flex;align-items:flex-end;gap:5px;">
+              <div style="padding:${imgMatch ? '6px' : '10px 13px'};font-size:14.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;border-radius:2px 16px 16px 16px;background:${isAdminMsg ? '#ede9fe' : '#fff'};color:#1a1a2e;box-shadow:0 1px 2px rgba(0,0,0,.08);min-width:0;overflow-wrap:break-word;max-width:100%;">${bubbleInner}</div>
+              ${timeBadge}
+            </div>
+          </div>
+        </div>
+      `;
+    }
   }).join('');
 
   /* 고객 타이핑 표시 */
@@ -330,10 +354,10 @@ function renderLiveChatPanel(sess) {
   if (sess.customerTyping) {
     const typingEl = document.createElement('div');
     typingEl.className = 'customer-typing-indicator';
-    typingEl.style.cssText = 'display:flex;align-items:center;gap:8px;justify-content:flex-start;padding:2px 0;';
+    typingEl.style.cssText = 'display:flex;align-items:flex-end;gap:8px;justify-content:flex-start;margin-bottom:8px;';
     typingEl.innerHTML = `
-      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6b7280,#9ca3af);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>
-      <div style="padding:10px 16px;background:#fff;border-radius:4px 18px 18px 18px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;gap:4px;align-items:center;">
+      <div style="width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
+      <div style="padding:10px 14px;background:#fff;border-radius:2px 16px 16px 16px;box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;gap:4px;align-items:center;">
         <span style="width:6px;height:6px;background:#9ca3af;border-radius:50%;animation:typingDot .9s infinite;display:inline-block;"></span>
         <span style="width:6px;height:6px;background:#9ca3af;border-radius:50%;animation:typingDot .9s .2s infinite;display:inline-block;"></span>
         <span style="width:6px;height:6px;background:#9ca3af;border-radius:50%;animation:typingDot .9s .4s infinite;display:inline-block;"></span>
@@ -450,6 +474,14 @@ async function compressImageIfNeeded(file) {
 
 /* ── admin 첨부 칩 상태 ── */
 window._failedImgUrls = new Set(); // 404 이미지 URL 캐시 — 폴링 재요청 방지
+
+function fmtLiveTime(iso) {
+  try {
+    const d = new Date(iso);
+    const h = d.getHours(), m = d.getMinutes();
+    return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(m).padStart(2, '0')}`;
+  } catch { return ''; }
+}
 let adminPendingFile      = null;
 let adminPendingObjectUrl = null;
 

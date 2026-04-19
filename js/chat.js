@@ -297,7 +297,7 @@ async function send() {
 
   const mid = allocMid();
   addMsg('user', text, { mid, replyTo });
-  history.push({ role: 'user', content: text, mid, replyTo: replyTo ?? undefined });
+  history.push({ role: 'user', content: text, mid, replyTo: replyTo ?? undefined, ts: new Date().toISOString() });
   clearInput();
   setQuick([]);
 
