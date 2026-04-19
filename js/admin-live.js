@@ -318,7 +318,7 @@ function renderLiveChatPanel(sess) {
       <div class="live-msg-row" data-role="${isUser ? 'user' : (isAdminMsg ? 'admin' : 'bot')}" data-content="${encodedContent}"
            style="display:flex;${isUser ? 'justify-content:flex-end' : 'justify-content:flex-start'};gap:8px;align-items:flex-end;">
         ${!isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:${isAdminMsg ? 'linear-gradient(135deg,#7c3aed,#a855f7)' : 'linear-gradient(135deg,#6b7280,#9ca3af)'};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${isAdminMsg ? '👩‍💼' : '🤖'}</div>` : ''}
-        <div style="max-width:calc(100% - 44px);padding:${imgMatch ? '6px' : '11px 15px'};font-size:14.5px;line-height:1.65;word-break:break-word;white-space:pre-wrap;border-radius:${isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px'};background:${isUser ? '#7c3aed' : (isAdminMsg ? '#ede9fe' : '#fff')};color:${isUser ? '#fff' : '#1a1a2e'};box-shadow:0 1px 3px rgba(0,0,0,.07);">${bubbleInner}</div>
+        <div style="max-width:calc(100% - 44px);padding:${imgMatch ? '6px' : '10px 13px'};font-size:14.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;border-radius:${isUser ? '16px 16px 2px 16px' : (isAdminMsg ? '16px 16px 16px 2px' : '2px 16px 16px 16px')};background:${isUser ? '#7c3aed' : (isAdminMsg ? '#ede9fe' : '#fff')};color:${isUser ? '#fff' : '#1a1a2e'};box-shadow:0 1px 2px rgba(0,0,0,.08);">${bubbleInner}</div>
         ${isUser ? `<div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">👤</div>` : ''}
       </div>
     `;

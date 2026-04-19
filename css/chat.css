@@ -267,33 +267,33 @@ html, body {
   display: flex; flex-direction: column; gap: 0;
 }
 
-/* 날짜 구분 */
+/* 날짜 구분 — 카톡 pill 스타일 */
 .date-sep {
-  text-align: center; font-size: 12px; color: var(--gray-400);
-  margin: 8px 0 14px; display: flex; align-items: center; gap: 8px;
-}
-.date-sep::before, .date-sep::after {
-  content: ''; flex: 1; height: 1px; background: var(--gray-200);
+  align-self: center;
+  font-size: 12px; color: #6b7280;
+  background: rgba(0,0,0,.06);
+  padding: 4px 14px; border-radius: 20px;
+  margin: 10px 0 14px;
 }
 
 /* ── 메시지 그룹 (카톡 스타일) ───────────────────── */
 .msg-group {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .msg-group.user { justify-content: flex-end; }
 
-/* 아바타 — 둥근 사각형 (카톡 스타일) */
+/* 아바타 — 원형 (카톡 스타일) */
 .av {
-  width: 36px; height: 36px;
-  border-radius: 10px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--purple), var(--purple-l));
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,.12);
-  margin-top: 22px; /* 발신자 이름 아래 정렬 */
+  font-size: 20px; flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.14);
+  margin-top: 20px; /* 발신자 이름 아래 정렬 */
 }
 
 /* 메시지 본문 (이름 + 말풍선 행) */
@@ -362,26 +362,26 @@ html, body {
 
 /* ── 말풍선 ─────────────────────────────────────── */
 .bubble {
-  padding: 10px 14px;
-  line-height: 1.65; font-size: 14.5px;
+  padding: 10px 13px;
+  line-height: 1.6; font-size: 14.5px;
   word-break: break-word; white-space: pre-wrap;
   max-width: 100%;
 }
 .bubble.bot {
   background: var(--white);
-  border-radius: 4px 18px 18px 18px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  border-radius: 2px 16px 16px 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
   color: var(--gray-900);
 }
-/* 연속 봇 말풍선: 첫 번째 이후 왼쪽 위 꼬리 제거 */
+/* 연속 봇 말풍선: 꼬리 제거 */
 .msg-bubbles .bubble.bot:not(:first-child) {
-  border-radius: 4px 18px 18px 4px;
+  border-radius: 2px 16px 16px 2px;
 }
 .bubble.user {
   background: var(--purple);
   color: var(--white);
-  border-radius: 18px 18px 4px 18px;
-  box-shadow: 0 4px 14px rgba(124,58,237,.28);
+  border-radius: 16px 16px 2px 16px;
+  box-shadow: 0 2px 8px rgba(124,58,237,.25);
 }
 
 /* 예시 이미지 버블 */
