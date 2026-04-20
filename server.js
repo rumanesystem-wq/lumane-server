@@ -212,41 +212,58 @@ app.get('/api/version', (req, res) => {
   res.json({ v: SERVER_VERSION });
 });
 
-// ── 파일 업로드 (multer) ──────────────────────────────────────
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// ── 파일 업로드 (Supabase Storage) ───────────────────────────
+const STORAGE_BUCKET = 'lumane-uploads';
 
-const uploadStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-  filename:    (req, file, cb) => {
-    const ext  = path.extname(file.originalname).toLowerCase();
-    const name = Date.now() + '-' + Math.random().toString(36).slice(2, 7) + ext;
-    cb(null, name);
-  },
-});
+// 서버 시작 시 버킷 자동 생성 (없을 때만)
+(async () => {
+  try {
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets?.find(b => b.name === STORAGE_BUCKET)) {
+      await supabase.storage.createBucket(STORAGE_BUCKET, { public: true });
+      console.log(`✅ Supabase Storage 버킷 생성: ${STORAGE_BUCKET}`);
+    }
+  } catch (e) {
+    console.warn('Supabase Storage 버킷 확인 실패:', e.message);
+  }
+})();
+
 const uploadMw = multer({
-  storage: uploadStorage,
+  storage: multer.memoryStorage(),
   limits:  { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ok = /\.(jpe?g|png|gif|webp|pdf)$/i.test(path.extname(file.originalname));
+    const ok = /\.(jpe?g|png|gif|webp|pdf|mp4|webm|ogg|mov|mp3|wav|m4a|aac)$/i
+      .test(path.extname(file.originalname));
     cb(ok ? null : new Error('지원하지 않는 형식'), ok);
   },
 });
 
-app.post('/api/upload', uploadMw.single('file'), (req, res) => {
+app.post('/api/upload', uploadMw.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없습니다' });
-  const ext     = path.extname(req.file.originalname).toLowerCase();
-  const isImage = /\.(jpe?g|png|gif|webp)$/i.test(ext);
-  res.json({
-    success: true,
-    url:     `/uploads/${req.file.filename}`,
-    name:    req.file.originalname,
-    isImage,
-  });
-});
 
-// uploads 폴더 정적 제공
-app.use('/uploads', express.static(UPLOAD_DIR));
+  const ext      = path.extname(req.file.originalname).toLowerCase();
+  const filename = Date.now() + '-' + Math.random().toString(36).slice(2, 7) + ext;
+  const isImage  = /\.(jpe?g|png|gif|webp)$/i.test(ext);
+
+  try {
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filename, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false,
+      });
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(filename);
+
+    res.json({ success: true, url: publicUrl, name: req.file.originalname, isImage });
+  } catch (err) {
+    console.error('Supabase Storage 업로드 오류:', err.message);
+    res.status(500).json({ error: '파일 업로드에 실패했습니다' });
+  }
+});
 
 // ── OG 링크 미리보기 API ─────────────────────────────────────
 app.get('/api/og', async (req, res) => {
