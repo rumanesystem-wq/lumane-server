@@ -88,7 +88,9 @@ export function initInputListeners(onSend) {
 }
 
 /* ── 스크롤 ── */
-export function scrollBottom() { $msgs.scrollTop = $msgs.scrollHeight; }
+export function scrollBottom() {
+  requestAnimationFrame(() => { $msgs.scrollTop = $msgs.scrollHeight; });
+}
 
 /* ================================================================
    복사 기능 — 길게 누르기(모바일) / 우클릭(PC)
