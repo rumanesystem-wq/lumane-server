@@ -128,7 +128,7 @@ function renderLiveSessionList(sessions) {
   container.innerHTML = sessions.map(s => {
     const isSelected = s.id === liveSelectedId;
     const isAdmin    = s.mode === 'admin';
-    const ago        = timeSince(new Date(s.lastMessageAt || s.lastActivity));
+    const ago        = timeSince(new Date(s.lastMessageAt));
 
     return `
       <div onclick="selectLiveSession('${escAttr(s.id)}')"
@@ -181,7 +181,7 @@ function renderDashboardSessions(sessions) {
 
   container.innerHTML = sessions.map(s => {
     const isAdmin = s.mode === 'admin';
-    const ago     = timeSince(new Date(s.lastMessageAt || s.lastActivity));
+    const ago     = timeSince(new Date(s.lastMessageAt));
     return `
       <div onclick="switchTab('live');setTimeout(()=>selectLiveSession('${escAttr(s.id)}'),100)"
         style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px 18px;
