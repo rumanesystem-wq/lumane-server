@@ -593,47 +593,69 @@ app.get('/api/admin/sessions', (req, res) => {
 });
 
 // ── 어드민: 토큰 사용량 통계 ─────────────────────────────────
-app.get('/api/admin/token-stats', async (_req, res) => {
+app.get('/api/admin/token-stats', async (req, res) => {
   try {
-    const { data: rows, error } = await supabase
-      .from('token_stats')
-      .select('*')
-      .order('updated_at', { ascending: false });
+    const period = req.query.period || 'all'; // day | week | month | all
+    let query = supabase.from('token_stats').select('*').order('created_at', { ascending: true });
 
+    const now = new Date();
+    if (period === 'day') {
+      const from = new Date(now); from.setHours(0,0,0,0);
+      query = query.gte('created_at', from.toISOString());
+    } else if (period === 'week') {
+      const from = new Date(now); from.setDate(now.getDate() - 6); from.setHours(0,0,0,0);
+      query = query.gte('created_at', from.toISOString());
+    } else if (period === 'month') {
+      const from = new Date(now); from.setDate(now.getDate() - 29); from.setHours(0,0,0,0);
+      query = query.gte('created_at', from.toISOString());
+    }
+
+    const { data: rows, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
 
     const PRICE = { input: 3.0, output: 15.0, cacheWrite: 3.75, cacheRead: 0.30 };
 
-    const total = rows.reduce((acc, r) => {
-      acc.input     += r.input_tokens;
-      acc.output    += r.output_tokens;
-      acc.cacheWrite += r.cache_write_tokens;
-      acc.cacheRead  += r.cache_read_tokens;
-      return acc;
-    }, { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 });
+    const calcCost = (t) => {
+      const usd =
+        (t.input / 1e6) * PRICE.input +
+        (t.output / 1e6) * PRICE.output +
+        (t.cacheWrite / 1e6) * PRICE.cacheWrite +
+        (t.cacheRead / 1e6) * PRICE.cacheRead;
+      const noCache = ((t.input + t.cacheRead) / 1e6) * PRICE.input +
+        (t.output / 1e6) * PRICE.output + (t.cacheWrite / 1e6) * PRICE.cacheWrite;
+      return { usd, saved: noCache - usd };
+    };
 
-    const costUSD =
-      (total.input     / 1e6) * PRICE.input +
-      (total.output    / 1e6) * PRICE.output +
-      (total.cacheWrite / 1e6) * PRICE.cacheWrite +
-      (total.cacheRead  / 1e6) * PRICE.cacheRead;
+    const total = rows.reduce((acc, r) => ({
+      input:     acc.input     + r.input_tokens,
+      output:    acc.output    + r.output_tokens,
+      cacheWrite: acc.cacheWrite + r.cache_write_tokens,
+      cacheRead:  acc.cacheRead  + r.cache_read_tokens,
+    }), { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 });
 
-    const costWithoutCache =
-      ((total.input + total.cacheRead) / 1e6) * PRICE.input +
-      (total.output / 1e6) * PRICE.output +
-      (total.cacheWrite / 1e6) * PRICE.cacheWrite;
+    const { usd: costUSD, saved } = calcCost(total);
 
-    const saved = costWithoutCache - costUSD;
+    // 날짜별 그룹핑 (차트용)
+    const byDate = {};
+    for (const r of rows) {
+      const date = r.created_at.slice(0, 10);
+      if (!byDate[date]) byDate[date] = { input: 0, output: 0, sessions: 0, costKRW: 0 };
+      byDate[date].input   += r.input_tokens;
+      byDate[date].output  += r.output_tokens;
+      byDate[date].sessions += 1;
+      const { usd } = calcCost({ input: r.input_tokens, output: r.output_tokens, cacheWrite: r.cache_write_tokens, cacheRead: r.cache_read_tokens });
+      byDate[date].costKRW += Math.round(usd * 1380);
+    }
 
     const perSession = rows.map(r => ({
       sessionId:    r.session_id,
       customerName: r.customer_name || '(이름 미수집)',
       input:        r.input_tokens,
       output:       r.output_tokens,
-      cacheWrite:   r.cache_write_tokens,
       cacheRead:    r.cache_read_tokens,
       turns:        r.turns,
-    }));
+      date:         r.created_at.slice(0, 10),
+    })).reverse();
 
     res.json({
       total,
@@ -642,6 +664,7 @@ app.get('/api/admin/token-stats', async (_req, res) => {
       savedUSD: +saved.toFixed(4),
       savedKRW: Math.round(saved * 1380),
       sessionCount: rows.length,
+      byDate,
       perSession,
     });
   } catch (err) {

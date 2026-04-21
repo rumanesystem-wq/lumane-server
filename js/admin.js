@@ -412,46 +412,92 @@ function switchTab(tab) {
   }
 }
 
+let _tokenPeriod = 'all';
+
+function setTokenPeriod(period) {
+  _tokenPeriod = period;
+  ['day','week','month','all'].forEach(p => {
+    const btn = document.getElementById(`tk-tab-${p}`);
+    if (!btn) return;
+    const active = p === period;
+    btn.style.background = active ? '#7c3aed' : '#fff';
+    btn.style.color = active ? '#fff' : '';
+    btn.style.borderColor = active ? '#7c3aed' : '#e5e7eb';
+    btn.style.fontWeight = active ? '600' : '';
+  });
+  loadTokenStats();
+}
+
 async function loadTokenStats() {
+  const errEl = document.getElementById('tk-error');
+  errEl.style.display = 'none';
   try {
-    const res = await fetch(`${SERVER}/api/admin/token-stats`, { headers: adminHeaders() });
-    if (!res.ok) return;
+    const res = await fetch(`${SERVER}/api/admin/token-stats?period=${_tokenPeriod}`, { headers: adminHeaders() });
     const d = await res.json();
-
-    document.getElementById('tk-cost-krw').textContent = `₩${d.costKRW.toLocaleString()}`;
-    document.getElementById('tk-cost-usd').textContent = `$${d.costUSD}`;
-    document.getElementById('tk-saved-krw').textContent = `₩${d.savedKRW.toLocaleString()} 절감`;
-    document.getElementById('tk-saved-usd').textContent = `$${d.savedUSD} 절감`;
-    document.getElementById('tk-input').textContent = (d.total.input + d.total.cacheRead).toLocaleString();
-    document.getElementById('tk-output').textContent = d.total.output.toLocaleString();
-    document.getElementById('tk-sessions').textContent = `${d.sessionCount}개 세션`;
-    document.getElementById('tk-cache-write').textContent = d.total.cacheWrite.toLocaleString();
-    document.getElementById('tk-cache-read').textContent = d.total.cacheRead.toLocaleString();
-
-    // 세션당 평균
-    if (d.sessionCount > 0) {
-      const avgInput  = Math.round((d.total.input + d.total.cacheRead) / d.sessionCount);
-      const avgOutput = Math.round(d.total.output / d.sessionCount);
-      const avgCostKRW = Math.round(d.costKRW / d.sessionCount);
-      document.getElementById('tk-avg-cost').textContent = `₩${avgCostKRW.toLocaleString()}`;
-      document.getElementById('tk-avg-tokens').textContent = `입력 ${avgInput.toLocaleString()} / 출력 ${avgOutput.toLocaleString()}`;
-    }
-
-    const tbody = document.getElementById('tk-session-rows');
-    if (d.perSession.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="padding:20px;text-align:center;color:#9ca3af;">데이터 없음</td></tr>`;
+    if (!res.ok) {
+      errEl.textContent = `오류: ${d.error || res.status}`;
+      errEl.style.display = 'block';
       return;
     }
-    tbody.innerHTML = d.perSession.map(s => `
-      <tr style="border-top:1px solid #f3f4f6;">
-        <td style="padding:8px 14px;">${s.customerName}</td>
-        <td style="padding:8px 14px;text-align:right;">${s.input.toLocaleString()}</td>
-        <td style="padding:8px 14px;text-align:right;">${s.output.toLocaleString()}</td>
-        <td style="padding:8px 14px;text-align:right;">${s.cacheRead.toLocaleString()}</td>
-        <td style="padding:8px 14px;text-align:right;">${s.turns}</td>
-      </tr>
-    `).join('');
-  } catch { /* 무시 */ }
+
+    document.getElementById('tk-cost-krw').textContent = `₩${d.costKRW.toLocaleString()}`;
+    document.getElementById('tk-cost-usd').textContent  = `$${d.costUSD}`;
+    document.getElementById('tk-saved-krw').textContent = `₩${d.savedKRW.toLocaleString()} 절감`;
+    document.getElementById('tk-saved-usd').textContent = `$${d.savedUSD} 절감`;
+    document.getElementById('tk-input').textContent     = (d.total.input + d.total.cacheRead).toLocaleString();
+    document.getElementById('tk-output').textContent    = d.total.output.toLocaleString();
+    document.getElementById('tk-sessions').textContent  = `${d.sessionCount}개 세션`;
+
+    if (d.sessionCount > 0) {
+      const avgCostKRW = Math.round(d.costKRW / d.sessionCount);
+      const avgTokens  = Math.round((d.total.input + d.total.cacheRead + d.total.output) / d.sessionCount);
+      document.getElementById('tk-avg-cost').textContent   = `₩${avgCostKRW.toLocaleString()}`;
+      document.getElementById('tk-avg-tokens').textContent = `평균 ${avgTokens.toLocaleString()} 토큰`;
+    } else {
+      document.getElementById('tk-avg-cost').textContent   = '₩0';
+      document.getElementById('tk-avg-tokens').textContent = '데이터 없음';
+    }
+
+    // 바 차트
+    const byDate = d.byDate || {};
+    const dates  = Object.keys(byDate).sort();
+    const chartEl  = document.getElementById('tk-chart');
+    const labelEl  = document.getElementById('tk-chart-labels');
+    if (dates.length === 0) {
+      chartEl.innerHTML = `<div style="color:#9ca3af;font-size:12px;line-height:100px;">데이터 없음</div>`;
+      labelEl.innerHTML = '';
+    } else {
+      const maxCost = Math.max(...dates.map(d => byDate[d].costKRW), 1);
+      chartEl.innerHTML = dates.map(date => {
+        const pct = Math.max(4, Math.round((byDate[date].costKRW / maxCost) * 100));
+        return `<div title="${date}: ₩${byDate[date].costKRW.toLocaleString()}"
+          style="flex:1;min-width:28px;max-width:48px;height:${pct}%;background:#7c3aed;border-radius:4px 4px 0 0;cursor:default;transition:opacity .15s;"
+          onmouseenter="this.style.opacity='.7'" onmouseleave="this.style.opacity='1'"></div>`;
+      }).join('');
+      labelEl.innerHTML = dates.map(date =>
+        `<div style="flex:1;min-width:28px;max-width:48px;font-size:10px;color:#9ca3af;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${date.slice(5)}</div>`
+      ).join('');
+    }
+
+    // 세션 테이블
+    const tbody = document.getElementById('tk-session-rows');
+    if (!d.perSession || d.perSession.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="padding:24px;text-align:center;color:#9ca3af;">데이터 없음</td></tr>`;
+    } else {
+      tbody.innerHTML = d.perSession.map(s => `
+        <tr style="border-top:1px solid #f3f4f6;">
+          <td style="padding:9px 14px;color:#9ca3af;">${s.date || '-'}</td>
+          <td style="padding:9px 14px;">${s.customerName}</td>
+          <td style="padding:9px 14px;text-align:right;">${s.input.toLocaleString()}</td>
+          <td style="padding:9px 14px;text-align:right;">${s.output.toLocaleString()}</td>
+          <td style="padding:9px 14px;text-align:right;">${s.cacheRead.toLocaleString()}</td>
+          <td style="padding:9px 14px;text-align:right;">${s.turns}</td>
+        </tr>`).join('');
+    }
+  } catch (err) {
+    errEl.textContent = `네트워크 오류: ${err.message}`;
+    errEl.style.display = 'block';
+  }
 }
 
 

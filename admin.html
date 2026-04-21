@@ -457,69 +457,88 @@
 <!-- =============================================
      토큰 사용량 탭
 ============================================= -->
-<div class="section" id="section-tokens" style="padding:24px;max-width:900px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+<div class="section" id="section-tokens">
+<div style="padding:24px;max-width:960px;margin:0 auto;">
+
+  <!-- 헤더 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
     <div style="font-size:18px;font-weight:700;">🪙 토큰 사용량</div>
     <button onclick="loadTokenStats()" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">↻ 새로고침</button>
   </div>
 
+  <!-- 기간 탭 -->
+  <div style="display:flex;gap:8px;margin-bottom:20px;">
+    <button id="tk-tab-day"   onclick="setTokenPeriod('day')"   style="padding:6px 16px;border-radius:20px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:13px;">일일</button>
+    <button id="tk-tab-week"  onclick="setTokenPeriod('week')"  style="padding:6px 16px;border-radius:20px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:13px;">주간</button>
+    <button id="tk-tab-month" onclick="setTokenPeriod('month')" style="padding:6px 16px;border-radius:20px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:13px;">월간</button>
+    <button id="tk-tab-all"   onclick="setTokenPeriod('all')"   style="padding:6px 16px;border-radius:20px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;font-size:13px;font-weight:600;">전체</button>
+  </div>
+
+  <!-- 에러 메시지 -->
+  <div id="tk-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;color:#dc2626;font-size:13px;margin-bottom:16px;"></div>
+
   <!-- 요약 카드 -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;">
-    <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">총 비용 (예상)</div>
-      <div id="tk-cost-krw" style="font-size:22px;font-weight:700;color:#7c3aed;">-</div>
-      <div id="tk-cost-usd" style="font-size:11px;color:#9ca3af;margin-top:2px;">-</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;">
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e5e7eb;">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px;">총 비용 (예상)</div>
+      <div id="tk-cost-krw" style="font-size:20px;font-weight:700;color:#7c3aed;">₩0</div>
+      <div id="tk-cost-usd" style="font-size:11px;color:#9ca3af;margin-top:2px;">$0.0000</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">캐시 절감액</div>
-      <div id="tk-saved-krw" style="font-size:22px;font-weight:700;color:#16a34a;">-</div>
-      <div id="tk-saved-usd" style="font-size:11px;color:#9ca3af;margin-top:2px;">-</div>
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e5e7eb;">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px;">캐시 절감액</div>
+      <div id="tk-saved-krw" style="font-size:20px;font-weight:700;color:#16a34a;">₩0</div>
+      <div id="tk-saved-usd" style="font-size:11px;color:#9ca3af;margin-top:2px;">$0.0000</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">총 입력 토큰</div>
-      <div id="tk-input" style="font-size:22px;font-weight:700;">-</div>
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e5e7eb;">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px;">총 입력 토큰</div>
+      <div id="tk-input" style="font-size:20px;font-weight:700;">0</div>
       <div style="font-size:11px;color:#9ca3af;margin-top:2px;">캐시 읽기 포함</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">총 출력 토큰</div>
-      <div id="tk-output" style="font-size:22px;font-weight:700;">-</div>
-      <div id="tk-sessions" style="font-size:11px;color:#9ca3af;margin-top:2px;">-</div>
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e5e7eb;">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px;">총 출력 토큰</div>
+      <div id="tk-output" style="font-size:20px;font-weight:700;">0</div>
+      <div id="tk-sessions" style="font-size:11px;color:#9ca3af;margin-top:2px;">0개 세션</div>
     </div>
-    <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">세션당 평균 비용</div>
-      <div id="tk-avg-cost" style="font-size:22px;font-weight:700;color:#f59e0b;">-</div>
-      <div id="tk-avg-tokens" style="font-size:11px;color:#9ca3af;margin-top:2px;">평균 토큰 -</div>
+    <div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e5e7eb;">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px;">세션당 평균 비용</div>
+      <div id="tk-avg-cost" style="font-size:20px;font-weight:700;color:#f59e0b;">₩0</div>
+      <div id="tk-avg-tokens" style="font-size:11px;color:#9ca3af;margin-top:2px;">평균 토큰 0</div>
     </div>
   </div>
 
-  <!-- 캐시 상세 -->
-  <div style="background:#fff;border-radius:12px;padding:16px 20px;border:1px solid #e5e7eb;margin-bottom:24px;">
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">캐시 상세</div>
-    <div style="display:flex;gap:24px;font-size:13px;flex-wrap:wrap;">
-      <span>캐시 생성: <strong id="tk-cache-write">-</strong></span>
-      <span>캐시 읽기: <strong id="tk-cache-read">-</strong></span>
+  <!-- 바 차트 -->
+  <div style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;padding:18px 20px;margin-bottom:20px;">
+    <div style="font-size:13px;font-weight:600;margin-bottom:14px;">📊 일별 비용 (₩)</div>
+    <div id="tk-chart" style="display:flex;align-items:flex-end;gap:6px;height:100px;overflow-x:auto;">
+      <div style="color:#9ca3af;font-size:12px;line-height:100px;">데이터 없음</div>
     </div>
-    <div style="font-size:11px;color:#9ca3af;margin-top:8px;">* 서버 재시작 시 초기화됩니다. 모델: claude-sonnet-4-6</div>
+    <div id="tk-chart-labels" style="display:flex;gap:6px;margin-top:4px;overflow-x:auto;"></div>
   </div>
 
   <!-- 세션별 테이블 -->
   <div style="background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;">
-    <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:600;">세션별 토큰</div>
-    <div id="tk-per-session" style="overflow-x:auto;">
+    <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:600;">세션별 상세</div>
+    <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
         <thead>
           <tr style="background:#f9fafb;">
-            <th style="padding:8px 14px;text-align:left;color:#6b7280;font-weight:500;">고객명</th>
-            <th style="padding:8px 14px;text-align:right;color:#6b7280;font-weight:500;">입력</th>
-            <th style="padding:8px 14px;text-align:right;color:#6b7280;font-weight:500;">출력</th>
-            <th style="padding:8px 14px;text-align:right;color:#6b7280;font-weight:500;">캐시읽기</th>
-            <th style="padding:8px 14px;text-align:right;color:#6b7280;font-weight:500;">턴수</th>
+            <th style="padding:9px 14px;text-align:left;color:#6b7280;font-weight:500;">날짜</th>
+            <th style="padding:9px 14px;text-align:left;color:#6b7280;font-weight:500;">고객명</th>
+            <th style="padding:9px 14px;text-align:right;color:#6b7280;font-weight:500;">입력 토큰</th>
+            <th style="padding:9px 14px;text-align:right;color:#6b7280;font-weight:500;">출력 토큰</th>
+            <th style="padding:9px 14px;text-align:right;color:#6b7280;font-weight:500;">캐시 읽기</th>
+            <th style="padding:9px 14px;text-align:right;color:#6b7280;font-weight:500;">턴수</th>
           </tr>
         </thead>
-        <tbody id="tk-session-rows"></tbody>
+        <tbody id="tk-session-rows">
+          <tr><td colspan="6" style="padding:24px;text-align:center;color:#9ca3af;">데이터 없음</td></tr>
+        </tbody>
       </table>
     </div>
+    <div style="padding:10px 18px;border-top:1px solid #f3f4f6;font-size:11px;color:#9ca3af;">모델: claude-sonnet-4-6 · 가격: 입력 $3/1M, 출력 $15/1M, 캐시읽기 $0.30/1M</div>
   </div>
+
+</div>
 </div>
 
 <!-- 토스트 알림 컨테이너 -->
