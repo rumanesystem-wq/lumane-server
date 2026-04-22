@@ -516,7 +516,11 @@ async function loadHistory() {
   listEl.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:32px;font-size:13px;">불러오는 중…</div>';
   try {
     const res = await fetch(`${SERVER}/api/admin/conversations`, { headers: adminHeaders() });
-    if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
+    if (!res.ok) {
+      let detail = '';
+      try { const d = await res.json(); detail = d.error || ''; } catch(_) {}
+      throw new Error(`서버 오류 ${res.status}${detail ? ': ' + detail : ''}`);
+    }
     const data = await res.json();
     _historyAll = data.conversations || [];
     renderHistoryList(_historyAll);
