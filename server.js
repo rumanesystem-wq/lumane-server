@@ -272,10 +272,10 @@ app.use((req, res, next) => {
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // ── 클린 URL (확장자 없이 접근) ──────────────────────────────
-app.get('/admin',  (req, res) => res.redirect('/admin.html'));
-app.get('/chat',   (req, res) => res.redirect('/chat.html'));
-app.get('/quote',  (req, res) => res.redirect('/quote.html'));
-app.get('/blog',   (req, res) => res.redirect('/blog.html'));
+app.get('/admin', (req, res) => res.sendFile(__dirname + '/admin.html'));
+app.get('/chat',  (req, res) => res.sendFile(__dirname + '/chat.html'));
+app.get('/quote', (req, res) => res.sendFile(__dirname + '/quote.html'));
+app.get('/blog',  (req, res) => res.sendFile(__dirname + '/blog.html'));
 
 // ── 정적 파일 제공 — HTML/JS/CSS는 캐시 안 함 (항상 최신 버전) ──
 app.use(express.static(__dirname, {
