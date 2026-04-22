@@ -50,7 +50,7 @@ function toggleFaq(btn) {
 
 // ── 현재 페이지 nav 활성화 ────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  const path = location.pathname.split('/').pop() || 'index.html';
+  const path = location.pathname.replace(/\/$/, '') || '/';
   document.querySelectorAll('.nav-link[data-page]').forEach(link => {
     link.classList.toggle('active', link.dataset.page === path);
   });
