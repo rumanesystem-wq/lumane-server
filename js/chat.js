@@ -44,7 +44,8 @@ let pendingConfirm = false;
 let serverOnline   = null;
 
 /* ── 대화 내용 localStorage 저장/복원 ── */
-const HISTORY_KEY = '루마네_히스토리';
+const HISTORY_KEY  = '루마네_히스토리';
+const ARCHIVE_KEY  = '루마네_히스토리_아카이브';
 
 function saveHistory() {
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* 무시 */ }
@@ -52,6 +53,18 @@ function saveHistory() {
 
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+
+function archiveCurrent() {
+  if (!history || history.length === 0) return;
+  try {
+    const archive = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]');
+    const now = new Date();
+    const label = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    archive.unshift({ savedAt: label, messages: [...history] });
+    if (archive.length > 10) archive.length = 10;
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+  } catch { /* 무시 */ }
 }
 
 function clearHistory() {
@@ -210,6 +223,32 @@ function extractFromHistory() {
     요청사항:     userMsgs[8] || '-',
     개인정보동의: userMsgs[9] || '-',
   };
+}
+
+/* ================================================================
+   부모 페이지(2패널)에 수집된 폼 필드 전달
+================================================================ */
+function postFieldsToParent() {
+  if (window.parent === window) return; // iframe 아닌 경우 무시
+  const info = extractFromHistory();
+  const size = info.공간사이즈?.raw || '';
+  const nums = size.replace(/[×xX×]/g, ' ').match(/\d{3,4}/g) || [];
+  window.parent.postMessage({
+    type: 'lumane_fields',
+    fields: {
+      name:        info.이름 !== '-' ? info.이름 : '',
+      phone:       info.연락처 !== '-' ? info.연락처 : '',
+      region:      info.설치지역 !== '-' ? info.설치지역 : '',
+      width:       nums[0] || '',
+      depth:       nums[1] || '',
+      height:      nums[2] || '',
+      layout:      info.형태 !== '-' ? info.형태 : '',
+      options:     info.추가옵션 !== '-' ? info.추가옵션 : '',
+      frameColor:  info.프레임색상 !== '-' ? info.프레임색상 : '',
+      shelfColor:  info.선반색상 !== '-' ? info.선반색상 : '',
+      memo:        info.요청사항 !== '-' ? info.요청사항 : '',
+    }
+  }, '*');
 }
 
 /* ================================================================
@@ -415,6 +454,9 @@ async function send() {
       setTimeout(() => showConfirm(completedQuote), 1200);
     }
 
+    // 부모 페이지(2패널 레이아웃)에 수집된 고객 정보 전달
+    postFieldsToParent();
+
   } catch (err) {
     addMsg('bot', `⚠️ 오류가 발생했습니다.\n${err.message}`);
   } finally {
@@ -467,6 +509,7 @@ function demoGreet() {
    새 상담 시작
 ================================================================ */
 export function newChat() {
+  archiveCurrent();
   history        = [];
   demoIdx        = 0;
   pendingConfirm = false;
@@ -592,13 +635,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   nicknameInput.addEventListener('input', () => { nicknameError.textContent = ''; });
 
-  if (userNickname) {
-    // 이미 닉네임 있으면 바로 시작
-    nicknameOverlay.classList.add('hidden');
-    startChat();
-  } else {
-    nicknameInput.focus();
-  }
+  // 닉네임 입력 생략 — 바로 상담 시작
+  if (!userNickname) userNickname = '고객';
+  nicknameOverlay.classList.add('hidden');
+  startChat();
 });
 
 /* ── 실제 채팅 초기화 (닉네임 확인 후 실행) ── */
