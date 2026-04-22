@@ -229,10 +229,14 @@ async function selectLiveSession(sessionId) {
   // await 동안 다른 세션이 선택됐으면 타이머 설정하지 않음 (stale 방지)
   if (liveSelectedId !== sessionId) return;
 
+  // 스크롤 이벤트 리스너 초기화 (1회)
+  initLiveMsgsScrollListener();
+
   // 첫 진입 시 항상 맨 아래로 (레이아웃 계산 후)
   requestAnimationFrame(() => {
     const msgs = document.getElementById('liveMsgs');
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
+    updateScrollBtn(false);
   });
 
   liveMsgPollTimer = setInterval(fetchLiveSessionMsgs, 1000);
@@ -428,6 +432,10 @@ function renderLiveChatPanel(sess) {
   const isAdmin = sess.mode === 'admin';
   liveAdminMode = isAdmin;
 
+  // wasAtBottom을 DOM 변경(renderLiveSummary) 전에 먼저 측정
+  const msgs = document.getElementById('liveMsgs');
+  const wasAtBottom = msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight - 30;
+
   renderLiveSummary(sess);
 
   document.getElementById('livePanelTitle').textContent =
@@ -441,9 +449,6 @@ function renderLiveChatPanel(sess) {
     ? `<button class="btn btn-outline" onclick="releaseSession()" style="font-size:13px;">🤖 AI에게 넘기기</button>`
     : `<button class="btn btn-primary" onclick="takeoverSession()" style="font-size:13px;">👩‍💼 난입하기</button>`)
     + `<button class="btn btn-outline" onclick="saveConversationManual()" style="font-size:13px;">💾 저장</button>`;
-
-  const msgs = document.getElementById('liveMsgs');
-  const wasAtBottom = msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight - 30;
 
   msgs.innerHTML = (sess.messages || []).map(m => {
     const isUser     = m.role === 'user';
@@ -538,7 +543,15 @@ function renderLiveChatPanel(sess) {
     msgs.appendChild(typingEl);
   }
 
-  if (wasAtBottom) msgs.scrollTop = msgs.scrollHeight;
+  if (wasAtBottom) {
+    msgs.scrollTop = msgs.scrollHeight;
+    updateScrollBtn(false);
+  } else {
+    /* 스크롤 위에 있을 때: 새 메시지 미리보기 버튼 표시 */
+    const lastMsg = (sess.messages || []).filter(m => m.role === 'user').slice(-1)[0];
+    const preview = lastMsg ? (lastMsg.content || '').slice(0, 30) : '새 메시지';
+    updateScrollBtn(true, preview);
+  }
 
   /* 검색 중이면 하이라이트 재적용 */
   if (_adminSearchOpen) {
@@ -1162,6 +1175,41 @@ function saveTemplates() {
   document.getElementById('templateEditorOverlay').style.display = 'none';
   renderTemplateList();
   showToast('✅ 템플릿 저장 완료', 'success');
+}
+
+/* ── 카톡 스타일 스크롤 버튼 ─────────────────────────────── */
+
+function updateScrollBtn(show, previewText) {
+  const btn = document.getElementById('scrollToBottomBtn');
+  if (!btn) return;
+  if (show) {
+    const preview = document.getElementById('scrollToBottomPreview');
+    if (preview && previewText) {
+      const trimmed = previewText.replace(/\s+/g, ' ').trim();
+      preview.textContent = '↓ ' + (trimmed.length > 25 ? trimmed.slice(0, 25) + '…' : trimmed);
+    }
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function scrollLiveMsgsToBottom() {
+  const msgs = document.getElementById('liveMsgs');
+  if (msgs) {
+    msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' });
+  }
+  updateScrollBtn(false);
+}
+
+function initLiveMsgsScrollListener() {
+  const msgs = document.getElementById('liveMsgs');
+  if (!msgs || msgs._scrollListenerAttached) return;
+  msgs._scrollListenerAttached = true;
+  msgs.addEventListener('scroll', () => {
+    const atBottom = msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight - 30;
+    if (atBottom) updateScrollBtn(false);
+  });
 }
 
 /**
