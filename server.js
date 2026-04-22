@@ -226,7 +226,7 @@ async function saveConversation(sess, reason) {
       요청사항:   userMsgs[8] || '',
     };
     const estimatedPrice = calcEstimatedPrice(fields.공간사이즈, fields.형태, fields.추가옵션);
-    await supabase.from('conversations').insert({
+    const { error: insertErr } = await supabase.from('conversations').insert({
       session_id:      sess.id,
       save_reason:     reason,
       customer_name:   sess.customerName || fields.이름 || null,
@@ -243,6 +243,7 @@ async function saveConversation(sess, reason) {
       started_at:      sess.startedAt,
       messages:        sess.messages,
     });
+    if (insertErr) throw new Error(insertErr.message);
     console.log(`💾 대화 저장 완료 (${reason}): ${sess.id.slice(0, 16)}…`);
   } catch (err) {
     console.error('대화 저장 실패:', err.message);
