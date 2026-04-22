@@ -24,6 +24,11 @@
       .page  { min-height: calc(100vh - var(--header-h)); }
       .shell { min-height: calc(100vh - var(--header-h)); }
     }
+    /* 모바일: 네비 높이 제외한 정확한 뷰포트 */
+    @media (max-width: 767px) {
+      .page  { height: calc(100dvh - var(--header-h)); min-height: unset; }
+      .shell { height: calc(100dvh - var(--header-h)); min-height: unset; }
+    }
   </style>
 </head>
 <body>
