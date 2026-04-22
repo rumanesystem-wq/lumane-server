@@ -247,7 +247,7 @@ async function saveConversation(sess, reason) {
     console.log(`💾 대화 저장 완료 (${reason}): ${sess.id.slice(0, 16)}…`);
 
     // Make → Notion 전달
-    const MAKE_WEBHOOK = 'https://hook.eu1.make.com/qeavmmuovr1iqez3m7z9lvvfv2uqaj8t';
+    const MAKE_WEBHOOK = 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
     fetch(MAKE_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
