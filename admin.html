@@ -37,6 +37,9 @@
       <span class="nav-icon">📡</span> 라이브 상담
       <span class="new-badge" id="liveBadge" style="display:none">LIVE</span>
     </div>
+    <div class="nav-item" onclick="switchTab('history')">
+      <span class="nav-icon">🗂️</span> 저장된 상담
+    </div>
     <div class="nav-item" onclick="window.open('chat.html', '_blank')">
       <span class="nav-icon">💬</span> 채팅 상담
     </div>
@@ -81,6 +84,7 @@
     <button class="tab-btn" id="tab-quotes" onclick="switchTab('quotes')">📋 견적 목록</button>
     <button class="tab-btn" id="tab-live" onclick="switchTab('live')">📡 라이브 상담</button>
     <button class="tab-btn" id="tab-tokens" onclick="switchTab('tokens')">🪙 토큰 사용량</button>
+    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">🗂️ 저장된 상담</button>
   </div>
 
   <!-- =============================================
@@ -345,6 +349,53 @@
       <div style="padding:10px 18px;border-top:1px solid #f3f4f6;font-size:11px;color:#9ca3af;">모델: claude-sonnet-4-6 · 가격: 입력 $3/1M, 출력 $15/1M, 캐시읽기 $0.30/1M</div>
     </div>
 
+  </div>
+
+  <!-- =============================================
+       저장된 상담 탭
+  ============================================= -->
+  <div class="section" id="section-history">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:18px;font-weight:700;">🗂️ 저장된 상담</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input id="historySearch" type="text" placeholder="이름·연락처·지역 검색..."
+          oninput="filterHistory()"
+          style="padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;width:180px;">
+        <select id="historyReasonFilter" onchange="filterHistory()"
+          style="padding:7px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;background:#fff;">
+          <option value="">전체</option>
+          <option value="manual">수동 저장</option>
+          <option value="expired">자동 저장</option>
+        </select>
+        <button onclick="loadHistory()" style="padding:7px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">↻ 새로고침</button>
+      </div>
+    </div>
+
+    <div id="historyError" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;color:#dc2626;font-size:13px;margin-bottom:12px;"></div>
+
+    <!-- 목록 -->
+    <div id="historyList" style="display:flex;flex-direction:column;gap:10px;">
+      <div style="text-align:center;color:#d1d5db;padding:40px;font-size:13px;">탭 진입 시 자동 로드됩니다</div>
+    </div>
+
+  </div>
+
+  <!-- 대화 상세 모달 -->
+  <div id="historyDetailOverlay" onclick="closeHistoryDetail(event)"
+    style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
+    <div onclick="event.stopPropagation()"
+      style="background:#fff;border-radius:16px;width:560px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.25);overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div id="hdTitle" style="font-size:16px;font-weight:700;"></div>
+          <div id="hdMeta" style="font-size:11px;color:#9ca3af;margin-top:2px;"></div>
+        </div>
+        <button onclick="closeHistoryDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;">✕</button>
+      </div>
+      <div id="hdSummary" style="padding:14px 20px;border-bottom:1px solid #e5e7eb;background:#fafafa;font-size:12.5px;line-height:1.9;"></div>
+      <div id="hdMsgs" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px;background:#f9fafb;"></div>
+    </div>
   </div>
 
 </main>

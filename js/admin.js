@@ -409,6 +409,9 @@ function switchTab(tab) {
   } else if (tab === 'tokens') {
     document.getElementById('topbarTitle').textContent = '🪙 토큰 사용량';
     loadTokenStats();
+  } else if (tab === 'history') {
+    document.getElementById('topbarTitle').textContent = '🗂️ 저장된 상담';
+    loadHistory();
   }
 }
 
@@ -500,6 +503,123 @@ async function loadTokenStats() {
   }
 }
 
+
+/* ================================================================
+   저장된 상담 탭
+================================================================ */
+let _historyAll = [];
+
+async function loadHistory() {
+  const listEl = document.getElementById('historyList');
+  const errEl  = document.getElementById('historyError');
+  errEl.style.display = 'none';
+  listEl.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:32px;font-size:13px;">불러오는 중…</div>';
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations`, { headers: adminHeaders() });
+    if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
+    const data = await res.json();
+    _historyAll = data.conversations || [];
+    renderHistoryList(_historyAll);
+  } catch (err) {
+    errEl.textContent = `불러오기 실패: ${err.message}`;
+    errEl.style.display = 'block';
+    listEl.innerHTML = '';
+  }
+}
+
+function filterHistory() {
+  const kw     = (document.getElementById('historySearch')?.value || '').trim().toLowerCase();
+  const reason = document.getElementById('historyReasonFilter')?.value || '';
+  const result = _historyAll.filter(c => {
+    if (reason && c.save_reason !== reason) return false;
+    if (!kw) return true;
+    return [c.customer_name, c.phone, c.region, c.layout].some(v => (v || '').toLowerCase().includes(kw));
+  });
+  renderHistoryList(result);
+}
+
+function renderHistoryList(list) {
+  const listEl = document.getElementById('historyList');
+  if (!list.length) {
+    listEl.innerHTML = '<div style="text-align:center;color:#d1d5db;padding:40px;font-size:13px;">저장된 상담이 없습니다</div>';
+    return;
+  }
+  const fmt = n => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
+  const badge = r => r === 'manual'
+    ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#ede9fe;color:#7c3aed;font-weight:600;">수동</span>'
+    : '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#f0fdf4;color:#16a34a;font-weight:600;">자동</span>';
+
+  listEl.innerHTML = list.map(c => {
+    const savedAt = c.saved_at ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+    return `
+    <div onclick="openHistoryDetail('${escAdmin(c.id)}')"
+      style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 18px;cursor:pointer;transition:box-shadow .15s;display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:start;"
+      onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'"
+      onmouseout="this.style.boxShadow='none'">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:15px;font-weight:700;">${escAdmin(c.customer_name || '(이름 미수집)')}</span>
+          ${badge(c.save_reason)}
+        </div>
+        <div style="font-size:12.5px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap;">
+          <span>📞 ${escAdmin(c.phone || '-')}</span>
+          <span>📍 ${escAdmin(c.region || '-')}</span>
+          <span>🪞 ${escAdmin(c.layout || '-')}</span>
+          <span>💬 ${c.message_count || 0}개</span>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:14px;font-weight:700;color:#c9a96e;">${fmt(c.estimated_price)}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:3px;">${savedAt}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openHistoryDetail(id) {
+  const overlay = document.getElementById('historyDetailOverlay');
+  overlay.style.display = 'flex';
+  document.getElementById('hdTitle').textContent = '불러오는 중…';
+  document.getElementById('hdMeta').textContent = '';
+  document.getElementById('hdSummary').innerHTML = '';
+  document.getElementById('hdMsgs').innerHTML = '';
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations/${encodeURIComponent(id)}`, { headers: adminHeaders() });
+    if (!res.ok) throw new Error();
+    const { conversation: c } = await res.json();
+    const savedAt = c.saved_at ? new Date(c.saved_at).toLocaleString('ko-KR') : '-';
+    document.getElementById('hdTitle').textContent = c.customer_name || '(이름 미수집)';
+    document.getElementById('hdMeta').textContent  = `저장: ${savedAt} · ${c.message_count || 0}개 메시지`;
+    const fmt = n => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
+    document.getElementById('hdSummary').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;">
+        ${[['연락처', c.phone], ['설치지역', c.region], ['공간사이즈', c.size_raw], ['드레스룸형태', c.layout],
+           ['추가옵션', c.options_text], ['프레임색상', c.frame_color], ['선반색상', c.shelf_color], ['요청사항', c.memo]]
+          .map(([l, v]) => v ? `<div><span style="color:#9ca3af;font-size:11px;">${l} </span><span>${escAdmin(v)}</span></div>` : '').join('')}
+      </div>
+      ${c.estimated_price ? `<div style="margin-top:8px;font-weight:700;color:#c9a96e;">💰 예상 단가: ${fmt(c.estimated_price)}</div>` : ''}`;
+    const msgs = c.messages || [];
+    document.getElementById('hdMsgs').innerHTML = msgs.map(m => {
+      const isUser = m.role === 'user';
+      const bg = isUser ? '#7c3aed' : '#fff';
+      const color = isUser ? '#fff' : '#1a1a2e';
+      const align = isUser ? 'flex-end' : 'flex-start';
+      const label = isUser ? '' : `<div style="font-size:11px;font-weight:700;margin-bottom:3px;color:#6b7280;">${m.fromAdmin ? '담당자' : '루마네'}</div>`;
+      return `<div style="display:flex;justify-content:${align};">
+        <div style="max-width:75%;">${label}
+          <div style="padding:9px 13px;border-radius:12px;background:${bg};color:${color};font-size:13.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;">${escAdmin(m.content || '')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch {
+    document.getElementById('hdTitle').textContent = '불러오기 실패';
+  }
+}
+
+function closeHistoryDetail(e) {
+  if (e && e.target !== document.getElementById('historyDetailOverlay')) return;
+  document.getElementById('historyDetailOverlay').style.display = 'none';
+}
 
 /* ================================================================
    앱 초기화

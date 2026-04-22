@@ -851,6 +851,36 @@ app.post('/api/admin/message', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── 어드민: 저장된 상담 목록 조회 ────────────────────────────
+app.get('/api/admin/conversations', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id,session_id,saved_at,save_reason,customer_name,phone,region,size_raw,layout,options_text,frame_color,shelf_color,memo,estimated_price,message_count,started_at')
+      .order('saved_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    res.json({ conversations: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── 어드민: 저장된 상담 상세 (전체 메시지 포함) ─────────────
+app.get('/api/admin/conversations/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    if (error) throw error;
+    res.json({ conversation: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 어드민: 대화 수동 저장 ────────────────────────────────────
 app.post('/api/admin/save-conversation', async (req, res) => {
   const { sessionId } = req.body;
