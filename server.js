@@ -954,6 +954,63 @@ app.post('/api/admin/conversations/:id/resend-notion', async (req, res) => {
   }
 });
 
+// ── 어드민: 저장된 상담 Claude 재파싱 ──────────────────────────
+app.post('/api/admin/conversations/:id/reparse', async (req, res) => {
+  try {
+    const { data: c, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+    if (error) throw error;
+
+    const msgs = Array.isArray(c.messages) ? c.messages : [];
+    if (msgs.length === 0) return res.status(400).json({ error: '메시지 없음' });
+
+    const conversation = msgs.map(m =>
+      `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
+    ).join('\n');
+
+    const aiRes = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: '너는 드레스룸 시공 상담 요약 전문가야. 상담 대화에서 아래 항목을 추출해서 반드시 JSON 형식으로만 답변해. 모르면 null로 표기해. 마크다운 코드블록(```)을 절대 사용하지 말고 순수 JSON만 반환해.\n\n추출 항목: name, phone, region, layout, size_raw, frame_color, shelf_color, options_text, estimated_price, memo\n\n규칙:\n1. size_raw는 좌측/정면/우측 치수 문자열.\n2. estimated_price는 총 합계 금액(숫자만, 없으면 null).\n3. memo는 특이사항 한 줄.',
+      messages: [{ role: 'user', content: conversation }],
+    });
+
+    let parsed = {};
+    try {
+      parsed = JSON.parse(aiRes.content[0].text);
+    } catch {
+      return res.status(500).json({ error: 'Claude 응답 파싱 실패', raw: aiRes.content[0].text });
+    }
+
+    const updates = {};
+    if (parsed.name)           updates.customer_name   = parsed.name;
+    if (parsed.phone)          updates.phone           = parsed.phone;
+    if (parsed.region)         updates.region          = parsed.region;
+    if (parsed.layout)         updates.layout          = parsed.layout;
+    if (parsed.size_raw)       updates.size_raw        = parsed.size_raw;
+    if (parsed.frame_color)    updates.frame_color     = parsed.frame_color;
+    if (parsed.shelf_color)    updates.shelf_color     = parsed.shelf_color;
+    if (parsed.options_text)   updates.options_text    = parsed.options_text;
+    if (parsed.estimated_price) updates.estimated_price = parseInt(String(parsed.estimated_price).replace(/,/g, '')) || null;
+    if (parsed.memo)           updates.memo            = parsed.memo;
+
+    if (Object.keys(updates).length > 0) {
+      const { error: upErr } = await supabase
+        .from('conversations')
+        .update(updates)
+        .eq('id', req.params.id);
+      if (upErr) throw upErr;
+    }
+
+    res.json({ ok: true, updated: updates });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 어드민: 대화 수동 저장 ────────────────────────────────────
 app.post('/api/admin/save-conversation', async (req, res) => {
   const { sessionId } = req.body;

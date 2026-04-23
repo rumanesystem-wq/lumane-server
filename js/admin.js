@@ -601,6 +601,30 @@ async function resendToNotion() {
   }
 }
 
+async function reparseConversation() {
+  const historyId = _currentHistoryId;
+  if (!historyId) return;
+  const btn = document.getElementById('hdReparseBtn');
+  btn.textContent = '분석 중…';
+  btn.disabled = true;
+  let resetTimer;
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations/${encodeURIComponent(historyId)}/reparse`, {
+      method: 'POST', headers: adminHeaders(),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || res.status); }
+    await res.json();
+    btn.textContent = '✅ 완료';
+    showToast('재파싱 완료! 업데이트 중…', 'success');
+    clearTimeout(resetTimer);
+    setTimeout(() => openHistoryDetail(historyId), 1500);
+  } catch (err) {
+    btn.textContent = '❌ 실패';
+    showToast(`재파싱 실패: ${err.message}`, 'error');
+    resetTimer = setTimeout(() => { btn.textContent = '🔄 재파싱'; btn.disabled = false; }, 3000);
+  }
+}
+
 async function openHistoryDetail(id) {
   _currentHistoryId = id;
   const overlay = document.getElementById('historyDetailOverlay');
