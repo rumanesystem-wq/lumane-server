@@ -210,34 +210,51 @@ function calcEstimatedPrice(sizeRaw, layout, optRaw) {
   return hangerPrice + optTotal;
 }
 
+function parseOrderSheet(text) {
+  const get = (re) => { const m = text.match(re); return m ? m[1].trim() : null; };
+  const priceNum = (s) => s ? parseInt(s.replace(/,/g, '')) : null;
+
+  const sizeM = text.match(/좌측[:\s]+([^\n/]+)\/\s*정면[:\s]+([^\n/]+)\/\s*우측[:\s]+([^\n]+)/);
+  const size_raw = sizeM ? `좌측 ${sizeM[1].trim()} 정면 ${sizeM[2].trim()} 우측 ${sizeM[3].trim()}` : null;
+
+  const optM = text.match(/구성 옵션[*\s\S]*?\n([\s\S]*?)(?:\*\*총 합계|총 합계)/);
+  const options_text = optM ? optM[1].trim().replace(/\n/g, ' / ') : null;
+
+  return {
+    customer_name: get(/성함[:\s]+([^\n]+)/),
+    phone:         get(/연락처[:\s]+([^\n]+)/),
+    region:        get(/주소[:\s]+([^\n]+)/),
+    layout:        get(/설치 형태[:\s]+([^\n]+)/),
+    frame_color:   get(/프레임 색상[:\s]+([^\n]+)/),
+    shelf_color:   get(/선반 색상[:\s]+([^\n]+)/),
+    size_raw,
+    options_text,
+    estimated_price: priceNum(get(/총 합계[:\s*]*([0-9,]+)원/)),
+  };
+}
+
 async function saveConversation(sess, reason) {
   if (!sess || !sess.messages || sess.messages.length === 0) return;
   try {
-    const userMsgs = sess.messages.filter(m => m.role === 'user').map(m => m.content || '');
-    const fields = {
-      이름:       userMsgs[0] || '',
-      연락처:     userMsgs[1] || '',
-      설치지역:   userMsgs[2] || '',
-      공간사이즈: userMsgs[3] || '',
-      형태:       userMsgs[4] || '',
-      추가옵션:   userMsgs[5] || '',
-      프레임색상: userMsgs[6] || '',
-      선반색상:   userMsgs[7] || '',
-      요청사항:   userMsgs[8] || '',
-    };
-    const estimatedPrice = calcEstimatedPrice(fields.공간사이즈, fields.형태, fields.추가옵션);
+    // 주문서가 있으면 파싱, 없으면 기본값
+    const orderMsg = [...sess.messages].reverse().find(m =>
+      m.role === 'assistant' && m.content && m.content.includes('주문서')
+    );
+    const parsed = orderMsg ? parseOrderSheet(orderMsg.content) : {};
+    const estimatedPrice = parsed.estimated_price || calcEstimatedPrice('', '', '');
+
     const { error: insertErr } = await supabase.from('conversations').insert({
       session_id:      sess.id,
       save_reason:     reason,
-      customer_name:   sess.customerName || fields.이름 || null,
-      phone:           fields.연락처 || null,
-      region:          fields.설치지역 || null,
-      size_raw:        fields.공간사이즈 || null,
-      layout:          fields.형태 || null,
-      options_text:    fields.추가옵션 || null,
-      frame_color:     fields.프레임색상 || null,
-      shelf_color:     fields.선반색상 || null,
-      memo:            fields.요청사항 || null,
+      customer_name:   parsed.customer_name || sess.customerName || null,
+      phone:           parsed.phone || null,
+      region:          parsed.region || null,
+      size_raw:        parsed.size_raw || null,
+      layout:          parsed.layout || null,
+      options_text:    parsed.options_text || null,
+      frame_color:     parsed.frame_color || null,
+      shelf_color:     parsed.shelf_color || null,
+      memo:            null,
       estimated_price: estimatedPrice || null,
       message_count:   sess.messages.length,
       started_at:      sess.startedAt,
@@ -246,26 +263,22 @@ async function saveConversation(sess, reason) {
     if (insertErr) throw new Error(insertErr.message);
     console.log(`💾 대화 저장 완료 (${reason}): ${sess.id.slice(0, 16)}…`);
 
-    // Make → Notion 전달
+    // Make → Notion 전달 (대화 전체를 보내 Claude가 직접 추출)
     const MAKE_WEBHOOK = 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
+    const conversation = sess.messages.map(m =>
+      `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
+    ).join('\n');
     fetch(MAKE_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id:      sess.id,
         save_reason:     reason,
-        customer_name:   sess.customerName || fields.이름 || null,
-        phone:           fields.연락처 || null,
-        region:          fields.설치지역 || null,
-        size_raw:        fields.공간사이즈 || null,
-        layout:          fields.형태 || null,
-        options_text:    fields.추가옵션 || null,
-        frame_color:     fields.프레임색상 || null,
-        shelf_color:     fields.선반색상 || null,
-        memo:            fields.요청사항 || null,
+        customer_name:   sess.customerName || null,
         estimated_price: estimatedPrice || null,
         message_count:   sess.messages.length,
         saved_at:        new Date().toISOString(),
+        conversation,
       }),
     }).catch(e => console.error('Make 웹훅 전송 실패:', e.message));
   } catch (err) {
