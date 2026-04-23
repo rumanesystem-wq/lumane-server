@@ -971,7 +971,7 @@ app.post('/api/admin/conversations/:id/reparse', async (req, res) => {
       `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
     ).join('\n');
 
-    const aiRes = await anthropic.messages.create({
+    const aiRes = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: '너는 드레스룸 시공 상담 요약 전문가야. 상담 대화에서 아래 항목을 추출해서 반드시 JSON 형식으로만 답변해. 모르면 null로 표기해. 마크다운 코드블록(```)을 절대 사용하지 말고 순수 JSON만 반환해.\n\n추출 항목: name, phone, region, layout, size_raw, frame_color, shelf_color, options_text, estimated_price, memo\n\n규칙:\n1. size_raw는 좌측/정면/우측 치수 문자열.\n2. estimated_price는 총 합계 금액(숫자만, 없으면 null).\n3. memo는 특이사항 한 줄.',
