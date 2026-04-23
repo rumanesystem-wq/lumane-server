@@ -233,19 +233,19 @@ function parseOrderSheet(text) {
   };
 }
 
-async function saveConversation(sess, reason) {
+// ── 실시간 Supabase upsert (Notion 없음) ─────────────────────
+async function upsertConversation(sess) {
   if (!sess || !sess.messages || sess.messages.length === 0) return;
   try {
-    // 주문서가 있으면 파싱, 없으면 기본값
     const orderMsg = [...sess.messages].reverse().find(m =>
       m.role === 'assistant' && m.content && m.content.includes('주문서')
     );
     const parsed = orderMsg ? parseOrderSheet(orderMsg.content) : {};
-    const estimatedPrice = parsed.estimated_price || calcEstimatedPrice('', '', '');
+    const estimatedPrice = parsed.estimated_price || null;
 
-    const { error: insertErr } = await supabase.from('conversations').insert({
+    const payload = {
       session_id:      sess.id,
-      save_reason:     reason,
+      save_reason:     'realtime',
       customer_name:   parsed.customer_name || sess.customerName || null,
       phone:           parsed.phone || null,
       region:          parsed.region || null,
@@ -259,15 +259,45 @@ async function saveConversation(sess, reason) {
       message_count:   sess.messages.length,
       started_at:      sess.startedAt,
       messages:        sess.messages,
-    });
-    if (insertErr) throw new Error(insertErr.message);
+    };
+
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('session_id', sess.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from('conversations').update(payload).eq('session_id', sess.id);
+    } else {
+      await supabase.from('conversations').insert(payload);
+    }
+  } catch (err) {
+    console.error('실시간 저장 오류:', err.message);
+  }
+}
+
+// ── 대화 종료 시 save_reason 갱신 + Notion 전송 ───────────────
+async function saveConversation(sess, reason) {
+  if (!sess || !sess.messages || sess.messages.length === 0) return;
+  try {
+    // 실시간 저장 데이터 최신화 + save_reason 업데이트
+    await upsertConversation(sess);
+    await supabase.from('conversations')
+      .update({ save_reason: reason })
+      .eq('session_id', sess.id);
+
     console.log(`💾 대화 저장 완료 (${reason}): ${sess.id.slice(0, 16)}…`);
 
-    // Make → Notion 전달 (대화 전체를 보내 Claude가 직접 추출)
+    // Make → Notion 전달 (대화 종료 시에만)
     const MAKE_WEBHOOK = 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
     const conversation = sess.messages.map(m =>
       `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
     ).join('\n');
+    const orderMsg = [...sess.messages].reverse().find(m =>
+      m.role === 'assistant' && m.content && m.content.includes('주문서')
+    );
+    const parsed = orderMsg ? parseOrderSheet(orderMsg.content) : {};
     fetch(MAKE_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -275,7 +305,7 @@ async function saveConversation(sess, reason) {
         session_id:      sess.id,
         save_reason:     reason,
         customer_name:   sess.customerName || null,
-        estimated_price: estimatedPrice || null,
+        estimated_price: parsed.estimated_price || null,
         message_count:   sess.messages.length,
         saved_at:        new Date().toISOString(),
         conversation,
@@ -650,11 +680,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // 토큰 사용량 기록
     addTokenUsage(sessionId, response.usage);
 
-    // 세션에 AI 응답도 저장
+    // 세션에 AI 응답 저장 + 실시간 Supabase upsert
     if (sessionId && sessions.has(sessionId)) {
       const sess = sessions.get(sessionId);
       sess.messages.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
       sess.lastActivity = new Date();
+      upsertConversation(sess).catch(e => console.error('실시간 저장 실패:', e.message));
     }
 
     res.json({ message: reply });
