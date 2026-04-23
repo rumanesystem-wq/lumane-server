@@ -292,8 +292,8 @@ async function saveConversation(sess, reason) {
     // Make → Notion 전달 (대화 종료 시에만)
     const MAKE_WEBHOOK = 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
     const conversation = sess.messages.map(m =>
-      `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
-    ).join('\n');
+      `${m.role === 'user' ? '고객' : '루마네'}: ${(m.content || '').replace(/"/g, "'").replace(/\\/g, '').replace(/[\r\n\t]/g, ' ')}`
+    ).join(' | ');
     const orderMsg = [...sess.messages].reverse().find(m =>
       m.role === 'assistant' && m.content && m.content.includes('주문서')
     );
@@ -976,8 +976,8 @@ app.post('/api/admin/conversations/:id/resend-notion', async (req, res) => {
     const MAKE_WEBHOOK = 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
     const msgs = Array.isArray(c.messages) ? c.messages : [];
     const conversation = msgs.map(m =>
-      `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
-    ).join('\n');
+      `${m.role === 'user' ? '고객' : '루마네'}: ${(m.content || '').replace(/"/g, "'").replace(/\\/g, '').replace(/[\r\n\t]/g, ' ')}`
+    ).join(' | ');
     const wr = await fetch(MAKE_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
