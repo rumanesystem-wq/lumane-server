@@ -563,62 +563,73 @@ app.get('/api/og', async (req, res) => {
   }
 });
 
+// ── Supabase Storage 드레스룸 파일 목록 캐시 ──────────────────
+const DROOM_BUCKET = 'dressroom';
+let droomFileCache = []; // [{ name: '전체/경로/파일.jpg' }, ...]
+
+async function loadDroomCache() {
+  async function listAll(prefix = '') {
+    const { data, error } = await supabaseAdmin.storage
+      .from(DROOM_BUCKET)
+      .list(prefix, { limit: 1000 });
+    if (error || !data) return;
+    for (const item of data) {
+      if (item.id === null) {
+        await listAll(prefix ? prefix + '/' + item.name : item.name);
+      } else {
+        droomFileCache.push(prefix ? prefix + '/' + item.name : item.name);
+      }
+    }
+  }
+  try {
+    droomFileCache = [];
+    await listAll();
+    console.log(`드레스룸 이미지 캐시 로드 완료 (${droomFileCache.length}개)`);
+  } catch (err) {
+    console.warn('드레스룸 캐시 로드 실패:', err.message);
+  }
+}
+
+loadDroomCache();
+
 // ── 예시 이미지 매칭 API ──────────────────────────────────────
-// 고객 형태·칸수·옵션 기반으로 드레스룸 폴더에서 가장 유사한 이미지를 반환
 app.get('/api/find-example', (req, res) => {
   const { shape = '', units = '', options = '' } = req.query;
-  const drPath = path.join(__dirname, '드레스룸');
   const optList = options.split(',').map(s => s.trim()).filter(Boolean);
   const unitsNum = parseInt(units) || 0;
 
-  let best = null;
-  let bestScore = -1;
+  if (droomFileCache.length === 0) {
+    return res.json({ success: false, reason: 'cache_empty' });
+  }
 
-  function scoreFile(relPath) {
+  function scoreFile(p) {
     let score = 0;
-    // 형태 일치 (최우선)
-    if (shape && relPath.includes(shape)) score += 100;
-    // 칸수 근접도
+    if (shape && p.includes(shape)) score += 100;
     if (unitsNum > 0) {
-      const m = relPath.match(/[\/\\](\d+)칸[\/\\]/);
+      const m = p.match(/\/(\d+)칸\//);
       if (m) {
         const diff = Math.abs(parseInt(m[1]) - unitsNum);
         score += Math.max(0, 50 - diff * 15);
       }
     }
-    // 옵션 키워드 매칭
     for (const opt of optList) {
-      if (relPath.includes(opt)) score += 20;
+      if (p.includes(opt)) score += 20;
     }
     return score;
   }
 
-  function walk(dir, relDir) {
-    let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
-    catch { return; }
-    for (const e of entries) {
-      const full = path.join(dir, e.name);
-      const rel  = relDir + '/' + e.name;
-      if (e.isDirectory()) {
-        walk(full, rel);
-      } else if (/\.(jpg|jpeg|png)$/i.test(e.name)) {
-        const score = scoreFile(rel);
-        if (score > bestScore) { bestScore = score; best = rel; }
-      }
-    }
+  let best = null;
+  let bestScore = -1;
+  for (const p of droomFileCache) {
+    const score = scoreFile(p);
+    if (score > bestScore) { bestScore = score; best = p; }
   }
 
-  try {
-    walk(drPath, '/드레스룸');
-    if (best) {
-      res.json({ success: true, url: best, score: bestScore });
-    } else {
-      res.json({ success: false });
-    }
-  } catch (err) {
-    console.error('예시 이미지 매칭 오류:', err.message);
-    res.status(500).json({ error: err.message });
+  if (best) {
+    const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${DROOM_BUCKET}/${encodeURIComponent(best).replace(/%2F/g, '/')}`;
+    res.json({ success: true, url: publicUrl, score: bestScore });
+  } else {
+    res.json({ success: false });
   }
 });
 

@@ -455,8 +455,9 @@ async function send() {
       fetch(`${SERVER}/api/find-example?shape=${encodeURIComponent(exShape)}&units=${encodeURIComponent(exUnits)}&options=${encodeURIComponent(exOpts)}`)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
         .then(d => {
-          if (d.success && typeof d.url === 'string' && d.url.startsWith('/')) {
-            setTimeout(() => addImageMsg(`${SERVER}${d.url}`, `📐 ${exShape} 예시`), 600);
+          if (d.success && typeof d.url === 'string') {
+            const imgUrl = d.url.startsWith('http') ? d.url : `${SERVER}${d.url}`;
+            setTimeout(() => addImageMsg(imgUrl, `📐 ${exShape} 예시`), 600);
           }
         })
         .catch(e => console.warn('예시 이미지 로딩 실패:', e));
