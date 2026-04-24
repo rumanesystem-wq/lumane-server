@@ -674,6 +674,27 @@ function closeHistoryDetail(e) {
   document.getElementById('historyDetailOverlay').style.display = 'none';
 }
 
+async function deleteConversation() {
+  if (!_currentHistoryId) return;
+  if (!confirm('이 상담 기록을 삭제하시겠습니까? 복구할 수 없습니다.')) return;
+  const btn = document.getElementById('hdDeleteBtn');
+  btn.textContent = '삭제 중…';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations/${encodeURIComponent(_currentHistoryId)}`, {
+      method: 'DELETE', headers: adminHeaders(),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || res.status); }
+    showToast('상담 기록이 삭제됐습니다.', 'success');
+    document.getElementById('historyDetailOverlay').style.display = 'none';
+    loadHistory();
+  } catch (err) {
+    btn.textContent = '🗑 삭제';
+    btn.disabled = false;
+    showToast(`삭제 실패: ${err.message}`, 'error');
+  }
+}
+
 async function registerQuoteFromConversation() {
   if (!_currentHistoryId) return;
   const btn = document.getElementById('hdRegisterQuoteBtn');

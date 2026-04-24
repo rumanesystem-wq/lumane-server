@@ -1000,6 +1000,22 @@ app.post('/api/admin/conversations/:id/resend-notion', async (req, res) => {
   }
 });
 
+// ── 어드민: 저장된 상담 삭제 ─────────────────────────────────
+app.delete('/api/admin/conversations/:id', requireAdmin, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
+    console.log(`🗑 상담 삭제됨: ${req.params.id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('상담 삭제 오류:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 어드민: 대화 → 견적접수 등록 ─────────────────────────────
 app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req, res) => {
   try {
