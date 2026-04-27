@@ -702,18 +702,33 @@ body > main, .site-main { padding-top: var(--header-h); }
 @media (max-width: 767px) {
   .chat-embed-section {
     padding: 0;
+    margin: 0;
     background: #f4f1ec;
+    /* 부모(site-main)의 padding/margin 무력화 후 뷰포트 전체 너비 확보 */
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    box-sizing: border-box;
   }
   .chat-embed-header {
     display: none;
   }
   .chat-embed-wrap {
     max-width: 100%;
-    margin-top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
   .chat-embed-frame {
-    height: 100svh;
+    display: block;
+    width: 100%;
     height: 100vh;
+    height: 100svh;
+    border: none;
+    margin: 0;
+    padding: 0;
   }
 }
 
