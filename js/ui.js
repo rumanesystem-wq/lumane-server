@@ -3,6 +3,7 @@
 ================================================================ */
 import { esc, nowStr } from './utils.js';
 import { SERVER } from './config.js';
+import { buildQuoteDom } from './reply.js';
 
 const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/g;
 
@@ -303,16 +304,6 @@ function makeActionBar(mid, role, text) {
   return bar;
 }
 
-/* ── 답장 인용 DOM (ui.js 내부용) ── */
-function buildQuoteDom(replyTo, isUserBubble) {
-  if (!replyTo) return null;
-  const q = document.createElement('div');
-  q.className = 'reply-quote' + (isUserBubble ? ' reply-quote-user' : '');
-  const who = replyTo.role === 'user' ? '내 메시지' : '루마네';
-  const preview = replyTo.text.length > 50 ? replyTo.text.slice(0, 50) + '…' : replyTo.text;
-  q.innerHTML = `<span class="rq-who">${esc(who)}</span><span class="rq-text">${esc(preview)}</span>`;
-  return q;
-}
 
 /* ================================================================
    메시지 내용 렌더링 — 이미지/파일 패턴 감지

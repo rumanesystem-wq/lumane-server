@@ -549,6 +549,7 @@ export function newChat() {
   demoIdx        = 0;
   pendingConfirm = false;
   clearHistory();
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   if (adminMode) {
     adminMode = false;
     showAdminBanner(false);
