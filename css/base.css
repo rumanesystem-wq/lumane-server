@@ -705,10 +705,7 @@ body > main, .site-main { padding-top: var(--header-h); }
     margin: 0;
     background: #f4f1ec;
     width: 100%;
-    position: sticky;
-    top: var(--header-h);
     box-sizing: border-box;
-    z-index: 100;
   }
   .chat-embed-header {
     display: none;
