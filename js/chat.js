@@ -629,24 +629,6 @@ document.addEventListener('DOMContentLoaded', () => {
   /* 파일 업로드 초기화 (칩 방식 — 전송 시 send()에서 처리) */
   initFileInput();
 
-  /* ── 채팅창 포커스 신호 → 부모 페이지에 전달 (모바일 전체화면 잠금용) ── */
-  const _focusOrigin = (() => {
-    try { return document.referrer ? new URL(document.referrer).origin : window.location.origin; }
-    catch { return window.location.origin; }
-  })();
-  let _notified = false;
-  const _notifyParent = () => {
-    if (_notified || window.parent === window) return;
-    _notified = true;
-    window.parent.postMessage({ type: 'lumane_focus' }, _focusOrigin);
-  };
-  document.addEventListener('touchstart', _notifyParent, { passive: true });
-  document.getElementById('inp').addEventListener('focus', _notifyParent);
-  // 부모가 잠금 해제 시 리셋 신호를 받아 재활성화
-  window.addEventListener('message', (e) => {
-    if (e.origin !== _focusOrigin) return;
-    if (e.data && e.data.type === 'lumane_unlock') _notified = false;
-  });
 
   /* ── 고객 타이핑 신호 (어드민에게 전달) ── */
   let _customerTypingTimer = null;
