@@ -105,11 +105,11 @@ function renderLiveSessionList(sessions) {
   const dot       = document.getElementById('liveDot');
   const countEl   = document.getElementById('liveCount');
 
-  countEl.textContent = sessions.length + '개 세션';
+  if (countEl) countEl.textContent = sessions.length + '개 세션';
 
   if (sessions.length === 0) {
-    dot.style.background = '#d1d5db';
-    container.innerHTML = `
+    if (dot) dot.style.background = '#d1d5db';
+    if (container) container.innerHTML = `
       <div style="text-align:center;padding:40px 16px;color:#9ca3af;font-size:13px;">
         <div style="font-size:32px;margin-bottom:12px;">💤</div>
         현재 진행 중인 상담이 없습니다
@@ -117,14 +117,16 @@ function renderLiveSessionList(sessions) {
     return;
   }
 
-  dot.style.background = '#22c55e';
+  if (dot) dot.style.background = '#22c55e';
 
   // 새 세션 알림 배지 표시
   const currentTab = document.querySelector('.tab-btn.active')?.id;
   if (currentTab !== 'tab-live') {
-    document.getElementById('liveBadge').style.display = 'inline';
+    const badge = document.getElementById('liveBadge');
+    if (badge) badge.style.display = 'inline';
   }
 
+  if (!container) return;
   container.innerHTML = sessions.map(s => {
     const isSelected = s.id === liveSelectedId;
     const isAdmin    = s.mode === 'admin';
@@ -276,6 +278,14 @@ async function fetchLiveSessionMsgs() {
   } catch { /* 무시 */ }
 }
 
+/* ── hex 색상 → rgba 변환 (브라우저 호환성 보장) ── */
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 /* ── 단가 계산 (참고용 개략 견적) ── */
 const _OPT_PRICES = [
   { re: /이불긴장/,                                price: 350_000, label: '이불긴장' },
@@ -334,21 +344,99 @@ function calcEstimate(fields) {
 }
 
 /**
- * 대화 메시지에서 상담 필드 추출 (chat.js의 extractFromHistory와 동일 순서)
+ * AI가 출력한 주문서/견적서에서만 필드 추출.
+ * 주문서가 없으면 모두 null → 어드민에 "미수집" 표시.
  */
 function extractSessionFields(messages) {
-  const userMsgs = (messages || []).filter(m => m.role === 'user').map(m => m.content || '');
-  return {
-    이름:       userMsgs[0] || '',
-    연락처:     userMsgs[1] || '',
-    설치지역:   userMsgs[2] || '',
-    공간사이즈: userMsgs[3] || '',
-    형태:       userMsgs[4] || '',
-    추가옵션:   userMsgs[5] || '',
-    프레임색상: userMsgs[6] || '',
-    선반색상:   userMsgs[7] || '',
-    요청사항:   userMsgs[8] || '',
+  const msgs = messages || [];
+  const get = (text, re) => {
+    const m = text.match(re);
+    return (m && m[1] != null) ? m[1].trim().slice(0, 200) : null;
   };
+
+  // '총 합계' 또는 '주문서'가 포함된 AI 메시지만 주문서로 인정 (최신 우선)
+  const orderMsg = [...msgs].reverse().find(m =>
+    m.role === 'assistant' && m.content &&
+    (m.content.includes('총 합계') || m.content.includes('주문서'))
+  );
+
+  if (orderMsg) {
+    const text = orderMsg.content;
+    const sizeM = text.match(/좌측[:\s]+([^\n/]{1,100})\/\s*정면[:\s]+([^\n/]{1,100})\/\s*우측[:\s]+([^\n/]{1,100})/);
+    const 공간사이즈 = sizeM
+      ? `좌측 ${sizeM[1].trim()} / 정면 ${sizeM[2].trim()} / 우측 ${sizeM[3].trim()}`
+      : get(text, /(?:공간\s*사이즈|사이즈|치수)[:\s*]+([^\n]+)/);
+    // ReDoS 방어: 매칭 범위를 최대 5000자로 제한
+    const safeText = text.slice(0, 5000);
+    const optM = safeText.match(/구성 옵션[^\n]*\n([\s\S]{0,1000}?)(?:\*\*총 합계|총 합계)/);
+    const 추가옵션 = optM
+      ? optM[1].trim().replace(/\n/g, ' / ').slice(0, 200)
+      : get(text, /(?:추가\s*옵션|옵션)[:\s]+([^\n]+)/);
+    return {
+      이름:       get(text, /성함[:\s]+([^\n]+)/),
+      연락처:     get(text, /연락처[:\s]+([^\n]+)/),
+      설치지역:   get(text, /(?:주소|설치\s*지역|지역)[:\s]+([^\n]+)/),
+      공간사이즈,
+      형태:       get(text, /(?:설치\s*형태|드레스룸\s*형태|형태)[:\s]+([^\n]+)/),
+      추가옵션,
+      프레임색상: get(text, /프레임\s*색상[:\s]+([^\n]+)/),
+      선반색상:   get(text, /선반\s*색상[:\s]+([^\n]+)/),
+      요청사항:   get(text, /요청\s*사항[:\s]+([^\n]+)/),
+    };
+  }
+
+  // 주문서 없음 → 전부 미수집
+  return {
+    이름: null, 연락처: null, 설치지역: null, 공간사이즈: null,
+    형태: null, 추가옵션: null, 프레임색상: null, 선반색상: null, 요청사항: null,
+  };
+}
+
+// 고객 관심 키워드 — 매 호출마다 재생성하지 않도록 모듈 레벨에 정의
+const _SUMMARY_KW = [
+  [/거울장/, '거울장'], [/서랍/, '서랍'], [/화장대/, '화장대'],
+  [/이불장/, '이불장'], [/바지걸이/, '바지걸이'], [/디바이더/, '디바이더'],
+  [/ㄱ자|L자|L형/, 'ㄱ자형'], [/ㄷ자|U자|U형/, 'ㄷ자형'],
+  [/ㅁ자|사방/, 'ㅁ자형'], [/일자/, '일자형'],
+  [/3[dD]|도면|예시\s*이미지/, '3D 도면 요청'], [/할인/, '할인 문의'],
+  [/신규\s*아파트|신축/, '신규아파트'], [/설치\s*기사|설치비/, '설치 문의'],
+];
+
+/**
+ * 대화 내용을 분석해 상담 단계·관심 키워드·마지막 AI 응답 미리보기 반환
+ */
+function buildConversationSummary(messages) {
+  const msgs = messages || [];
+  if (!msgs.length) return null;
+  const userMsgs = msgs.filter(m => m.role === 'user');
+  const asMsgs   = msgs.filter(m => m.role === 'assistant');
+
+  const lastAi  = [...asMsgs].pop()?.content || '';
+  const allUser = userMsgs.map(m => m.content || '').join(' ');
+
+  // 상담 단계 (치수 > 옵션 순서로 판별해야 오분류 방지)
+  let stage = '초기 상담';
+  let stageColor = '#6b7280';
+  if (lastAi.includes('총 합계') || lastAi.includes('주문서')) {
+    stage = '견적 완료';    stageColor = '#16a34a';
+  } else if (lastAi.includes('프레임') && lastAi.includes('색상')) {
+    stage = '색상 확인 중'; stageColor = '#7c3aed';
+  } else if (/mm|치수|사이즈|좌측|정면|우측/.test(lastAi)) {
+    stage = '치수 수집 중'; stageColor = '#d97706';
+  } else if (lastAi.includes('옵션')) {
+    stage = '옵션 확인 중'; stageColor = '#7c3aed';
+  } else if (userMsgs.length >= 3) {
+    stage = '정보 수집 중'; stageColor = '#d97706';
+  }
+
+  const keywords = _SUMMARY_KW.filter(([re]) => re.test(allUser)).map(([, label]) => label);
+
+  // 마지막 AI 응답 미리보기 — escAdmin으로 XSS 방어 후 렌더링할 것
+  const rawPreview = lastAi.replace(/\*\*/g, '').replace(/\n+/g, ' ').trim();
+  const previewTruncated = rawPreview.length > 120;
+  const preview = previewTruncated ? rawPreview.slice(0, 120) : rawPreview;
+
+  return { stage, stageColor, keywords, preview, previewTruncated, userCount: userMsgs.length, aiCount: asMsgs.length };
 }
 
 function toggleLiveSummary() {
@@ -419,6 +507,25 @@ function renderLiveSummary(sess) {
         <div style="font-size:11px;font-weight:600;color:#a07830;margin-bottom:4px;">💰 예상 단가 (참고용)</div>
         ${hangerRow}${optRows}${totalRow}
         <div style="font-size:10px;color:#b0915a;margin-top:3px;">배송비 별도 · 도면 확정 전 기준</div>
+      </div>`;
+    })()}
+    ${(() => {
+      const cs = buildConversationSummary(sess.messages || []);
+      if (!cs) return '';
+      const kwHtml = cs.keywords.length
+        ? cs.keywords.map(k => `<span style="font-size:10px;padding:1px 7px;background:#f3f4f6;border-radius:8px;color:#374151;">${escAdmin(k)}</span>`).join('')
+        : '';
+      const previewHtml = cs.preview
+        ? `<div style="font-size:11.5px;color:#6b7280;line-height:1.5;border-left:2px solid #e5e7eb;padding-left:6px;margin-top:4px;">${escAdmin(cs.preview)}${cs.previewTruncated ? '…' : ''}</div>`
+        : '';
+      return `
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e5e7eb;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${hexToRgba(cs.stageColor, 0.12)};color:${escAttr(cs.stageColor)};letter-spacing:-.2px;">${escAdmin(cs.stage)}</span>
+          <span style="font-size:10.5px;color:#9ca3af;">고객 ${cs.userCount}회 · AI ${cs.aiCount}회</span>
+        </div>
+        ${kwHtml ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;">${kwHtml}</div>` : ''}
+        ${previewHtml}
       </div>`;
     })()}
   `;
@@ -685,6 +792,7 @@ window._failedImgUrls = new Set(); // 404 이미지 URL 캐시 — 폴링 재요
 function fmtLiveTime(iso) {
   try {
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
     const h = d.getHours(), m = d.getMinutes();
     return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(m).padStart(2, '0')}`;
   } catch { return ''; }
@@ -703,9 +811,9 @@ async function showAdminAttachBar(rawFile) {
 
   const isImg = file.type.startsWith('image/');
   bar.innerHTML = (isImg
-    ? `<img src="${adminPendingObjectUrl}" id="adminAttachThumb" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;flex-shrink:0;cursor:zoom-in;" alt="" title="클릭하면 크게 보기">`
+    ? `<img src="${escAttr(adminPendingObjectUrl)}" id="adminAttachThumb" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;flex-shrink:0;cursor:zoom-in;" alt="" title="클릭하면 크게 보기">`
     : `<span style="font-size:22px;flex-shrink:0;">📎</span>`) +
-    `<span style="font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${file.name || 'screenshot.png'}</span>
+    `<span style="font-size:12px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">${escAdmin(file.name || 'screenshot.png')}</span>
      <button id="adminAttachRemove" style="flex-shrink:0;background:none;border:none;font-size:14px;color:#9ca3af;cursor:pointer;padding:4px 6px;border-radius:6px;">✕</button>`;
 
   bar.style.display = 'flex';
@@ -724,11 +832,12 @@ async function showAdminAttachBar(rawFile) {
 }
 
 function showAdminLightbox(src) {
+  if (!src) return;
   document.getElementById('adminLightbox')?.remove();
   const lb = document.createElement('div');
   lb.id = 'adminLightbox';
   lb.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:20px;';
-  lb.innerHTML = `<img src="${src}" style="max-width:100%;max-height:100%;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);">`;
+  lb.innerHTML = `<img src="${escAttr(src)}" style="max-width:100%;max-height:100%;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6);">`;
   lb.addEventListener('click', () => lb.remove());
   document.body.appendChild(lb);
 }
@@ -957,7 +1066,7 @@ function scrollToAdminMatch(idx) {
 
 function clearAdminSearchHighlights() {
   document.querySelectorAll('#liveMsgs .admin-search-hl').forEach(el => {
-    el.outerHTML = el.textContent;
+    el.replaceWith(document.createTextNode(el.textContent));
   });
 }
 
