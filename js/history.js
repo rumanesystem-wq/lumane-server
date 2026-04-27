@@ -1,53 +1,27 @@
 /* ================================================================
    이전 상담 이력 드로어 — 목록 렌더링, 채팅 원문 오버레이
 ================================================================ */
-import { SERVER } from './config.js';
 import { esc } from './utils.js';
 import { addMsg } from './ui.js';
 
-/* ── 실제 Supabase 이력 데이터 ── */
-let realHistoryData = null;
+const ARCHIVE_KEY = '루마네_히스토리_아카이브';
 
-export function setHistoryData(rows) {
-  realHistoryData = rows && rows.length > 0 ? rows.map(transformRow) : [];
-}
-
-/* Supabase 행 → 히스토리 항목 변환 */
-function transformRow(row, idx, arr) {
-  const summary  = row.summary  || {};
-  const messages = row.messages || [];
-
-  const date    = new Date(row.created_at);
-  const dateStr = date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-  const dtStr   = `${dateStr} ${timeStr}`;
-
+/* localStorage 아카이브 → 히스토리 항목 변환 */
+function transformArchiveItem(item, idx, arr) {
+  const messages = item.messages || [];
   const userMsgs = messages.filter(m => m.role === 'user');
   const botMsgs  = messages.filter(m => m.role === 'assistant');
   const lastUser = userMsgs[userMsgs.length - 1]?.content || '-';
   const lastBot  = botMsgs[botMsgs.length - 1]?.content  || '-';
 
-  const 주요항목 = {};
-  if (summary.설치지역) 주요항목.지역  = summary.설치지역;
-  if (summary.형태)     주요항목.형태  = summary.형태;
-  if (summary.공간사이즈) {
-    const sz = summary.공간사이즈;
-    주요항목.사이즈 = typeof sz === 'object' ? (sz.raw || `${sz.가로mm||'?'}×${sz.세로mm||'?'}`) : sz;
-  }
-  if (summary.현재상태) 주요항목.상태 = summary.현재상태;
-
-  const 요약 = summary.이름
-    ? `${summary.이름}님의 상담 · ${summary.설치지역 || '-'} · ${summary.형태 || '-'}`
-    : `상담 기록 #${arr.length - idx}`;
-
   return {
-    세션ID:         row.id ? row.id.slice(0, 8) : '-',
-    시작일시:       dtStr,
-    종료일시:       dtStr,
-    마지막상담일시: dtStr,
+    세션ID:         item.savedAt || `${arr.length - idx}회차`,
+    시작일시:       item.savedAt || '-',
+    종료일시:       item.savedAt || '-',
+    마지막상담일시: item.savedAt || '-',
     재상담여부:     idx > 0,
-    요약,
-    주요항목,
+    요약:           `${item.savedAt || '-'} 상담`,
+    주요항목:       {},
     마지막질문:     lastUser,
     마지막답변:     lastBot,
     메시지목록:     messages.map(m => ({
@@ -58,32 +32,22 @@ function transformRow(row, idx, arr) {
   };
 }
 
-/* 현재 사용할 목록 반환 */
-function currentList() {
-  if (realHistoryData !== null) return realHistoryData;
-  return [];
+function loadLocalArchive() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]');
+    return raw.map((item, idx, arr) => transformArchiveItem(item, idx, arr));
+  } catch { return []; }
 }
 
-/* 전화번호로 직접 Supabase 조회 */
-async function fetchByPhone(phone) {
-  const clean = phone.replace(/[-\s]/g, '');
-  if (!clean) return;
+let historyList = [];
 
-  const badge = document.getElementById('historyCountBadge');
-  if (badge) badge.textContent = '조회 중…';
+/* 현재 사용할 목록 반환 */
+function currentList() {
+  return historyList;
+}
 
-  try {
-    const r = await fetch(`${SERVER}/api/consultation-history?phone=${encodeURIComponent(clean)}`);
-    if (!r.ok) throw new Error('조회 실패');
-    const data = await r.json();
-    setHistoryData(data.consultations || []);
-
-    /* localStorage에도 저장 (다음 방문 시 자동 로드) */
-    localStorage.setItem('루마네_연락처', clean);
-    renderHistoryList();
-  } catch {
-    if (badge) badge.textContent = '오류';
-  }
+export function setHistoryData(rows) {
+  historyList = rows || [];
 }
 
 export function toggleHistory() {
@@ -92,6 +56,7 @@ export function toggleHistory() {
 
   if (!isOpen) {
     document.getElementById('collectDrawer').classList.remove('open');
+    historyList = loadLocalArchive();
   }
   drawer.classList.toggle('open');
 
@@ -105,24 +70,12 @@ function renderHistoryList() {
   const badge = document.getElementById('historyCountBadge');
   if (badge) badge.textContent = list.length + '건';
 
-  /* 실제 데이터가 없으면(null = 아직 미조회) 상단에 전화번호 입력창 표시 */
-  const phoneFormHtml = realHistoryData === null ? `
-    <div class="history-phone-form">
-      <div class="hpf-label">연락처로 이전 상담 찾기</div>
-      <div class="hpf-row">
-        <input class="hpf-input" id="hpfInput" type="tel" placeholder="010-0000-0000" inputmode="tel" />
-        <button class="hpf-btn" id="hpfBtn">조회</button>
-      </div>
-    </div>
-  ` : '';
-
   if (list.length === 0) {
-    container.innerHTML = phoneFormHtml + `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px">이전 상담 내역이 없습니다</div>`;
-    bindPhoneForm();
+    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px">이전 상담 내역이 없습니다</div>`;
     return;
   }
 
-  container.innerHTML = phoneFormHtml + list.map((s, i) => `
+  container.innerHTML = list.map((s, i) => `
     <div class="history-session">
       <div class="history-session-head">
         <span class="hs-num">${i + 1}회차</span>
@@ -148,15 +101,6 @@ function renderHistoryList() {
       </div>
     </div>
   `).join('');
-  bindPhoneForm();
-}
-
-function bindPhoneForm() {
-  const btn   = document.getElementById('hpfBtn');
-  const input = document.getElementById('hpfInput');
-  if (!btn || !input) return;
-  btn.addEventListener('click', () => fetchByPhone(input.value));
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') fetchByPhone(input.value); });
 }
 
 export function showTranscript(idx) {
@@ -187,6 +131,7 @@ export function closeTranscript(e) {
 
 export function continueFromHistory(idx) {
   const s = currentList()[idx];
+  if (!s) return;
   document.getElementById('historyDrawer').classList.remove('open');
   setTimeout(() => {
     addMsg('bot',
