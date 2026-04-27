@@ -91,6 +91,31 @@
        대시보드 탭
   ============================================= -->
   <div class="section active" id="section-dashboard" style="min-height:calc(100vh - 110px);">
+
+    <!-- 통계 카드 -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stats-card">
+        <div class="stats-label">오늘 상담</div>
+        <div class="stats-value" id="statToday">—</div>
+        <div class="stats-sub" id="statNewToday">신규 — 명</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-label">이번 주 상담</div>
+        <div class="stats-value" id="statWeek">—</div>
+        <div class="stats-sub" id="statNewWeek">신규 — 명</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-label">이번 달 상담</div>
+        <div class="stats-value" id="statMonth">—</div>
+        <div class="stats-sub" id="statNewMonth">신규 — 명</div>
+      </div>
+      <div class="stats-card stats-card--total">
+        <div class="stats-label">누적 상담</div>
+        <div class="stats-value" id="statTotal">—</div>
+        <div class="stats-sub">전체 기간</div>
+      </div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div>
         <div style="font-size:18px;font-weight:700;">📡 현재 진행 중인 상담</div>

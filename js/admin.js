@@ -15,7 +15,7 @@ async function checkServer() {
       serverOnline = true;
       document.getElementById('serverBadge').className    = 'server-badge online';
       document.getElementById('serverStatus').textContent = '서버 연결됨';
-      await loadQuotes();
+      await Promise.all([loadQuotes(), loadStats()]);
     }
   } catch {
     serverOnline = false;
@@ -23,6 +23,21 @@ async function checkServer() {
     document.getElementById('serverStatus').textContent = '서버 오프라인';
     loadDemoData();
   }
+}
+
+async function loadStats() {
+  try {
+    const res  = await fetch(`${SERVER}/api/admin/stats`, { headers: adminHeaders() });
+    if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('statToday').textContent    = (d.today  ?? '—') + '건';
+    document.getElementById('statWeek').textContent     = (d.week   ?? '—') + '건';
+    document.getElementById('statMonth').textContent    = (d.month  ?? '—') + '건';
+    document.getElementById('statTotal').textContent    = (d.total  ?? '—') + '건';
+    document.getElementById('statNewToday').textContent = `신규 ${d.newToday ?? '—'}명`;
+    document.getElementById('statNewWeek').textContent  = `신규 ${d.newWeek  ?? '—'}명`;
+    document.getElementById('statNewMonth').textContent = `신규 ${d.newMonth ?? '—'}명`;
+  } catch { /* 통계 로드 실패 시 무시 */ }
 }
 
 async function loadQuotes() {
@@ -207,7 +222,7 @@ function updateDashboard() {
   allQuotes.forEach(q => { if (cnt[q.상태] !== undefined) cnt[q.상태]++; });
 
   const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setText('statTotal',   total);
+
   setText('statActive',  cnt['접수완료'] + cnt['상담중']);
   setText('statDesign',  cnt['설계중']);
   setText('statDone',    cnt['시공완료']);

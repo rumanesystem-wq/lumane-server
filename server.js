@@ -912,6 +912,51 @@ app.get('/api/admin/sessions', async (_req, res) => {
   res.json({ sessions: list });
 });
 
+// ── 어드민: 상담 통계 (일/주/월/신규유저) ────────────────────
+app.get('/api/admin/stats', async (_req, res) => {
+  try {
+    /* KST(UTC+9) 기준 오늘/이번주/이번달 시작 */
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const kstNow     = new Date(Date.now() + KST_OFFSET);
+    const todayStart = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
+    const weekStart  = new Date(todayStart);
+    const dow        = kstNow.getUTCDay(); // 0=일
+    weekStart.setUTCDate(todayStart.getUTCDate() - (dow === 0 ? 6 : dow - 1)); // 월요일 기준
+    const monthStart = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), 1));
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, phone, created_at')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+
+    const rows = data || [];
+
+    /* 전화번호별 첫 상담 일시 (phone 없는 경우 신규 유저 집계에서 제외) */
+    const firstSeen = {};
+    rows.forEach(r => {
+      if (!r.phone) return;
+      const dt = new Date(r.created_at);
+      if (!firstSeen[r.phone] || dt < firstSeen[r.phone]) firstSeen[r.phone] = dt;
+    });
+
+    const inPeriod = (dt, from) => new Date(dt) >= from;
+
+    res.json({
+      total:    rows.length,
+      today:    rows.filter(r => inPeriod(r.created_at, todayStart)).length,
+      week:     rows.filter(r => inPeriod(r.created_at, weekStart)).length,
+      month:    rows.filter(r => inPeriod(r.created_at, monthStart)).length,
+      newToday: Object.values(firstSeen).filter(dt => dt >= todayStart).length,
+      newWeek:  Object.values(firstSeen).filter(dt => dt >= weekStart).length,
+      newMonth: Object.values(firstSeen).filter(dt => dt >= monthStart).length,
+    });
+  } catch (err) {
+    console.error('통계 조회 오류:', err.message);
+    res.status(500).json({ error: '통계를 불러오는 중 오류가 발생했습니다.' });
+  }
+});
+
 // ── 어드민: 토큰 사용량 통계 ─────────────────────────────────
 app.get('/api/admin/token-stats', async (req, res) => {
   try {

@@ -170,13 +170,7 @@ body {
 .section { padding: 24px 28px; display: none; }
 .section.active { display: block; }
 
-/* 통계 카드 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
+
 
 .stat-card {
   background: #fff;
@@ -979,6 +973,49 @@ body {
     height: 40px !important;
   }
 }
+
+/* =============================================
+   통계 카드
+============================================= */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stats-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.stats-card--total {
+  background: #1a1a2e;
+  border-color: #1a1a2e;
+  color: #fff;
+}
+.stats-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.stats-card--total .stats-label { color: #9ca3af; }
+.stats-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stats-card--total .stats-value { color: #fff; }
+.stats-sub {
+  font-size: 12px;
+  color: #6b7280;
+}
+.stats-card--total .stats-sub { color: #9ca3af; }
 
 /* =============================================
    인쇄 스타일
