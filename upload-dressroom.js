@@ -81,7 +81,7 @@ async function upload() {
 
     // 2. DB 저장
     const { error: dbError } = await supabase
-      .from('dressroom_images')
+      .from('드레스룸이미지')
       .insert({ storage_key: storageKey, url, shape, units, options, original_name: relativePath });
 
     if (dbError) {

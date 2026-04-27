@@ -604,7 +604,7 @@ app.get('/api/find-example', chatRateLimit, async (req, res) => {
 
   try {
     let query = supabase
-      .from('dressroom_images')
+      .from('드레스룸이미지')
       .select('url, shape, units, options');
     if (shape) query = query.eq('shape', shape);
     const { data, error } = await query;
