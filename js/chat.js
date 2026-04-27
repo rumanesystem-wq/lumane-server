@@ -68,7 +68,7 @@ function loadHistory() {
 
 function isSessionExpired() {
   const ts = localStorage.getItem(HISTORY_TS_KEY);
-  if (!ts) return false;
+  if (!ts) return true;
   return Date.now() - Number(ts) > SESSION_EXPIRE;
 }
 
@@ -94,6 +94,7 @@ function archiveCurrent() {
 
 function clearHistory() {
   localStorage.removeItem(HISTORY_KEY);
+  localStorage.removeItem(HISTORY_TS_KEY);
   localStorage.removeItem('루마네_세션ID');
 }
 
@@ -626,6 +627,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* 파일 업로드 초기화 (칩 방식 — 전송 시 send()에서 처리) */
   initFileInput();
+
+  /* ── 채팅창 포커스 신호 → 부모 페이지에 전달 (모바일 전체화면 잠금용) ── */
+  const _focusOrigin = (() => {
+    try { return document.referrer ? new URL(document.referrer).origin : window.location.origin; }
+    catch { return window.location.origin; }
+  })();
+  document.getElementById('inp').addEventListener('focus', () => {
+    if (window.parent === window) return;
+    window.parent.postMessage({ type: 'lumane_focus' }, _focusOrigin);
+  }, { once: true });
 
   /* ── 고객 타이핑 신호 (어드민에게 전달) ── */
   let _customerTypingTimer = null;
