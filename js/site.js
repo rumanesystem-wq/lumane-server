@@ -56,3 +56,52 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ── 채팅 임베드 → 견적 폼 자동 채우기 ──────────
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val) el.value = val;
+}
+
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin) return;
+  const chatFrame = document.getElementById('chat-embed-frame');
+  if (chatFrame && e.source !== chatFrame.contentWindow) return;
+  if (!e.data || e.data.type !== 'lumane_fields') return;
+  const f = e.data.fields || {};
+
+  setVal('q-name',        f.name);
+  setVal('q-phone',       f.phone);
+  setVal('q-region',      f.region);
+  setVal('q-width',       f.width);
+  setVal('q-depth',       f.depth);
+  setVal('q-height',      f.height);
+  setVal('q-frame-color', f.frameColor);
+  setVal('q-memo',        f.memo);
+
+  if (f.shelfColor) {
+    const sel = document.getElementById('q-shelf-color');
+    if (sel) {
+      const opt = [...sel.options].find(o => o.value === f.shelfColor);
+      sel.value = opt ? f.shelfColor : '기타';
+      if (!opt) setVal('q-shelf-color-custom', f.shelfColor);
+      const wrap = document.getElementById('shelf-color-custom-wrap');
+      if (wrap) wrap.style.display = sel.value === '기타' ? 'block' : 'none';
+    }
+  }
+
+  if (Array.isArray(f.layout)) {
+    document.querySelectorAll('input[name="layout_type"]').forEach(cb => {
+      if (f.layout.includes(cb.value)) cb.checked = true;
+    });
+  }
+
+  if (Array.isArray(f.options)) {
+    document.querySelectorAll('input[name="options"]').forEach(cb => {
+      if (f.options.includes(cb.value)) cb.checked = true;
+    });
+  }
+
+  const section = document.getElementById('inline-quote');
+  if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+

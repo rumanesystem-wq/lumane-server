@@ -142,3 +142,7 @@ export function continueFromHistory(idx) {
     );
   }, 400);
 }
+
+window.showTranscript      = showTranscript;
+window.continueFromHistory = continueFromHistory;
+window.closeTranscript     = closeTranscript;

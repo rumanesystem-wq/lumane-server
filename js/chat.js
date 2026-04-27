@@ -264,9 +264,6 @@ function postFieldsToParent() {
   const info = extractFromHistory();
   const size = info.공간사이즈?.raw || '';
   const nums = size.replace(/[×xX×]/g, ' ').match(/\d{3,4}/g) || [];
-  const parentOrigin = (() => {
-    try { return document.referrer ? new URL(document.referrer).origin : window.location.origin; } catch { return window.location.origin; }
-  })();
   window.parent.postMessage({
     type: 'lumane_fields',
     fields: {
@@ -282,7 +279,7 @@ function postFieldsToParent() {
       shelfColor:  info.선반색상 !== '-' ? info.선반색상 : '',
       memo:        info.요청사항 !== '-' ? info.요청사항 : '',
     }
-  }, parentOrigin);
+  }, window.location.origin);
 }
 
 /* ================================================================
