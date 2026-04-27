@@ -926,8 +926,8 @@ app.get('/api/admin/stats', async (_req, res) => {
 
     const { data, error } = await supabase
       .from('conversations')
-      .select('id, phone, created_at')
-      .order('created_at', { ascending: true });
+      .select('id, phone, started_at')
+      .order('id', { ascending: true });
     if (error) throw error;
 
     const rows = data || [];
@@ -936,7 +936,7 @@ app.get('/api/admin/stats', async (_req, res) => {
     const firstSeen = {};
     rows.forEach(r => {
       if (!r.phone) return;
-      const dt = new Date(r.created_at);
+      const dt = new Date(r.started_at);
       if (!firstSeen[r.phone] || dt < firstSeen[r.phone]) firstSeen[r.phone] = dt;
     });
 
@@ -944,9 +944,9 @@ app.get('/api/admin/stats', async (_req, res) => {
 
     res.json({
       total:    rows.length,
-      today:    rows.filter(r => inPeriod(r.created_at, todayStart)).length,
-      week:     rows.filter(r => inPeriod(r.created_at, weekStart)).length,
-      month:    rows.filter(r => inPeriod(r.created_at, monthStart)).length,
+      today:    rows.filter(r => inPeriod(r.started_at, todayStart)).length,
+      week:     rows.filter(r => inPeriod(r.started_at, weekStart)).length,
+      month:    rows.filter(r => inPeriod(r.started_at, monthStart)).length,
       newToday: Object.values(firstSeen).filter(dt => dt >= todayStart).length,
       newWeek:  Object.values(firstSeen).filter(dt => dt >= weekStart).length,
       newMonth: Object.values(firstSeen).filter(dt => dt >= monthStart).length,
