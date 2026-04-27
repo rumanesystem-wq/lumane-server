@@ -569,73 +569,64 @@ app.get('/api/og', async (req, res) => {
   }
 });
 
-// ── Supabase Storage 드레스룸 파일 목록 캐시 ──────────────────
-const DROOM_BUCKET = 'dressroom';
-let droomFileCache = []; // [{ name: '전체/경로/파일.jpg' }, ...]
+const VALID_SHAPES = ['ㄱ자', 'ㄷ자', 'ㅡ자', '11자', 'ㅁ자'];
+const SCORE_THRESHOLD = 50;
 
-async function loadDroomCache() {
-  async function listAll(prefix = '') {
-    const { data, error } = await supabaseAdmin.storage
-      .from(DROOM_BUCKET)
-      .list(prefix, { limit: 1000 });
-    if (error || !data) return;
-    for (const item of data) {
-      if (item.id === null) {
-        await listAll(prefix ? prefix + '/' + item.name : item.name);
-      } else {
-        droomFileCache.push(prefix ? prefix + '/' + item.name : item.name);
-      }
-    }
+function scoreRow(row, shape, unitsNum, optList) {
+  let score = 0;
+  if (shape && row.shape === shape) score += 100;
+  if (unitsNum > 0 && row.units != null) {
+    const diff = Math.abs(row.units - unitsNum);
+    score += Math.max(0, 50 - diff * 15);
   }
-  try {
-    droomFileCache = [];
-    await listAll();
-    console.log(`드레스룸 이미지 캐시 로드 완료 (${droomFileCache.length}개)`);
-  } catch (err) {
-    console.warn('드레스룸 캐시 로드 실패:', err.message);
+  let rowOpts = [];
+  if (Array.isArray(row.options)) {
+    rowOpts = row.options;
+  } else if (typeof row.options === 'string') {
+    try { const p = JSON.parse(row.options); rowOpts = Array.isArray(p) ? p : []; } catch { rowOpts = []; }
   }
+  for (const opt of optList) {
+    if (rowOpts.includes(opt)) score += 20;
+  }
+  return score;
 }
 
-loadDroomCache();
-
-// ── 예시 이미지 매칭 API ──────────────────────────────────────
-app.get('/api/find-example', (req, res) => {
+// ── 예시 이미지 매칭 API (DB 기반) ───────────────────────────
+app.get('/api/find-example', chatRateLimit, async (req, res) => {
   const { shape = '', units = '', options = '' } = req.query;
-  const optList = options.split(',').map(s => s.trim()).filter(Boolean);
-  const unitsNum = parseInt(units) || 0;
-
-  if (droomFileCache.length === 0) {
-    return res.json({ success: false, reason: 'cache_empty' });
+  if (shape && !VALID_SHAPES.includes(shape)) {
+    return res.json({ success: false, reason: 'invalid_shape' });
   }
+  const rawOptions = typeof options === 'string' ? options : '';
+  const rawUnits   = typeof units   === 'string' ? units   : '';
+  const optList = rawOptions.split(',').map(s => s.trim().slice(0, 50)).filter(Boolean).slice(0, 10);
+  const unitsNum = Math.min(Math.max(parseInt(rawUnits) || 0, 0), 100);
 
-  function scoreFile(p) {
-    let score = 0;
-    if (shape && p.includes(shape)) score += 100;
-    if (unitsNum > 0) {
-      const m = p.match(/\/(\d+)칸\//);
-      if (m) {
-        const diff = Math.abs(parseInt(m[1]) - unitsNum);
-        score += Math.max(0, 50 - diff * 15);
-      }
+  try {
+    let query = supabase
+      .from('dressroom_images')
+      .select('url, shape, units, options');
+    if (shape) query = query.eq('shape', shape);
+    const { data, error } = await query;
+
+    if (error) return res.json({ success: false, reason: 'db_error' });
+    if (!data || data.length === 0) return res.json({ success: false, reason: 'db_empty' });
+
+    let best = null;
+    let bestScore = -1;
+    for (const row of data) {
+      const score = scoreRow(row, shape, unitsNum, optList);
+      if (score > bestScore) { bestScore = score; best = row; }
     }
-    for (const opt of optList) {
-      if (p.includes(opt)) score += 20;
+
+    if (bestScore >= SCORE_THRESHOLD && best?.url) {
+      res.json({ success: true, url: best.url });
+    } else {
+      res.json({ success: false, reason: 'no_match' });
     }
-    return score;
-  }
-
-  let best = null;
-  let bestScore = -1;
-  for (const p of droomFileCache) {
-    const score = scoreFile(p);
-    if (score > bestScore) { bestScore = score; best = p; }
-  }
-
-  if (best) {
-    const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${DROOM_BUCKET}/${encodeURIComponent(best).replace(/%2F/g, '/')}`;
-    res.json({ success: true, url: publicUrl, score: bestScore });
-  } else {
-    res.json({ success: false });
+  } catch (err) {
+    console.error('[find-example] DB 오류:', err.message);
+    res.json({ success: false, reason: 'internal_error' });
   }
 });
 
