@@ -55,3 +55,44 @@ document.addEventListener('DOMContentLoaded', () => {
     link.classList.toggle('active', link.dataset.page === path);
   });
 });
+
+// ── 모바일 채팅 풀스크린 잠금 ─────────────────
+let _chatLocked = false;
+let _savedScrollY = 0;
+
+function lockChat() {
+  if (_chatLocked) return;
+  _chatLocked = true;
+  _savedScrollY = window.scrollY;
+  document.body.classList.add('chat-overlay-active');
+  const section = document.querySelector('.chat-embed-section');
+  if (section) section.classList.add('chat-locked');
+}
+
+window.unlockChat = function () {
+  if (!_chatLocked) return;
+  _chatLocked = false;
+  document.body.classList.remove('chat-overlay-active');
+  const section = document.querySelector('.chat-embed-section');
+  if (section) section.classList.remove('chat-locked');
+  window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+};
+
+// postMessage from iframe (chat input focused)
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'lumane_focus') lockChat();
+});
+
+// 스와이프 다운으로 채팅 닫기
+document.addEventListener('DOMContentLoaded', () => {
+  const handle = document.getElementById('chatDragHandle');
+  if (!handle) return;
+  let _touchStartY = 0;
+  handle.addEventListener('touchstart', (e) => {
+    _touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  handle.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].clientY - _touchStartY;
+    if (diff > 60) unlockChat();
+  }, { passive: true });
+});

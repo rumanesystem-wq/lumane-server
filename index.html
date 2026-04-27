@@ -266,6 +266,10 @@
         <p class="section-sub">공간 사이즈, 원하시는 형태, 색상만 알려주시면 맞춤 견적을 바로 안내해 드려요.</p>
       </div>
       <div class="chat-embed-wrap">
+          <div class="chat-drag-handle" id="chatDragHandle">
+            <div class="chat-drag-bar"></div>
+            <button class="chat-drag-close" onclick="unlockChat()" aria-label="채팅 닫기">✕</button>
+          </div>
           <iframe
             src="/chat?embed=1"
             class="chat-embed-frame"

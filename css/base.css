@@ -730,6 +730,82 @@ body > main, .site-main { padding-top: var(--header-h); }
     margin: 0;
     padding: 0;
   }
+
+  /* ── 모바일 채팅 전체화면 잠금 ── */
+  body.chat-overlay-active {
+    overflow: hidden;
+  }
+
+  .chat-embed-section.chat-locked {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100svh !important;
+    z-index: 9000;
+    transform: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+  }
+
+  .chat-embed-section.chat-locked .chat-embed-wrap {
+    flex: 1 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-embed-section.chat-locked .chat-embed-frame {
+    flex: 1 !important;
+    height: 0 !important;
+  }
+
+  /* 드래그 핸들 — 잠금 시에만 표시 */
+  .chat-drag-handle {
+    display: none;
+    height: 36px;
+    min-height: 36px;
+    background: #fff;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    border-bottom: 1px solid #f0f0f0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+  }
+
+  .chat-embed-section.chat-locked .chat-drag-handle {
+    display: flex;
+  }
+
+  .chat-drag-bar {
+    width: 36px;
+    height: 4px;
+    background: #d1d5db;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  .chat-drag-close {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 48px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #9ca3af;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
 }
 
 /* ── 인라인 견적 폼 섹션 ──────────────────────── */
