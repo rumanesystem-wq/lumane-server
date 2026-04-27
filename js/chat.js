@@ -44,6 +44,10 @@ let pendingConfirm = false;
 let serverOnline   = null;
 
 /* ── 대화 내용 localStorage 저장/복원 ── */
+function historyForAPI() {
+  return history.filter(m => m.role === 'user' || m.role === 'assistant');
+}
+
 const HISTORY_KEY  = '루마네_히스토리';
 const ARCHIVE_KEY  = '루마네_히스토리_아카이브';
 
@@ -159,7 +163,7 @@ async function registerSessionWithHistory() {
       await fetch(`${SERVER}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
+        body: JSON.stringify({ messages: historyForAPI(), sessionId: SESSION_ID, syncOnly: true }),
       });
     }
   } catch { /* 무시 */ }
@@ -344,7 +348,7 @@ async function send() {
           await fetch(`${SERVER}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
+            body: JSON.stringify({ messages: historyForAPI(), sessionId: SESSION_ID, syncOnly: true }),
           });
         } catch { /* 무시 */ }
       }
@@ -406,7 +410,7 @@ async function send() {
       const res = await fetch(`${SERVER}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, sessionId: SESSION_ID }),
+        body: JSON.stringify({ messages: historyForAPI(), sessionId: SESSION_ID }),
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
@@ -457,7 +461,10 @@ async function send() {
         .then(d => {
           if (d.success && typeof d.url === 'string') {
             const imgUrl = d.url.startsWith('http') ? d.url : `${SERVER}${d.url}`;
-            setTimeout(() => addImageMsg(imgUrl, `📐 ${exShape} 예시`), 600);
+            const imgLabel = `📐 ${exShape} 예시`;
+            history.push({ role: 'image', url: imgUrl, label: imgLabel });
+            saveHistory();
+            setTimeout(() => addImageMsg(imgUrl, imgLabel), 600);
           }
         })
         .catch(e => console.warn('예시 이미지 로딩 실패:', e));
@@ -684,7 +691,12 @@ async function startChat() {
       history = savedHistory;
       try {
         for (const m of savedHistory) {
-          if (!m || !m.role || !m.content) continue;
+          if (!m || !m.role) continue;
+          if (m.role === 'image') {
+            if (m.url && /^https?:\/\//.test(m.url)) addImageMsg(m.url, m.label || '');
+            continue;
+          }
+          if (!m.content) continue;
           addMsg(m.role === 'assistant' ? 'bot' : 'user', m.content, {
             mid: m.mid,
             replyTo: m.replyTo ?? null,
@@ -707,7 +719,7 @@ async function startChat() {
           await fetch(`${SERVER}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: history, sessionId: SESSION_ID, syncOnly: true }),
+            body: JSON.stringify({ messages: historyForAPI(), sessionId: SESSION_ID, syncOnly: true }),
           });
         } catch { /* 무시 */ }
         startPolling();
