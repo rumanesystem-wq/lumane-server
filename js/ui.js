@@ -682,7 +682,7 @@ export function updateQuickFromText(text) {
     setQuick(choiceLines.map(l => l.trim()), true); return;
   }
 
-  if (/(드레스룸\s*형태|형태.*어떻게|1자형|ㄱ자형|ㄷ자형|11자형)/.test(text)) {
+  if (/(드레스룸\s*형태|형태.*어떻게|어떤\s*형태|형태.*선택|어느\s*형태)/.test(text)) {
     setQuick(['1자형', 'ㄱ자형', 'ㄷ자형', '11자형'], true); return;
   }
   if (/(개인정보\s*수집|동의해\s*주시겠어요)/.test(text)) {
