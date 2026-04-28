@@ -155,6 +155,144 @@ function statDetailGoBack() {
 function closeStatDetail() {
   document.getElementById('statDetailOverlay').style.display = 'none';
   document.getElementById('statDetailBack').style.display = 'none';
+  _monthSessionsCache = null;
+  _monthNavLevel = 0;
+}
+
+/* ── 이번 달 3단계 드릴다운 ── */
+let _monthSessionsCache = null;
+let _monthNavLevel = 0;
+
+async function openMonthDetail() {
+  const overlay = document.getElementById('statDetailOverlay');
+  const body    = document.getElementById('statDetailBody');
+
+  _monthSessionsCache = null;
+  _monthNavLevel = 1;
+  document.getElementById('statDetailTitle').textContent = '이번 달 상담';
+  document.getElementById('statDetailCount').textContent = '불러오는 중...';
+  document.getElementById('statDetailBack').style.display = 'none';
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;">로딩 중...</div>';
+  overlay.style.display = 'block';
+
+  try {
+    const res = await fetch(`${SERVER}/api/admin/stat-sessions?period=month`, { headers: adminHeaders() });
+    if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
+    const data = await res.json();
+    _monthSessionsCache = data.sessions || [];
+    renderWeeklyBreakdown(_monthSessionsCache);
+  } catch {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">불러오기 실패</div>';
+    document.getElementById('statDetailCount').textContent = '';
+  }
+}
+
+function getWeekOfMonth(kstDateStr) {
+  const day = parseInt(kstDateStr.slice(8, 10), 10);
+  if (day <= 7)  return '1주차';
+  if (day <= 14) return '2주차';
+  if (day <= 21) return '3주차';
+  if (day <= 28) return '4주차';
+  return '5주차';
+}
+
+function renderWeeklyBreakdown(sessions) {
+  _monthNavLevel = 1;
+  document.getElementById('statDetailBack').style.display = 'none';
+  document.getElementById('statDetailTitle').textContent = '이번 달 상담';
+  document.getElementById('statDetailCount').textContent = `총 ${sessions.length}건`;
+
+  const weekOrder  = ['1주차','2주차','3주차','4주차','5주차'];
+  const weekRanges = { '1주차':'1~7일','2주차':'8~14일','3주차':'15~21일','4주차':'22~28일','5주차':'29일~' };
+  const nowKST     = new Date(new Date().getTime() + KST);
+  const month      = nowKST.getUTCMonth() + 1;
+
+  const weekMap = {};
+  sessions.forEach(s => {
+    if (!s.started_at) return;
+    const kd = new Date(new Date(s.started_at).getTime() + KST).toISOString().slice(0, 10);
+    const wk = getWeekOfMonth(kd);
+    if (!weekMap[wk]) weekMap[wk] = [];
+    weekMap[wk].push(s);
+  });
+
+  const body = document.getElementById('statDetailBody');
+  if (Object.keys(weekMap).length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:60px 0;color:#9ca3af;font-size:14px;">이번 달 상담 내역이 없습니다</div>';
+    return;
+  }
+
+  body.innerHTML = weekOrder
+    .filter(wk => weekMap[wk])
+    .map(wk => {
+      const cnt = weekMap[wk].length;
+      return `
+        <div onclick="openWeekDetail('${wk}')"
+          style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-radius:12px;background:#f9fafb;border:1px solid #e5e7eb;margin-bottom:10px;cursor:pointer;transition:background .15s;"
+          onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#f9fafb'">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#111827;">${wk}</div>
+            <div style="font-size:12px;color:#9ca3af;margin-top:3px;">${month}월 ${weekRanges[wk]}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:15px;font-weight:700;color:#2563eb;">${cnt}건</span>
+            <span style="color:#9ca3af;font-size:18px;">›</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+}
+
+function openWeekDetail(weekLabel) {
+  if (!_monthSessionsCache) return;
+  _monthNavLevel = 2;
+
+  const weekSessions = _monthSessionsCache.filter(s => {
+    if (!s.started_at) return false;
+    const kd = new Date(new Date(s.started_at).getTime() + KST).toISOString().slice(0, 10);
+    return getWeekOfMonth(kd) === weekLabel;
+  });
+
+  document.getElementById('statDetailBack').style.display = 'inline';
+  document.getElementById('statDetailTitle').textContent  = `이번 달 · ${weekLabel}`;
+  document.getElementById('statDetailCount').textContent  = `총 ${weekSessions.length}건`;
+
+  if (weekSessions.length === 0) {
+    document.getElementById('statDetailBody').innerHTML =
+      '<div style="text-align:center;padding:60px 0;color:#9ca3af;font-size:14px;">상담 내역이 없습니다</div>';
+    return;
+  }
+
+  const DAY_KO = ['일','월','화','수','목','금','토'];
+  const groups = {};
+  weekSessions.forEach(s => {
+    const kd = new Date(new Date(s.started_at).getTime() + KST).toISOString().slice(0, 10);
+    if (!groups[kd]) groups[kd] = [];
+    groups[kd].push(s);
+  });
+
+  document.getElementById('statDetailBody').innerHTML = Object.entries(groups).map(([date, list]) => {
+    const dow  = DAY_KO[new Date(date + 'T00:00:00+09:00').getDay()];
+    const mmdd = date.slice(5).replace('-', '/');
+    const divider = `<div style="display:flex;align-items:center;gap:8px;margin:16px 0 10px;">
+      <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+      <div style="font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap;">${mmdd}(${dow})</div>
+      <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+    </div>`;
+    const rows = list.map(s => `
+      <div onclick="openHistoryDetail('${escAttr(String(s.id))}')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#f9fafb;margin-bottom:8px;border:1px solid #f3f4f6;cursor:pointer;transition:background .15s;"
+        onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'">
+        <div style="font-size:12px;color:#9ca3af;width:36px;flex-shrink:0;">${toKSTTime(s.started_at)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:#111827;">${escAdmin(s.customer_name || '(이름 미수집)')}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:2px;">${escAdmin(s.phone || '연락처 없음')}${s.region ? ' · ' + escAdmin(s.region) : ''}${s.layout ? ' · ' + escAdmin(s.layout) : ''}</div>
+        </div>
+        <span style="font-size:16px;color:#9ca3af;flex-shrink:0;">›</span>
+      </div>
+    `).join('');
+    return divider + rows;
+  }).join('');
 }
 
 async function loadQuotes() {
