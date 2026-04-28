@@ -635,6 +635,7 @@ export function setQuick(labels, isChoice = false) {
     b.textContent = label;
     b.onclick = () => {
       $inp.value = label;
+      refreshSendBtn();
       $sendBtn.click();
     };
     wrap.appendChild(b);
