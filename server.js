@@ -263,15 +263,15 @@ async function autoRegisterQuote(sess, reply) {
   };
 
   const { data: existing } = await supabase
-    .from('견적접수')
+    .from('quotes')
     .select('id')
     .eq('quote_number', quoteNumber)
     .maybeSingle();
 
   if (existing) {
-    await supabase.from('견적접수').update(payload).eq('id', existing.id);
+    await supabase.from('quotes').update(payload).eq('id', existing.id);
   } else {
-    await supabase.from('견적접수').insert([payload]);
+    await supabase.from('quotes').insert([payload]);
     console.log(`✅ AI 견적 자동 등록: ${quoteNumber} (${payload.name})`);
   }
 }
@@ -611,7 +611,7 @@ app.get('/api/find-example', chatRateLimit, async (req, res) => {
 
   try {
     let query = supabase
-      .from('드레스룸이미지')
+      .from('dressroom_images')
       .select('url, shape, units, options');
     if (shape) query = query.eq('shape', shape);
     const { data, error } = await query;
@@ -1264,7 +1264,7 @@ app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req
     const quoteNumber = 'KB-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(Date.now()).slice(-4);
 
     const { error: insErr } = await supabase
-      .from('견적접수')
+      .from('quotes')
       .insert([{
         quote_number:  quoteNumber,
         name:          c.customer_name || '',
@@ -1367,7 +1367,7 @@ app.post('/api/admin/save-conversation', async (req, res) => {
 app.get('/api/quotes', async (_req, res) => {
   try {
     const { data, error } = await supabase
-      .from('견적접수')
+      .from('quotes')
       .select('*')
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -1414,7 +1414,7 @@ app.post('/api/quote', async (req, res) => {
     const quoteNumber = 'KB-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(Date.now()).slice(-4);
 
     const { data, error } = await supabase
-      .from('견적접수')
+      .from('quotes')
       .insert([{
         quote_number: quoteNumber,
         name:          name || '',
