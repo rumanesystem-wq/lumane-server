@@ -319,8 +319,13 @@ function renderBubbleContent(text) {
     img.alt = '첨부 이미지';
     img.style.maxWidth = '220px';
     img.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'img-download-btn';
+    dlBtn.textContent = '⬇ 다운로드';
+    dlBtn.onclick = () => downloadImage(url, '이미지');
     const wrap = document.createElement('div');
     wrap.appendChild(img);
+    wrap.appendChild(dlBtn);
     return wrap;
   }
   /* [파일: name]\nURL */
@@ -515,6 +520,24 @@ async function appendLinkPreviews(container, text) {
   }
 }
 
+/* ── 이미지 다운로드 ── */
+async function downloadImage(url, label) {
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const a    = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const ext  = blob.type === 'image/png' ? 'png' : 'jpg';
+    a.download = label ? `${label.replace(/\s+/g, '_')}.${ext}` : `드레스룸_예시.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+
 /* ── 예시 이미지 메시지 ── */
 export function addImageMsg(imgUrl, label) {
   const group = document.createElement('div');
@@ -553,6 +576,12 @@ export function addImageMsg(imgUrl, label) {
     lbl.textContent = label;
     bubblesCol.appendChild(lbl);
   }
+
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'img-download-btn';
+  dlBtn.textContent = '⬇ 다운로드';
+  dlBtn.onclick = () => downloadImage(imgUrl, label);
+  bubblesCol.appendChild(dlBtn);
 
   const meta = document.createElement('div');
   meta.className = 'msg-meta';

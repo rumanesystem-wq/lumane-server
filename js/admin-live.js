@@ -619,7 +619,8 @@ function renderLiveChatPanel(sess) {
       if (window._failedImgUrls.has(rawUrl)) {
         bubbleInner = replyQuoteHtml + `<span style="font-size:12px;color:#9ca3af;">[이미지 없음]</span>`;
       } else {
-        bubbleInner = replyQuoteHtml + `<img src="${safeUrl}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank','noopener,noreferrer')" onerror="this.style.display='none';window._failedImgUrls.add('${safeUrl}')">`;
+        bubbleInner = replyQuoteHtml + `<img src="${safeUrl}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank','noopener,noreferrer')" onerror="this.style.display='none';window._failedImgUrls.add('${rawUrl}')">` +
+          `<button onclick="window._downloadImg('${safeUrl}')" class="img-download-btn">⬇ 다운로드</button>`;
       }
     } else if (fileMatch) {
       const fname = fileMatch[1];
@@ -827,6 +828,22 @@ async function compressImageIfNeeded(file) {
 
 /* ── admin 첨부 칩 상태 ── */
 window._failedImgUrls = new Set(); // 404 이미지 URL 캐시 — 폴링 재요청 방지
+window._downloadImg = async function(url) {
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const a    = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const ext  = blob.type === 'image/png' ? 'png' : 'jpg';
+    a.download = `드레스룸_예시.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
 
 function fmtLiveTime(iso) {
   try {
