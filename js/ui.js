@@ -85,7 +85,7 @@ export function initInputListeners(onSend) {
       }
     }
   });
-  $sendBtn.addEventListener('click', onSend);
+  $sendBtn.addEventListener('click', () => onSend());
 }
 
 /* ── 스크롤 상태 ── */
