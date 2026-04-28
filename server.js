@@ -158,6 +158,7 @@ function getOrCreateSession(sessionId) {
       messages: [],
       pendingAdminMsgs: [],
       customerName: null,
+      customerNameIsTemp: true,
       isTest: false,
       startedAt: new Date(),
       lastActivity: new Date(),
@@ -736,10 +737,14 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     if (!syncOnly) sess.lastMessageAt = new Date();
     if (isTest === true) sess.isTest = true;
 
-    // 고객 이름 자동 추출 (첫 번째 user 메시지)
-    const firstUser = messages.find(m => m.role === 'user');
-    if (firstUser && !sess.customerName) {
-      sess.customerName = firstUser.content.slice(0, 20);
+    // 고객 이름 초기값: 상담 시작 시간 (KST)으로 임시 표시
+    if (!sess.customerName) {
+      const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const mm = String(kst.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(kst.getUTCDate()).padStart(2, '0');
+      const hh = String(kst.getUTCHours()).padStart(2, '0');
+      const mi = String(kst.getUTCMinutes()).padStart(2, '0');
+      sess.customerName = `${mm}/${dd} ${hh}:${mi}`;
     }
 
     // syncOnly: 히스토리만 동기화하고 AI 응답 없이 반환 + Supabase 저장
@@ -816,6 +821,16 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       const sess = sessions.get(sessionId);
       sess.messages.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
       sess.lastActivity = new Date();
+
+      // AI 응답에서 "OO 고객님" 패턴으로 이름 추출 — 임시 이름인 경우만 업데이트
+      if (sess.customerNameIsTemp) {
+        const nameMatch = reply.match(/([가-힣]{2,5})\s*고객님/);
+        if (nameMatch) {
+          sess.customerName = nameMatch[1];
+          sess.customerNameIsTemp = false;
+        }
+      }
+
       upsertConversation(sess).catch(e => console.error('실시간 저장 실패:', e.message));
       autoRegisterQuote(sess, reply).catch(e => console.error('견적 자동 등록 실패:', e.message));
     }
@@ -848,6 +863,7 @@ app.post('/api/session/register', (req, res) => {
   const sess = getOrCreateSession(sessionId);
   if (nickname && typeof nickname === 'string') {
     sess.customerName = nickname.trim().slice(0, 20);
+    sess.customerNameIsTemp = false;
   }
   if (isTest === true) sess.isTest = true;
   res.json({ ok: true });
