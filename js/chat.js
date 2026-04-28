@@ -312,10 +312,10 @@ function buildConfirmSummary() {
 /* ================================================================
    메시지 전송
 ================================================================ */
-async function send() {
-  const text       = document.getElementById('inp').value.trim();
-  const hasPending = !!getPendingFile();
-  const editingMid = getEditingMid();
+async function send(prefilledText) {
+  const text       = prefilledText !== undefined ? String(prefilledText) : document.getElementById('inp').value.trim();
+  const hasPending = !prefilledText && !!getPendingFile();
+  const editingMid = !prefilledText && getEditingMid();
   if ((!text && !hasPending) || getIsLoading()) return;
 
   /* 전송 시 타이핑 종료 */
@@ -366,10 +366,13 @@ async function send() {
   if (!text) return;
 
   const mid = allocMid();
-  addMsg('user', text, { mid, replyTo });
+  // prefilledText 재시도 경로: 이미 화면에 user 버블이 있으므로 addMsg 스킵, history만 추가
+  if (!prefilledText) {
+    addMsg('user', text, { mid, replyTo });
+    clearInput();
+    setQuick([]);
+  }
   history.push({ role: 'user', content: text, mid, replyTo: replyTo ?? undefined, ts: new Date().toISOString() });
-  clearInput();
-  setQuick([]);
 
   /* ── 접수 확인 단계 ── */
   if (pendingConfirm) {
@@ -493,7 +496,31 @@ async function send() {
     postFieldsToParent();
 
   } catch (err) {
-    addMsg('bot', `⚠️ 오류가 발생했습니다.\n${err.message}`);
+    // 실패한 user 메시지 텍스트를 재전송 버튼에 캡처
+    const failedText = (() => {
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].role === 'user') return history[i].content;
+      }
+      return null;
+    })();
+
+    const errMid = allocMid();
+    const errDiv = document.createElement('div');
+    errDiv.className = 'msg-group bot';
+    errDiv.dataset.mid = errMid;
+    errDiv.innerHTML = `<div class="av">👩‍💼</div><div class="msg-body"><div class="msg-sender">루마네</div><div class="bubble bot">⚠️ 오류가 발생했습니다.<br>${err.message}${failedText ? `<br><button style="margin-top:8px;padding:4px 10px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;" data-retry-text="${failedText.replace(/"/g, '&quot;')}">↩ 다시 시도</button>` : ''}</div></div>`;
+    document.getElementById('msgs').appendChild(errDiv);
+    document.getElementById('msgs').scrollTop = 99999;
+
+    if (failedText) {
+      errDiv.querySelector('[data-retry-text]')?.addEventListener('click', () => {
+        // history에서 실패한 user 메시지 제거 후 재전송
+        const idx = history.findLastIndex(m => m.role === 'user' && m.content === failedText);
+        if (idx !== -1) history.splice(idx, 1);
+        errDiv.remove();
+        send(failedText);
+      });
+    }
   } finally {
     setLoading(false);
   }

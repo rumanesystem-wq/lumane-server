@@ -6,6 +6,28 @@ import { addMsg } from './ui.js';
 
 const ARCHIVE_KEY = '루마네_히스토리_아카이브';
 
+/* bot 메시지 전체 텍스트에서 지역·형태 추출 */
+function extractKeyItems(messages) {
+  const botText = messages
+    .filter(m => m.role === 'assistant')
+    .map(m => m.content || '')
+    .join('\n');
+
+  const result = {};
+
+  // 지역: 시·도 + 시·군·구 패턴 (예: 서울 강남구, 경기 수원시, 인천 남동구)
+  const regionMatch = botText.match(
+    /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)\s*[\w가-힣]*[시군구]/
+  );
+  if (regionMatch) result['지역'] = regionMatch[0].trim();
+
+  // 형태: ㄱ자/ㄷ자/ㅡ자/일자/ㄴ자 등
+  const shapeMatch = botText.match(/[ㄱㄴㄷㄹㅡ일][\s]?자[\s]?형?/);
+  if (shapeMatch) result['형태'] = shapeMatch[0].trim();
+
+  return result;
+}
+
 /* localStorage 아카이브 → 히스토리 항목 변환 */
 function transformArchiveItem(item, idx, arr) {
   const messages = item.messages || [];
@@ -21,7 +43,7 @@ function transformArchiveItem(item, idx, arr) {
     마지막상담일시: item.savedAt || '-',
     재상담여부:     idx > 0,
     요약:           `${item.savedAt || '-'} 상담`,
-    주요항목:       {},
+    주요항목:       extractKeyItems(messages),
     마지막질문:     lastUser,
     마지막답변:     lastBot,
     메시지목록:     messages.map(m => ({

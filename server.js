@@ -667,6 +667,13 @@ async function buildApiMessages(messages) {
   const clean = messages.map(({ role, content }) => ({ role, content }));
   if (clean.length <= MAX_API_MESSAGES) return clean;
 
+  // user 메시지 50개 초과 시 요약 스킵, 최근 30개만 사용 (토큰 폭발 방지)
+  const userMsgCount = clean.filter(m => m.role === 'user').length;
+  if (userMsgCount > 50) {
+    console.warn(`[buildApiMessages] user 메시지 ${userMsgCount}개 초과 — 요약 스킵, 최근 30개 사용`);
+    return clean.slice(-30);
+  }
+
   const oldMsgs = clean.slice(0, clean.length - KEEP_RECENT);
   const recentMsgs = clean.slice(clean.length - KEEP_RECENT);
 
@@ -759,7 +766,10 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           sess.startedAt = parsed;
         }
       }
-      upsertConversation(sess).catch(e => console.error('syncOnly 저장 실패:', e.message));
+      upsertConversation(sess).catch(e => {
+        console.error('syncOnly 저장 실패:', e.message);
+        setTimeout(() => upsertConversation(sess).catch(e2 => console.error('syncOnly 재시도 실패:', e2.message)), 2000);
+      });
       return res.json({ ok: true, synced: messages.length });
     }
 
@@ -832,7 +842,10 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         }
       }
 
-      upsertConversation(sess).catch(e => console.error('실시간 저장 실패:', e.message));
+      upsertConversation(sess).catch(e => {
+        console.error('실시간 저장 실패:', e.message);
+        setTimeout(() => upsertConversation(sess).catch(e2 => console.error('실시간 저장 재시도 실패:', e2.message)), 2000);
+      });
       autoRegisterQuote(sess, reply).catch(e => console.error('견적 자동 등록 실패:', e.message));
     }
 
