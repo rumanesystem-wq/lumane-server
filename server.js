@@ -957,6 +957,38 @@ app.get('/api/admin/stats', async (_req, res) => {
   }
 });
 
+// ── 어드민: 기간별 상담 목록 ──────────────────────────────────
+app.get('/api/admin/stat-sessions', async (req, res) => {
+  try {
+    const period = req.query.period || 'all';
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const kstNow     = new Date(Date.now() + KST_OFFSET);
+    const todayStart = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
+    const weekStart  = new Date(todayStart);
+    const dow        = kstNow.getUTCDay();
+    weekStart.setUTCDate(todayStart.getUTCDate() - (dow === 0 ? 6 : dow - 1));
+    const monthStart = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), 1));
+
+    const fromMap = { today: todayStart, week: weekStart, month: monthStart, all: null };
+    const from = fromMap[period] ?? null;
+
+    let query = supabase
+      .from('conversations')
+      .select('id, customer_name, phone, region, layout, started_at')
+      .order('started_at', { ascending: false });
+
+    if (from) query = query.gte('started_at', from.toISOString());
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    res.json({ sessions: data || [] });
+  } catch (err) {
+    console.error('기간별 상담 목록 오류:', err.message);
+    res.status(500).json({ error: '목록을 불러오는 중 오류가 발생했습니다.' });
+  }
+});
+
 // ── 어드민: 토큰 사용량 통계 ─────────────────────────────────
 app.get('/api/admin/token-stats', async (req, res) => {
   try {

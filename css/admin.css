@@ -1019,6 +1019,15 @@ body {
 }
 .stats-card--total .stats-sub { color: #9ca3af; }
 
+.stats-card--clickable {
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.stats-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.10);
+}
+
 /* =============================================
    인쇄 스타일
 ============================================= */

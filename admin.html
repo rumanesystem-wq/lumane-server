@@ -94,22 +94,22 @@
 
     <!-- 통계 카드 -->
     <div class="stats-grid" id="statsGrid">
-      <div class="stats-card">
+      <div class="stats-card stats-card--clickable" onclick="openStatDetail('today','오늘 상담')">
         <div class="stats-label">오늘 상담</div>
         <div class="stats-value" id="statToday">—</div>
         <div class="stats-sub" id="statNewToday">신규 — 명</div>
       </div>
-      <div class="stats-card">
+      <div class="stats-card stats-card--clickable" onclick="openStatDetail('week','이번 주 상담')">
         <div class="stats-label">이번 주 상담</div>
         <div class="stats-value" id="statWeek">—</div>
         <div class="stats-sub" id="statNewWeek">신규 — 명</div>
       </div>
-      <div class="stats-card">
+      <div class="stats-card stats-card--clickable" onclick="openStatDetail('month','이번 달 상담')">
         <div class="stats-label">이번 달 상담</div>
         <div class="stats-value" id="statMonth">—</div>
         <div class="stats-sub" id="statNewMonth">신규 — 명</div>
       </div>
-      <div class="stats-card stats-card--total">
+      <div class="stats-card stats-card--total stats-card--clickable" onclick="openStatDetail('all','누적 상담')">
         <div class="stats-label">누적 상담</div>
         <div class="stats-value" id="statTotal">—</div>
         <div class="stats-sub">전체 기간</div>
@@ -441,6 +441,22 @@
   </div>
 
 </main>
+
+<!-- 기간별 상담 목록 드로어 -->
+<div id="statDetailOverlay" onclick="if(event.target===this) closeStatDetail()"
+  style="display:none;position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.4);">
+  <div id="statDetailDrawer" onclick="event.stopPropagation()"
+    style="position:absolute;top:0;right:0;width:420px;max-width:100vw;height:100%;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.15);display:flex;flex-direction:column;">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div>
+        <div id="statDetailTitle" style="font-size:16px;font-weight:700;"></div>
+        <div id="statDetailCount" style="font-size:12px;color:#9ca3af;margin-top:2px;"></div>
+      </div>
+      <button onclick="closeStatDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;">✕</button>
+    </div>
+    <div id="statDetailBody" style="flex:1;overflow-y:auto;padding:16px 24px;"></div>
+  </div>
+</div>
 
 <!-- 빠른 답변 템플릿 편집 모달 -->
 <div id="templateEditorOverlay" onclick="closeTemplateEditor(event)"

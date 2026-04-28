@@ -40,9 +40,76 @@ async function loadStats() {
   } catch { /* 통계 로드 실패 시 무시 */ }
 }
 
+async function openStatDetail(period, label) {
+  const overlay = document.getElementById('statDetailOverlay');
+  const body    = document.getElementById('statDetailBody');
+  document.getElementById('statDetailTitle').textContent = label;
+  document.getElementById('statDetailCount').textContent = '불러오는 중...';
+  body.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;">로딩 중...</div>';
+  overlay.style.display = 'block';
+
+  try {
+    const res  = await fetch(`${SERVER}/api/admin/stat-sessions?period=${period}`, { headers: adminHeaders() });
+    if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
+    const data = await res.json();
+    const sessions = data.sessions || [];
+    document.getElementById('statDetailCount').textContent = `총 ${sessions.length}건`;
+    body.innerHTML = renderStatSessions(sessions);
+  } catch {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;">불러오기 실패</div>';
+  }
+}
+
+function renderStatSessions(sessions) {
+  if (sessions.length === 0) {
+    return '<div style="text-align:center;padding:60px 0;color:#9ca3af;font-size:14px;">해당 기간에 상담 내역이 없습니다</div>';
+  }
+
+  const KST = 9 * 60 * 60 * 1000;
+  const toKSTDate = iso => {
+    if (!iso) return '날짜 미상';
+    const d = new Date(new Date(iso).getTime() + KST);
+    return d.toISOString().slice(0, 10);
+  };
+  const toKSTTime = iso => {
+    if (!iso) return '--:--';
+    const d = new Date(new Date(iso).getTime() + KST);
+    return d.toISOString().slice(11, 16);
+  };
+
+  const groups = {};
+  sessions.forEach(s => {
+    const date = toKSTDate(s.started_at);
+    if (!groups[date]) groups[date] = [];
+    groups[date].push(s);
+  });
+
+  return Object.entries(groups).map(([date, list]) => `
+    <div style="display:flex;align-items:center;gap:8px;margin:20px 0 10px;">
+      <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+      <div style="font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap;">${date}</div>
+      <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+    </div>
+    ${list.map(s => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:#f9fafb;margin-bottom:6px;border:1px solid #f3f4f6;">
+        <div style="font-size:12px;color:#9ca3af;width:36px;flex-shrink:0;">${toKSTTime(s.started_at)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:#111827;">${escAdmin(s.customer_name || '(이름 미수집)')}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:1px;">${escAdmin(s.phone || '연락처 없음')}${s.region ? ' · ' + escAdmin(s.region) : ''}${s.layout ? ' · ' + escAdmin(s.layout) : ''}</div>
+        </div>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+function closeStatDetail() {
+  document.getElementById('statDetailOverlay').style.display = 'none';
+}
+
 async function loadQuotes() {
   try {
     const res  = await fetch(`${SERVER}/api/quotes`, { headers: adminHeaders() });
+    if (!res.ok) throw new Error(`서버 오류 ${res.status}`);
     const data = await res.json();
     allQuotes = data.quotes || [];
 
