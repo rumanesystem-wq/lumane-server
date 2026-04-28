@@ -1,7 +1,7 @@
 /* ================================================================
    UI 조작 — 메시지 렌더링, 타이핑 인디케이터, 퀵버튼, 배너, 로딩
 ================================================================ */
-import { esc, nowStr } from './utils.js';
+import { esc, nowStr, tsToStr } from './utils.js';
 import { SERVER } from './config.js';
 import { buildQuoteDom } from './reply.js';
 
@@ -354,7 +354,7 @@ function renderBubbleContent(text) {
 /* ================================================================
    메시지 렌더링
 ================================================================ */
-export function addMsg(role, text, { mid = null, replyTo = null } = {}) {
+export function addMsg(role, text, { mid = null, replyTo = null, time = null } = {}) {
   const clean = text.replace(/```json[\s\S]*?```/g, '').trim();
   const msgMid = mid ?? allocMid();
 
@@ -415,7 +415,7 @@ export function addMsg(role, text, { mid = null, replyTo = null } = {}) {
     meta.className = 'msg-meta';
     const timeEl = document.createElement('span');
     timeEl.className = 'msg-time';
-    timeEl.textContent = nowStr();
+    timeEl.textContent = time ? tsToStr(time) : nowStr();
     meta.appendChild(timeEl);
 
     bubblesRow.appendChild(bubblesCol);
@@ -444,7 +444,7 @@ export function addMsg(role, text, { mid = null, replyTo = null } = {}) {
 
     const timeEl = document.createElement('span');
     timeEl.className = 'msg-time';
-    timeEl.textContent = nowStr();
+    timeEl.textContent = time ? tsToStr(time) : nowStr();
     meta.appendChild(timeEl);
 
     const bubblesCol = document.createElement('div');

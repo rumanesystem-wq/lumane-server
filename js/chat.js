@@ -212,7 +212,7 @@ function startPolling() {
       for (const msg of (data.pendingMsgs || [])) {
         hideAdminTyping();
         addMsg('bot', msg.content);
-        history.push({ role: 'assistant', content: msg.content });
+        history.push({ role: 'assistant', content: msg.content, ts: new Date().toISOString() });
         // 탭이 백그라운드일 때 브라우저 알림
         if (document.visibilityState !== 'visible' && Notification.permission === 'granted') {
           new Notification('👩‍💼 담당자 메시지', {
@@ -349,7 +349,7 @@ async function send() {
       addFileMsg(url, name, isImage, mid);
       const fullUrl = url.startsWith('http') ? url : `${SERVER}${url}`;
       const content = isImage ? `[이미지]\n${fullUrl}` : `[파일: ${name}]\n${fullUrl}`;
-      history.push({ role: 'user', content, mid });
+      history.push({ role: 'user', content, mid, ts: new Date().toISOString() });
       if (serverOnline) {
         try {
           await fetch(`${SERVER}/api/chat`, {
@@ -381,7 +381,7 @@ async function send() {
       setLoading(true);
       await new Promise(r => setTimeout(r, 600));
       addMsg('bot', '감사합니다! 😊\n지금까지 말씀해 주신 내용을 정리해 드릴게요.\n아래 내용을 한 번 더 확인해 주세요.');
-      history.push({ role: 'assistant', content: '견적 요청 확인 안내' });
+      history.push({ role: 'assistant', content: '견적 요청 확인 안내', ts: new Date().toISOString() });
       setLoading(false);
       setTimeout(() => showConfirm({ 고객정보: extractFromHistory() }), 1000);
       return;
@@ -392,7 +392,7 @@ async function send() {
       setLoading(true);
       await new Promise(r => setTimeout(r, 600));
       addMsg('bot', '네, 수정하고 싶으신 내용을 말씀해 주세요.\n성함·연락처·사이즈·형태 등 어느 것이든 다시 알려주시면 수정해 드릴게요 😊');
-      history.push({ role: 'assistant', content: '수정 안내' });
+      history.push({ role: 'assistant', content: '수정 안내', ts: new Date().toISOString() });
       setLoading(false);
       return;
     }
@@ -400,7 +400,7 @@ async function send() {
     setLoading(true);
     await new Promise(r => setTimeout(r, 500));
     addMsg('bot', '죄송해요, 잘 이해하지 못했어요 😅\n지금 내용으로 접수하시겠어요? 아니면 수정할 부분이 있으신가요?');
-    history.push({ role: 'assistant', content: '재확인 요청' });
+    history.push({ role: 'assistant', content: '재확인 요청', ts: new Date().toISOString() });
     setQuick(['네, 접수할게요!', '아니요, 수정할게요'], true);
     setLoading(false);
     pendingConfirm = true;
@@ -445,7 +445,7 @@ async function send() {
         : s.say;
 
       setQuick(s.quick || [], s.choiceStep === true);
-      history.push({ role: 'assistant', content: reply });
+      history.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
       addMsg('bot', reply);
       updateCollectDrawer(demoIdx - 1);
 
@@ -480,7 +480,7 @@ async function send() {
     // 빈 응답 (API 오류 후 중복 방지용 빈 메시지) 무시
     if (!reply) { setLoading(false); return; }
 
-    history.push({ role: 'assistant', content: reply });
+    history.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
     addMsg('bot', reply);
     updateQuickFromText(reply);
     saveHistory();
@@ -514,7 +514,7 @@ function greet() {
     .then(data => {
       const reply = data.message;
       if (!reply) throw new Error('no message');
-      history.push({ role: 'assistant', content: reply });
+      history.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
       addMsg('bot', reply);
       saveHistory();
       setLoading(false);
@@ -533,7 +533,7 @@ function demoGreet() {
   setLoading(true);
   setTimeout(() => {
     const s = DEMO[demoIdx++];
-    history.push({ role: 'assistant', content: s.say });
+    history.push({ role: 'assistant', content: s.say, ts: new Date().toISOString() });
     addMsg('bot', s.say);
     setQuick(s.quick || [], s.choiceStep === true);
     setLoading(false);
@@ -720,6 +720,7 @@ async function startChat() {
           addMsg(m.role === 'assistant' ? 'bot' : 'user', m.content, {
             mid: m.mid,
             replyTo: m.replyTo ?? null,
+            time: m.ts || null,
           });
         }
       } catch (e) {
