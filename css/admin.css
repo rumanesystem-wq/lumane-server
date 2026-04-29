@@ -681,22 +681,22 @@ body {
 
 /* 각 세션 카드 */
 .hs-admin-card {
-  border: 1.5px solid #e0e7ff;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 10px;
 }
 .hs-admin-head {
-  background: #eff6ff;
+  background: #f9fafb;
   padding: 10px 16px;
   display: flex; align-items: center; gap: 10px;
   cursor: pointer;
   transition: background .15s;
 }
-.hs-admin-head:hover { background: #dbeafe; }
+.hs-admin-head:hover { background: #f3f4f6; }
 .hs-admin-num {
   font-size: 10.5px; font-weight: 700;
-  background: #2563eb; color: #fff;
+  background: #374151; color: #fff;
   padding: 2px 9px; border-radius: 10px; flex-shrink: 0;
 }
 .hs-admin-date { font-size: 12.5px; font-weight: 600; color: #1a1a2e; flex: 1; }
@@ -707,12 +707,12 @@ body {
   padding: 2px 7px; border-radius: 8px;
 }
 .hs-expand-btn {
-  font-size: 11px; color: #2563eb; font-weight: 600;
-  background: none; border: 1px solid #bfdbfe;
+  font-size: 11px; color: #374151; font-weight: 600;
+  background: none; border: 1px solid #d1d5db;
   border-radius: 6px; padding: 3px 9px;
   cursor: pointer; transition: all .15s; flex-shrink: 0;
 }
-.hs-expand-btn:hover { background: #2563eb; color: #fff; }
+.hs-expand-btn:hover { background: #374151; color: #fff; }
 
 .hs-admin-body { padding: 12px 16px 6px; }
 .hs-admin-summary {
