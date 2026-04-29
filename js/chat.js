@@ -111,14 +111,18 @@ let pollTimer      = null;    // 폴링 타이머
    서버 상태 확인
 ================================================================ */
 async function checkServer() {
-  try {
-    const r = await fetch(`${SERVER}/api/health`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    serverOnline = r.ok;
-  } catch {
-    serverOnline = false;
+  // Render 콜드 스타트(15~30초) 대기를 위해 최대 3회 재시도
+  const TIMEOUTS = [8000, 12000, 20000];
+  for (let i = 0; i < TIMEOUTS.length; i++) {
+    if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500)); // 서버 기동 대기
+    try {
+      const res = await fetch(`${SERVER}/api/health`, {
+        signal: AbortSignal.timeout(TIMEOUTS[i]),
+      });
+      if (res.ok) { serverOnline = true; break; }
+    } catch { /* 다음 시도 */ }
   }
+  if (serverOnline === null) serverOnline = false;
 
   if (serverOnline) {
     setStatusText('온라인');
