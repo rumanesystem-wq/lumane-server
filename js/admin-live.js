@@ -281,6 +281,24 @@ function markSessionSeen(sessionId) {
 }
 window.markSessionSeen = markSessionSeen;
 
+/* ── options_text 파싱 ("기본행거 66cm: 70,000원 / 이불장: 200,000원" → 배열) ── */
+function _parseOptionsItems(optText) {
+  if (!optText) return [];
+  return optText.split(' / ').map(item => {
+    const m = item.match(/^(.+?):\s*([\d,]+)원/);
+    if (m) return { name: m[1].trim(), price: parseInt(m[2].replace(/,/g, ''), 10) };
+    return { name: item.trim(), price: null };
+  }).filter(i => i.name);
+}
+
+/* ── size_raw 포맷 ("좌측 660 정면 041 우측 655" → "660 × 041 × 655") ── */
+function _formatSizeRaw(raw) {
+  if (!raw) return null;
+  const m = raw.match(/좌측\s*([\d.]+)\s*정면\s*([\d.]+)\s*우측\s*([\d.]+)/);
+  if (m) return `${m[1]} × ${m[2]} × ${m[3]}`;
+  return raw;
+}
+
 /* ── 저장된 상담 캐시 ── */
 let _cachedConversations = [];
 let _cachedLiveSessions  = [];
@@ -521,9 +539,11 @@ function renderDashboardSessions(sessions) {
       const s        = item.data;
       const isAdmin  = s.mode === 'admin';
       const ago      = timeSince(new Date(s.lastMessageAt));
+      const msgCount = s.messageCount ?? 0;
+      // 현재 열려 있는 세션은 자동 읽음 처리 (보는 중에는 배지 안 뜸)
+      if (liveSelectedId === s.id) _seenMsgCounts[s.id] = msgCount;
       const isNew    = !seenSessions.has(s.id) || _resetSessions.has(s.id);
       const lastSeen = _seenMsgCounts[s.id];
-      const msgCount = s.messageCount ?? 0;
       const hasNewMsg = !isNew && lastSeen !== undefined && msgCount > lastSeen;
       const unread   = isNew || hasNewMsg;
       const unreadCount = isNew ? msgCount : (hasNewMsg ? msgCount - lastSeen : 0);
@@ -560,24 +580,67 @@ function renderDashboardSessions(sessions) {
       const timeStr = c.saved_at
         ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
         : '-';
-      const subText = [c.region, c.layout, `💬 ${c.message_count||0}개`].filter(Boolean).join(' · ');
+
+      // options_text에서 항목+가격 파싱 ("기본행거 66cm: 70,000원 / 이불장: 200,000원" 형식)
+      const optItems = _parseOptionsItems(c.options_text);
+      const sizeStr  = _formatSizeRaw(c.size_raw);
+
+      const infoRows = [
+        c.phone       ? `<div style="display:flex;gap:4px;"><span style="color:#9ca3af;flex-shrink:0;">연락처</span><span style="color:#374151;font-weight:500;">${escAdmin(c.phone)}</span></div>` : '',
+        sizeStr       ? `<div style="display:flex;gap:4px;"><span style="color:#9ca3af;flex-shrink:0;">공간</span><span style="color:#374151;font-weight:500;">${escAdmin(sizeStr)}</span></div>` : '',
+        c.region      ? `<div style="display:flex;gap:4px;"><span style="color:#9ca3af;flex-shrink:0;">설치지역</span><span style="color:#374151;font-weight:500;">${escAdmin(c.region)}</span></div>` : '',
+        c.frame_color ? `<div style="display:flex;gap:4px;"><span style="color:#9ca3af;flex-shrink:0;">프레임</span><span style="color:#374151;font-weight:500;">${escAdmin(c.frame_color)}</span></div>` : '',
+        c.shelf_color ? `<div style="display:flex;gap:4px;"><span style="color:#9ca3af;flex-shrink:0;">선반색</span><span style="color:#374151;font-weight:500;">${escAdmin(c.shelf_color)}</span></div>` : '',
+      ].filter(Boolean);
+
+      // options_text에 가격이 없는 경우 단순 텍스트로 fallback
+      const optionsSimple = c.options_text && optItems.every(i => i.price === null)
+        ? c.options_text : null;
+
       return `
         <div data-conv-id="${escAttr(c.id)}"
-          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${isNew?'#ef4444':'#e5e7eb'};border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:background .12s;"
+          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${isNew?'#ef4444':'#e5e7eb'};border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:8px;transition:background .12s;"
           onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
-          <div style="flex-shrink:0;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:22px;">
-            📁
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
-              <span style="font-size:15px;font-weight:${isNew?'700':'600'};color:#111827;">${escAdmin(getConvLabel(c))}</span>
-              <span style="font-size:11px;color:#9ca3af;flex-shrink:0;margin-left:8px;">${timeStr}</span>
+
+          <!-- 헤더 -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:${infoRows.length>0||optItems.length>0?'10px':'0'};">
+            <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:18px;">📁</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                <span style="font-size:15px;font-weight:${isNew?'700':'600'};color:#111827;">${escAdmin(getConvLabel(c))}</span>
+                ${c.layout ? `<span style="font-size:11px;padding:1px 6px;border-radius:6px;background:#ede9fe;color:#7c3aed;font-weight:600;">${escAdmin(c.layout)}</span>` : ''}
+                ${isNew ? '<span style="font-size:10px;padding:1px 5px;border-radius:6px;background:#ef4444;color:#fff;font-weight:700;">NEW</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:#9ca3af;margin-top:1px;">${timeStr} · 💬 ${c.message_count||0}개</div>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escAdmin(subText)}</span>
-              ${isNew ? '<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">NEW</span>' : ''}
-            </div>
+            ${c.estimated_price ? `<div style="font-size:13px;font-weight:700;color:#d97706;flex-shrink:0;">${Number(c.estimated_price).toLocaleString()}원</div>` : ''}
           </div>
+
+          <!-- 정보 그리드 -->
+          ${infoRows.length > 0 ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;font-size:12px;margin-bottom:${optItems.length>0||optionsSimple?'8px':'0'};">
+            ${infoRows.join('')}
+          </div>` : ''}
+
+          <!-- 옵션 단순 텍스트 -->
+          ${optionsSimple ? `<div style="font-size:12px;color:#6b7280;margin-bottom:6px;">옵션: ${escAdmin(optionsSimple)}</div>` : ''}
+
+          <!-- 예상 단가 테이블 -->
+          ${optItems.length > 0 && optItems.some(i => i.price !== null) ? `
+          <div style="background:#fffbeb;border-radius:8px;padding:8px 10px;margin-top:4px;">
+            <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:5px;">💰 예상 단가 (참고용)</div>
+            ${optItems.filter(i=>i.price!==null).map(i=>`
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#78350f;margin-bottom:2px;">
+                <span>${escAdmin(i.name)}</span>
+                <span style="font-weight:500;">${Number(i.price).toLocaleString()}원</span>
+              </div>`).join('')}
+            ${c.estimated_price ? `
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#92400e;margin-top:5px;border-top:1px solid #fde68a;padding-top:5px;">
+              <span>합계 (참고)</span>
+              <span>${Number(c.estimated_price).toLocaleString()}원</span>
+            </div>
+            <div style="font-size:10px;color:#b45309;margin-top:2px;">배송비 별도 · 도면 확정 전 기준</div>` : ''}
+          </div>` : ''}
         </div>`;
     }
   }).join('');
