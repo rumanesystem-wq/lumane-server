@@ -835,6 +835,8 @@ function renderHistoryList(list) {
 
   listEl.innerHTML = list.map(c => {
     const savedAt = c.saved_at ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+    const summaryObj = (() => { try { return typeof c.summary === 'string' ? JSON.parse(c.summary) : c.summary; } catch { return null; } })();
+    const summaryText = summaryObj?.상담요약 || '';
     return `
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 18px;transition:box-shadow .15s;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;"
       onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'"
@@ -844,12 +846,13 @@ function renderHistoryList(list) {
           <span style="font-size:15px;font-weight:700;">${escAdmin(c.customer_name || '(이름 미수집)')}</span>
           ${badge(c.save_reason)}
         </div>
-        <div style="font-size:12.5px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap;">
+        <div style="font-size:12.5px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap;${summaryText ? 'margin-bottom:6px;' : ''}">
           <span>📞 ${escAdmin(c.phone || '-')}</span>
           <span>📍 ${escAdmin(c.region || '-')}</span>
           <span>🪞 ${escAdmin(c.layout || '-')}</span>
           <span>💬 ${c.message_count || 0}개</span>
         </div>
+        ${summaryText ? `<div style="font-size:12px;color:#374151;line-height:1.5;border-left:3px solid #e5e7eb;padding-left:8px;">${escAdmin(summaryText)}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
         <div style="font-size:14px;font-weight:700;color:#c9a96e;">${fmt(c.estimated_price)}</div>
