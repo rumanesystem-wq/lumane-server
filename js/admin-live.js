@@ -580,8 +580,8 @@ function renderDashboardSessions(sessions) {
           style="background:#fff;border:2px solid ${(isNew||hasNewMsg)?'#fecaca':'#dbeafe'};border-left:5px solid ${(isNew||hasNewMsg)?'#ef4444':'#3b82f6'};border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:background .12s;"
           onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
           <div style="position:relative;flex-shrink:0;">
-            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;">
-              ${isAdmin ? '👩‍💼' : '🤖'}
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6b7280,#9ca3af);display:flex;align-items:center;justify-content:center;font-size:22px;">
+              👤
             </div>
             <div style="position:absolute;bottom:1px;right:1px;width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid #fff;"></div>
           </div>
