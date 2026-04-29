@@ -603,7 +603,7 @@ function scoreRow(row, shape, unitsNum, optList) {
 
 // ── 임시 디버그: DB shape 목록 확인용 ───────────────────────────
 app.get('/api/debug-shapes', async (req, res) => {
-  const { data, error } = await supabase.from('dressroom_images').select('shape').limit(2000);
+  const { data, error } = await supabase.from('dressroom_images').select('shape').range(1200, 1300);
   if (error) return res.json({ error: error.message });
   const shapes = [...new Set((data || []).map(r => JSON.stringify(r.shape)))];
   res.json({ shapes });
