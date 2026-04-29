@@ -84,7 +84,7 @@ function startBgPolling() {
       const unreadCount = sessions.filter(s => s.id && !_getSeenSessions().has(s.id)).length;
       const badge   = document.getElementById('liveBadge');
       const countEl = document.getElementById('liveCount');
-      if (badge) { badge.style.display = unreadCount > 0 ? 'inline' : 'none'; badge.textContent = unreadCount; }
+      if (badge) { badge.style.display = count > 0 ? 'inline' : 'none'; badge.textContent = count; }
       if (countEl) countEl.textContent  = count + '개 세션';
       // 대시보드도 업데이트
       _checkLiveNotifications(sessions);
@@ -180,7 +180,7 @@ function renderLiveSessionList(sessions) {
   const currentTab = document.querySelector('.tab-btn.active')?.id;
   if (currentTab !== 'tab-live') {
     const badge = document.getElementById('liveBadge');
-    if (badge) badge.style.display = 'inline';
+    if (badge) { badge.style.display = 'inline'; badge.textContent = sessions.length; }
   }
 
   if (!container) return;
@@ -210,7 +210,7 @@ function renderLiveSessionList(sessions) {
             <div style="font-size:11px;color:#9ca3af;font-family:monospace">${escAdmin(s.id.slice(0,18))}…</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            ${msgCount > 0 ? `<span class="new-badge" style="background:${isNew ? '#ef4444' : '#6b7280'};color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${msgCount}</span>` : ''}
+            ${msgCount > 0 ? `<span class="new-badge" style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${msgCount}</span>` : ''}
             <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;
               background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
               color:${isAdmin ? '#7c3aed' : '#6b7280'};">
@@ -290,8 +290,8 @@ function _refreshDashBadge() {
   });
   const liveBadge = document.getElementById('liveBadge');
   if (liveBadge) {
-    liveBadge.textContent = liveNew;
-    liveBadge.style.display = liveNew > 0 ? 'inline' : 'none';
+    liveBadge.textContent = _cachedLiveSessions.length;
+    liveBadge.style.display = _cachedLiveSessions.length > 0 ? 'inline' : 'none';
   }
 }
 
