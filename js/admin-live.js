@@ -399,7 +399,7 @@ function _checkLiveNotifications(sessions) {
   sessions.forEach(s => {
     if (!s.id || seen.has(s.id)) return;
     _addSeenNotifLive(s.id);
-    _addNotif('live_start', '새 채팅이 시작됐습니다', s.customerName || '고객', s.id);
+    _addNotif('live_start', '새로운 고객님이 오셨습니다 🙋', s.customerName || '고객', s.id);
   });
 }
 
