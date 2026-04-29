@@ -271,15 +271,30 @@ function renderLiveSessionList(sessions) {
  * 대시보드 탭 — 현재 진행 중인 채팅방 목록
  */
 /* ── 확인된 세션 ID 추적 (localStorage) ── */
-const _SEEN_KEY = 'lumane_seen_sessions';
 /* ── 세션별 마지막으로 읽은 메시지 수 추적 (서버 저장) ── */
 const _seenMsgCounts = {};
+function _getSeenSessions() {
+  return new Set(Object.keys(_seenMsgCounts));
+}
 async function _loadSeenCounts() {
   try {
     const res = await fetch('/api/admin/seen-counts');
     if (!res.ok) return;
     const { counts } = await res.json();
     Object.assign(_seenMsgCounts, counts);
+    // 기존 localStorage 마이그레이션 (1회)
+    const oldKey = 'lumane_seen_sessions';
+    const oldRaw = localStorage.getItem(oldKey);
+    if (oldRaw) {
+      const oldIds = JSON.parse(oldRaw);
+      if (Array.isArray(oldIds) && oldIds.length > 0) {
+        for (const id of oldIds) {
+          if (_seenMsgCounts[id] === undefined) _saveSeenCount(id, 0);
+        }
+      }
+      localStorage.removeItem(oldKey);
+      localStorage.removeItem('lumane_seen_counts');
+    }
   } catch {}
 }
 function _saveSeenCount(sessionId, count) {
@@ -292,18 +307,9 @@ function _saveSeenCount(sessionId, count) {
 }
 /* ── 서버 재시작 등으로 세션이 리셋된 경우 추적 ── */
 const _resetSessions = new Set();
-function _getSeenSessions() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(_SEEN_KEY) || '[]');
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch { return new Set(); }
-}
 function markSessionSeen(sessionId) {
   if (!sessionId) return;
-  const seen = _getSeenSessions();
-  seen.add(sessionId);
-  const arr = [...seen];
-  localStorage.setItem(_SEEN_KEY, JSON.stringify(arr.length > 200 ? arr.slice(arr.length - 200) : arr));
+  if (_seenMsgCounts[sessionId] === undefined) _saveSeenCount(sessionId, 0);
   _refreshDashBadge();
   // 실시간 세션 카드 즉시 업데이트
   const sessionCard = document.querySelector(`[data-session-id="${CSS.escape(sessionId)}"]`);
