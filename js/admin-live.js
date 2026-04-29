@@ -196,8 +196,8 @@ function renderLiveSessionList(sessions) {
       <div data-session-id="${escAttr(s.id)}"
         onclick="markSessionSeen('${escAttr(s.id)}');selectLiveSession('${escAttr(s.id)}')"
         style="padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:6px;
-          border:2px solid ${isSelected ? '#7c3aed' : isNew ? '#ef4444' : '#e5e7eb'};
-          background:${isSelected ? '#faf5ff' : isNew ? '#fff5f5' : '#fff'};
+          border:2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'};
+          background:${isSelected ? '#faf5ff' : '#fff'};
           transition:all .15s;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
           <span style="font-size:18px;">${isAdmin ? '👩‍💼' : '🤖'}</span>
@@ -458,6 +458,8 @@ function renderDashboardSessions(sessions) {
       const convCard    = e.target.closest('[data-conv-id]');
       if (sessionCard) {
         const sessionId = sessionCard.dataset.sessionId;
+        const sess = _cachedLiveSessions.find(s => s.id === sessionId);
+        if (sess) _seenMsgCounts[sessionId] = sess.messageCount ?? 0;
         markSessionSeen(sessionId);
         switchTab('live');
         setTimeout(() => selectLiveSession(sessionId), 100);
@@ -509,7 +511,8 @@ function renderDashboardSessions(sessions) {
           const isAdmin     = s.mode === 'admin';
           const ago         = timeSince(new Date(s.lastMessageAt));
           const isNew       = !seenSessions.has(s.id);
-          const borderColor = isNew ? '#ef4444' : '#3b82f6';
+          const hasNewMsg   = !isNew && (s.messageCount ?? 0) > (_seenMsgCounts[s.id] ?? -1);
+          const borderColor = (isNew || hasNewMsg) ? '#ef4444' : '#3b82f6';
           return `
             <div data-session-id="${escAttr(s.id)}"
               style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${borderColor};border-radius:14px;padding:16px 18px;
@@ -532,7 +535,7 @@ function renderDashboardSessions(sessions) {
                   color:${isAdmin ? '#7c3aed' : '#6b7280'};">
                   ${isAdmin ? '담당자 상담 중' : 'AI 상담 중'}
                 </span>
-                <span class="enter-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 입장</span>
+                <span class="enter-btn" style="font-size:13px;color:${(isNew || hasNewMsg) ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 입장</span>
               </div>
             </div>`;
         }).join('')
