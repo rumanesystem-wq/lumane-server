@@ -578,13 +578,13 @@ app.get('/api/og', async (req, res) => {
 
 const VALID_SHAPES = ['ㄱ자', 'ㄷ자', 'ㅡ자', '11자', 'ㅁ자'];
 const SCORE_THRESHOLD = 50;
-// AI 입력 shape → DB 저장 shape 매핑
-const SHAPE_DB_MAP = { 'ㅡ자': '—자(11자)', '11자': '—자(11자)' };
+// 일자형은 DB에 '—자(11자)' 형태로 저장 (em dash 문자 불일치 방지용 키워드 매핑)
+const SHAPE_KEYWORD = { 'ㅡ자': '11자', '11자': '11자' };
 
 function scoreRow(row, shape, unitsNum, optList) {
   let score = 0;
-  const dbShape = SHAPE_DB_MAP[shape] || shape;
-  if (shape && (row.shape === shape || row.shape === dbShape)) score += 100;
+  const keyword = SHAPE_KEYWORD[shape];
+  if (shape && (row.shape === shape || (keyword && row.shape && row.shape.includes(keyword)))) score += 100;
   if (unitsNum > 0 && row.units != null) {
     const diff = Math.abs(row.units - unitsNum);
     score += Math.max(0, 50 - diff * 15);
@@ -600,14 +600,6 @@ function scoreRow(row, shape, unitsNum, optList) {
   }
   return score;
 }
-
-// ── 임시 디버그: DB shape 목록 확인용 ───────────────────────────
-app.get('/api/debug-shapes', async (req, res) => {
-  const { data, error } = await supabase.from('dressroom_images').select('shape').range(1200, 1300);
-  if (error) return res.json({ error: error.message });
-  const shapes = [...new Set((data || []).map(r => JSON.stringify(r.shape)))];
-  res.json({ shapes });
-});
 
 // ── 예시 이미지 매칭 API (DB 기반) ───────────────────────────
 app.get('/api/find-example', chatRateLimit, async (req, res) => {
@@ -626,7 +618,11 @@ app.get('/api/find-example', chatRateLimit, async (req, res) => {
     let query = supabase
       .from('dressroom_images')
       .select('url, shape, units, options');
-    if (shape) query = query.eq('shape', SHAPE_DB_MAP[shape] || shape);
+    if (shape) {
+      const keyword = SHAPE_KEYWORD[shape];
+      if (keyword) query = query.ilike('shape', `%${keyword}%`);
+      else query = query.eq('shape', shape);
+    }
     const { data, error } = await query;
 
     if (error) return res.json({ success: false, reason: 'db_error' });
