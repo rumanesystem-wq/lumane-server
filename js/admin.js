@@ -878,6 +878,7 @@ function renderHistoryList(list) {
 }
 
 let _currentHistoryId = null;
+let _currentHdSessionId = null;
 
 async function resendToNotion() {
   if (!_currentHistoryId) return;
@@ -924,16 +925,23 @@ async function reparseConversation() {
 
 async function openHistoryDetail(id) {
   _currentHistoryId = id;
+  _currentHdSessionId = null;
   const overlay = document.getElementById('historyDetailOverlay');
   overlay.style.display = 'flex';
   document.getElementById('hdTitle').textContent = '불러오는 중…';
   document.getElementById('hdMeta').textContent = '';
   document.getElementById('hdSummary').innerHTML = '';
   document.getElementById('hdMsgs').innerHTML = '';
+  document.getElementById('hdReplyInput').value = '';
+  document.getElementById('hdReplyArea').style.display = 'none';
   try {
     const res = await fetch(`${SERVER}/api/admin/conversations/${encodeURIComponent(id)}`, { headers: adminHeaders() });
     if (!res.ok) throw new Error();
     const { conversation: c } = await res.json();
+    if (c.session_id) {
+      _currentHdSessionId = c.session_id;
+      document.getElementById('hdReplyArea').style.display = 'flex';
+    }
     const savedAt = c.saved_at ? new Date(c.saved_at).toLocaleString('ko-KR') : '-';
     document.getElementById('hdTitle').textContent = getConvLabel(c);
     document.getElementById('hdMeta').textContent  = `저장: ${savedAt} · ${c.message_count || 0}개 메시지`;
@@ -963,9 +971,50 @@ async function openHistoryDetail(id) {
   }
 }
 
+async function sendHdReply() {
+  const input = document.getElementById('hdReplyInput');
+  const msg = input.value.trim();
+  if (!msg || !_currentHdSessionId) return;
+  const btn = document.getElementById('hdSendBtn');
+  btn.disabled = true;
+  btn.textContent = '전송 중…';
+  try {
+    const takeoverRes = await fetch(`${SERVER}/api/admin/takeover`, {
+      method: 'POST', headers: adminHeaders(),
+      body: JSON.stringify({ sessionId: _currentHdSessionId }),
+    });
+    if (!takeoverRes.ok) {
+      let errMsg = '이어하기 전환 실패';
+      try { errMsg = (await takeoverRes.json()).error || errMsg; } catch {}
+      throw new Error(errMsg);
+    }
+    const res = await fetch(`${SERVER}/api/admin/message`, {
+      method: 'POST', headers: adminHeaders(),
+      body: JSON.stringify({ sessionId: _currentHdSessionId, message: msg }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.status);
+    input.value = '';
+    const hdMsgs = document.getElementById('hdMsgs');
+    hdMsgs.insertAdjacentHTML('beforeend', `
+      <div style="display:flex;justify-content:flex-end;">
+        <div style="max-width:75%;">
+          <div style="padding:9px 13px;border-radius:12px;background:#7c3aed;color:#fff;font-size:13.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;">${escAdmin(msg)}</div>
+        </div>
+      </div>`);
+    hdMsgs.scrollTop = hdMsgs.scrollHeight;
+  } catch (err) {
+    showToast(`전송 실패: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '전송';
+  }
+}
+
 function closeHistoryDetail(e) {
   if (e && e.target !== document.getElementById('historyDetailOverlay')) return;
   document.getElementById('historyDetailOverlay').style.display = 'none';
+  _currentHistoryId = null;
+  _currentHdSessionId = null;
 }
 
 async function deleteConversationById(id) {
@@ -1094,6 +1143,7 @@ window.addTemplateItem      = addTemplateItem;
 window.removeTemplateItem   = removeTemplateItem;
 window.saveTemplates        = saveTemplates;
 window.applyTemplate        = applyTemplate;
+window.sendHdReply          = sendHdReply;
 
 /* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
 (async function startUpdateChecker() {
