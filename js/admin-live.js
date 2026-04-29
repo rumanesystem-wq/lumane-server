@@ -210,7 +210,7 @@ function renderLiveSessionList(sessions) {
             <div style="font-size:11px;color:#9ca3af;font-family:monospace">${escAdmin(s.id.slice(0,18))}…</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            ${isNew && msgCount > 0 ? `<span class="new-badge" style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${msgCount}</span>` : ''}
+            ${msgCount > 0 ? `<span class="new-badge" style="background:${isNew ? '#ef4444' : '#6b7280'};color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${msgCount}</span>` : ''}
             <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;
               background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
               color:${isAdmin ? '#7c3aed' : '#6b7280'};">
