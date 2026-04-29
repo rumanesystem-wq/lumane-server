@@ -1164,3 +1164,73 @@ window._checkNotifications = function(sessions) {
     _notifiedMsgCounts[sess.id] = sess.messageCount;
   });
 };
+
+/* ================================================================
+   도움말 모달
+================================================================ */
+const HELP_CONTENT = {
+  dashboard: {
+    label: '📊 대시보드',
+    items: [
+      { icon: '📊', title: '상담 통계 카드', desc: '오늘·이번 주·이번 달·누적 상담 수를 볼 수 있어요. 숫자를 클릭하면 해당 기간 상담 목록이 펼쳐져요.' },
+      { icon: '🟢', title: '실시간 상담', desc: '지금 루마네와 대화 중인 고객이 표시돼요. NEW 뱃지가 달린 건 아직 확인 안 한 새 상담이에요. 클릭하면 대화 내용을 볼 수 있어요.' },
+      { icon: '🗂️', title: '최근 저장된 상담', desc: '가장 최근에 끝난 상담이 표시돼요. 클릭하면 이름·지역·견적금액 상세 내용으로 이동해요.' },
+    ],
+  },
+  quotes: {
+    label: '📋 견적 목록',
+    items: [
+      { icon: '🔍', title: '검색 · 필터', desc: '이름·연락처·지역으로 빠르게 검색할 수 있어요. 상태 필터로 진행 중 / 완료를 구분해서 볼 수도 있어요.' },
+      { icon: '📋', title: '견적 목록', desc: 'AI 상담에서 견적 등록된 고객이 여기에 쌓여요. 클릭하면 치수·옵션·대화 내용을 모두 볼 수 있어요.' },
+      { icon: '➕', title: '수동 등록', desc: '전화나 방문으로 들어온 견적을 직접 입력할 수 있어요.' },
+    ],
+  },
+  live: {
+    label: '📡 라이브 상담',
+    items: [
+      { icon: '📋', title: '왼쪽 고객 목록', desc: '지금 채팅창을 열고 있는 고객이 실시간으로 표시돼요. 클릭하면 오른쪽에 대화 내용이 펼쳐져요.' },
+      { icon: '💬', title: '오른쪽 대화창', desc: 'AI와 고객이 주고받는 대화를 실시간으로 볼 수 있어요.' },
+      { icon: '👩‍💼', title: '난입하기 버튼', desc: '이 버튼을 누르면 AI 대신 담당자가 직접 고객에게 답변할 수 있어요. 민감한 상담이나 견적 확정 시 사용하세요.' },
+      { icon: '💾', title: '저장 버튼', desc: '대화를 수동으로 저장하고 싶을 때 눌러요. 자동 저장도 되지만 중요한 상담은 수동으로 저장해 두세요.' },
+    ],
+  },
+  tokens: {
+    label: '🪙 토큰 사용량',
+    items: [
+      { icon: '🪙', title: '토큰 사용량', desc: 'AI 루마네가 대화에서 사용한 토큰(AI 비용)을 날짜별로 볼 수 있어요.' },
+      { icon: '💰', title: '비용 확인', desc: '일별·주별·월별로 AI 사용 비용을 한눈에 파악할 수 있어요.' },
+    ],
+  },
+  history: {
+    label: '🗂️ 저장된 상담',
+    items: [
+      { icon: '🔍', title: '검색 · 날짜 필터', desc: '이름·연락처·지역으로 검색하거나 날짜를 지정해서 특정 날 상담만 볼 수 있어요.' },
+      { icon: '🗂️', title: '저장된 상담 목록', desc: 'AI가 자동으로 저장한 상담 기록이에요. 클릭하면 전체 대화 내용과 수집된 정보를 볼 수 있어요.' },
+      { icon: '📋', title: '견적 등록 버튼', desc: '상담 내용을 견적 목록 탭으로 옮길 수 있어요. AI가 이름·연락처·금액을 자동으로 채워줘요.' },
+    ],
+  },
+};
+
+function openHelpModal() {
+  const activeTab = document.querySelector('.tab-btn.active')?.id?.replace('tab-', '') || 'dashboard';
+  const data = HELP_CONTENT[activeTab] || HELP_CONTENT.dashboard;
+
+  document.getElementById('helpTabLabel').textContent = data.label;
+  // stat-detail은 대시보드 서브탭이므로 dashboard 도움말로 폴백
+  document.getElementById('helpContent').innerHTML = data.items.map(item =>
+    `<div style="display:flex;gap:12px;align-items:flex-start;">
+      <span style="font-size:20px;flex-shrink:0;margin-top:1px;">${escAdmin(item.icon)}</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:3px;">${escAdmin(item.title)}</div>
+        <div style="font-size:13px;color:#6b7280;line-height:1.6;">${escAdmin(item.desc)}</div>
+      </div>
+    </div>`
+  ).join('');
+
+  document.getElementById('helpModalOverlay').style.display = 'flex';
+}
+
+function closeHelpModal(e) {
+  if (e && e.target !== document.getElementById('helpModalOverlay')) return;
+  document.getElementById('helpModalOverlay').style.display = 'none';
+}

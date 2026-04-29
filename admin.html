@@ -78,6 +78,12 @@
       </div>
       <button class="btn btn-outline" onclick="refreshData()">🔄 새로고침</button>
 
+      <!-- 도움말 버튼 -->
+      <button onclick="openHelpModal()"
+        style="background:none;border:1px solid #e5e7eb;border-radius:10px;padding:6px 11px;cursor:pointer;font-size:15px;font-weight:700;color:#6b7280;line-height:1;transition:background .15s;"
+        onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='none'"
+        title="도움말">?</button>
+
       <!-- 알림 종 버튼 -->
       <div style="position:relative;" id="notifWrapper">
         <button id="bellBtn" onclick="toggleNotifPanel()"
@@ -487,6 +493,26 @@
 
 </main>
 
+
+<!-- 도움말 모달 -->
+<div id="helpModalOverlay" onclick="closeHelpModal(event)"
+  style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.4);align-items:center;justify-content:center;">
+  <div onclick="event.stopPropagation()"
+    style="background:#fff;border-radius:20px;padding:28px 24px;width:400px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#7c3aed;background:#ede9fe;padding:2px 10px;border-radius:20px;display:inline-block;margin-bottom:6px;" id="helpTabLabel"></div>
+        <h3 style="font-size:16px;font-weight:700;color:#111827;">이 페이지 사용 방법</h3>
+      </div>
+      <button onclick="closeHelpModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9ca3af;">✕</button>
+    </div>
+    <div id="helpContent" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <button onclick="closeHelpModal()"
+      style="margin-top:24px;width:100%;padding:12px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">
+      확인
+    </button>
+  </div>
+</div>
 
 <!-- 빠른 답변 템플릿 편집 모달 -->
 <div id="templateEditorOverlay" onclick="closeTemplateEditor(event)"
