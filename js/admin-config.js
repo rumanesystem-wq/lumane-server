@@ -115,7 +115,7 @@ function parseSummary(c) {
  * 우선순위: 실명 → summary.이름 → 지역+형태+옵션 조합 → 상담요약 앞부분 → 저장시각
  */
 function getConvLabel(c) {
-  if (c.customer_name) return c.customer_name;
+  if (c.customer_name && c.customer_name !== '고객') return c.customer_name;
   const s = parseSummary(c);
   if (s?.이름) return s.이름;
   const parts = [];

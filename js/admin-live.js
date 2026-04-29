@@ -87,6 +87,7 @@ function startBgPolling() {
       if (badge) { badge.style.display = unreadCount > 0 ? 'inline' : 'none'; badge.textContent = unreadCount; }
       if (countEl) countEl.textContent  = count + '개 세션';
       // 대시보드도 업데이트
+      _checkLiveNotifications(sessions);
       renderDashboardSessions(sessions);
       const dashDot   = document.getElementById('dashDot');
       const dashCount = document.getElementById('dashCount');
