@@ -681,7 +681,8 @@ body {
 
 /* 각 세션 카드 */
 .hs-admin-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #f3f4f6;
+  border-left: 3px solid #7c3aed;
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 10px;
