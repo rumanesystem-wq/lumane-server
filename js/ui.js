@@ -483,20 +483,36 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
     }
 
     /* 견적서 감지 → PNG 이미지로 렌더링 */
-    const isQuote = !skipQuoteImage && /케이트블랑.*견적서/.test(clean) && /고객명|설치지역|총\s*금액|주문내역/.test(clean) && typeof window.html2canvas === 'function';
+    const looksLikeQuote = /케이트블랑.*견적서/.test(clean) && /고객명|설치지역|총\s*금액|주문내역/.test(clean);
+    const isQuote = !skipQuoteImage && looksLikeQuote && typeof window.html2canvas === 'function';
     let hasSpecial = false;
 
     if (isQuote) {
       hasSpecial = true;
+
+      /* --- 기준으로 견적 본문과 AI 멘트 분리 */
+      const sepIdx = clean.indexOf('\n---');
+      const quoteText  = sepIdx !== -1 ? clean.slice(0, sepIdx).trim() : clean;
+      const followText = sepIdx !== -1
+        ? clean.slice(sepIdx).replace(/^[\s\-]+/gm, s => s.replace(/-/g, '')).replace(/^\(주\)루마네[^\n]*/m, '').trim()
+        : '';
+
       const placeholder = document.createElement('div');
       placeholder.className = 'bubble bot';
       placeholder.style.cssText = 'color:#888;font-size:13px;';
       placeholder.textContent = '📋 견적서 이미지 생성 중...';
       bubblesCol.appendChild(placeholder);
-      renderQuoteImage(clean)
+      renderQuoteImage(quoteText)
         .then(quoteEl => {
           if (!placeholder.isConnected) return;
           placeholder.replaceWith(quoteEl);
+          /* 견적 뒤 AI 멘트가 있으면 별도 말풍선으로 */
+          if (followText) {
+            const b = document.createElement('div');
+            b.className = 'bubble bot';
+            b.innerHTML = esc(followText);
+            bubblesCol.appendChild(b);
+          }
           scrollOrPreview('루마네', clean);
         })
         .catch(() => {

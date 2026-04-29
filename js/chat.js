@@ -495,7 +495,7 @@ async function send(prefilledText) {
 
     history.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
     addMsg('bot', reply);
-    updateQuickFromText(reply);
+    if (!/케이트블랑.*견적서/.test(reply)) updateQuickFromText(reply);
     saveHistory();
 
     if (completedQuote) {
