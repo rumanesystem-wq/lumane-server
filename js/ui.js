@@ -357,9 +357,84 @@ function renderBubbleContent(text) {
 }
 
 /* ================================================================
+   견적서 → PNG 이미지 렌더링 (html2canvas)
+================================================================ */
+async function renderQuoteImage(text) {
+  const card = document.createElement('div');
+  card.style.cssText = [
+    'position:fixed', 'left:-9999px', 'top:0',
+    'width:340px', 'background:#fff',
+    'font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif',
+    'font-size:12px', 'line-height:1.6', 'color:#222',
+    'border-radius:12px', 'overflow:hidden',
+  ].join(';');
+
+  const clean = text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .trim();
+
+  let html = '';
+  for (const line of clean.split('\n')) {
+    const t = line.trim();
+    if (!t) { html += '<div style="height:4px"></div>'; continue; }
+    if (/케이트블랑.*견적서/.test(t)) {
+      html += `<div style="background:#c0392b;color:#fff;text-align:center;padding:11px 12px;font-size:15px;font-weight:900;">${esc(t)}</div>`;
+    } else if (t === '---') {
+      html += '<hr style="margin:2px 0;border:none;border-top:1px solid #e5e5e5;">';
+    } else if (/주문내역|평면도/.test(t)) {
+      html += `<div style="background:#c0392b;color:#fff;padding:5px 12px;font-weight:bold;font-size:12px;">${esc(t)}</div>`;
+    } else if (/^\(주\)루마네/.test(t)) {
+      html += `<div style="background:#444;color:#fff;padding:6px 12px;font-size:10px;">${esc(t)}</div>`;
+    } else {
+      html += `<div style="padding:2px 12px;">${esc(t)}</div>`;
+    }
+  }
+  card.innerHTML = html;
+  document.body.appendChild(card);
+
+  try {
+    const canvas = await window.html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#fff', logging: false });
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.alt = '케이트블랑 드레스룸 견적서';
+    img.style.cssText = 'max-width:280px;border-radius:12px;display:block;cursor:zoom-in;box-shadow:0 2px 10px rgba(0,0,0,0.15);';
+    img.title = '클릭하면 크게 볼 수 있어요';
+    img.onclick = () => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+      const big = document.createElement('img');
+      big.src = img.src;
+      big.alt = '케이트블랑 드레스룸 견적서 (확대)';
+      big.style.cssText = 'max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.4);';
+      overlay.appendChild(big);
+      overlay.onclick = () => overlay.remove();
+      document.body.appendChild(overlay);
+    };
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'img-download-btn';
+    dlBtn.textContent = '⬇ 견적서 저장';
+    dlBtn.onclick = () => {
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = '케이트블랑_견적서.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+    const wrap = document.createElement('div');
+    wrap.appendChild(img);
+    wrap.appendChild(dlBtn);
+    return wrap;
+  } finally {
+    if (card.isConnected) document.body.removeChild(card);
+  }
+}
+
+/* ================================================================
    메시지 렌더링
 ================================================================ */
-export function addMsg(role, text, { mid = null, replyTo = null, time = null } = {}) {
+export function addMsg(role, text, { mid = null, replyTo = null, time = null, skipQuoteImage = false } = {}) {
   const clean = text.replace(/```json[\s\S]*?```/g, '').trim();
   const msgMid = mid ?? allocMid();
 
@@ -401,17 +476,45 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null } =
       if (q) bubblesCol.appendChild(q);
     }
 
+    /* 견적서 감지 → PNG 이미지로 렌더링 */
+    const isQuote = !skipQuoteImage && /케이트블랑.*견적서/.test(clean) && /고객명|설치지역|총\s*금액|주문내역/.test(clean) && typeof window.html2canvas === 'function';
     let hasSpecial = false;
-    for (const part of parts) {
-      const special = renderBubbleContent(part);
-      if (special) {
-        hasSpecial = true;
-        bubblesCol.appendChild(special);
-      } else {
-        const b = document.createElement('div');
-        b.className = 'bubble bot';
-        b.innerHTML = esc(part);
-        bubblesCol.appendChild(b);
+
+    if (isQuote) {
+      hasSpecial = true;
+      const placeholder = document.createElement('div');
+      placeholder.className = 'bubble bot';
+      placeholder.style.cssText = 'color:#888;font-size:13px;';
+      placeholder.textContent = '📋 견적서 이미지 생성 중...';
+      bubblesCol.appendChild(placeholder);
+      renderQuoteImage(clean)
+        .then(quoteEl => {
+          if (!placeholder.isConnected) return;
+          placeholder.replaceWith(quoteEl);
+          scrollOrPreview('루마네', clean);
+        })
+        .catch(() => {
+          if (!placeholder.isConnected) return;
+          placeholder.remove();
+          for (const part of parts) {
+            const b = document.createElement('div');
+            b.className = 'bubble bot';
+            b.innerHTML = esc(part);
+            bubblesCol.appendChild(b);
+          }
+        });
+    } else {
+      for (const part of parts) {
+        const special = renderBubbleContent(part);
+        if (special) {
+          hasSpecial = true;
+          bubblesCol.appendChild(special);
+        } else {
+          const b = document.createElement('div');
+          b.className = 'bubble bot';
+          b.innerHTML = esc(part);
+          bubblesCol.appendChild(b);
+        }
       }
     }
 

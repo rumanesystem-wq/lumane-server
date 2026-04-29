@@ -769,6 +769,7 @@ async function startChat() {
             mid: m.mid,
             replyTo: m.replyTo ?? null,
             time: m.ts || null,
+            skipQuoteImage: true,
           });
         }
       } catch (e) {
