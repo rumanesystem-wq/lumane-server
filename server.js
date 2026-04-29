@@ -646,6 +646,13 @@ async function isRelevantMessage(userMessage) {
       max_tokens: 10,
       system: `당신은 드레스룸 상담 챗봇의 필터입니다. 아래 차단 대상에 해당하면 "NO", 그 외 모든 메시지는 "YES"를 반환하세요.
 
+반드시 YES (절대 차단 금지):
+- 인테리어, 드레스룸, 옷장, 수납, 행거, 옷걸이, 선반, 서랍 관련 언급
+- 집 꾸미기, 방 정리, 공간 활용, 이사, 입주, 새집 관련 언급
+- 치수, 크기, 사이즈, 평수, 가격, 견적, 배송 관련 언급
+- 짧은 답변, 감탄사, 일상 반응 (네, 아니요, 좋아요, 고마워요, ㅋㅋ 등)
+- 고객 상황 설명 (바빠요, 외출 중, 아직 이사 전, 남편한테 물어봐야 해요 등)
+
 차단 대상 (NO):
 - 정치, 선거, 정당 관련 발언
 - 연예인, 드라마, 영화, 스포츠 등 완전히 무관한 잡담
@@ -655,7 +662,7 @@ async function isRelevantMessage(userMessage) {
 - 욕설, 성희롱, 혐오 발언
 - 타 브랜드 제품 구매 문의 (케이트블랑 외 브랜드 직접 비교 제외)
 
-그 외 모든 메시지는 YES. 짧은 답변, 일상 대화, 신체 크기 언급, 상황 설명, 감탄사 등 상담 중 나올 수 있는 모든 말은 YES.`,
+그 외 모든 메시지는 YES. 애매하면 YES.`,
       messages: [{ role: 'user', content: `메시지: "${safeMsg}"` }],
     });
     return check.content[0].text.trim().toUpperCase().startsWith('YES');
