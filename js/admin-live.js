@@ -590,6 +590,7 @@ async function selectLiveSession(sessionId) {
   clearInterval(liveMsgPollTimer);
   liveMsgPollTimer = null;
   liveSelectedId = sessionId;
+  markSessionSeen(sessionId);
 
   await fetchLiveSessionMsgs();
 

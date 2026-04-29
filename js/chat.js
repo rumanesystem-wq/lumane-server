@@ -472,18 +472,22 @@ async function send(prefilledText) {
       const exShape = parts[0] || '';
       const exUnits = parts[1] || '';
       const exOpts  = parts[2] || '';
-      fetch(`${SERVER}/api/find-example?shape=${encodeURIComponent(exShape)}&units=${encodeURIComponent(exUnits)}&options=${encodeURIComponent(exOpts)}`)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(d => {
-          if (d.success && typeof d.url === 'string') {
-            const imgUrl = d.url.startsWith('http') ? d.url : `${SERVER}${d.url}`;
-            const imgLabel = `📐 ${exShape} 예시`;
-            history.push({ role: 'image', url: imgUrl, label: imgLabel });
-            saveHistory();
-            setTimeout(() => addImageMsg(imgUrl, imgLabel), 600);
-          }
-        })
-        .catch(e => console.warn('예시 이미지 로딩 실패:', e));
+      // 같은 형태(shape) 예시는 세션당 한 번만 표시
+      const alreadyShown = history.some(m => m.role === 'image' && m.label === `📐 ${exShape} 예시`);
+      if (!alreadyShown) {
+        fetch(`${SERVER}/api/find-example?shape=${encodeURIComponent(exShape)}&units=${encodeURIComponent(exUnits)}&options=${encodeURIComponent(exOpts)}`)
+          .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+          .then(d => {
+            if (d.success && typeof d.url === 'string') {
+              const imgUrl = d.url.startsWith('http') ? d.url : `${SERVER}${d.url}`;
+              const imgLabel = `📐 ${exShape} 예시`;
+              history.push({ role: 'image', url: imgUrl, label: imgLabel });
+              saveHistory();
+              setTimeout(() => addImageMsg(imgUrl, imgLabel), 600);
+            }
+          })
+          .catch(e => console.warn('예시 이미지 로딩 실패:', e));
+      }
     }
 
     // 빈 응답 (API 오류 후 중복 방지용 빈 메시지) 무시
