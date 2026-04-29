@@ -78,7 +78,7 @@ function startBgPolling() {
       const count  = sessions.length;
       const badge   = document.getElementById('liveBadge');
       const countEl = document.getElementById('liveCount');
-      if (badge)   badge.style.display = count > 0 ? 'inline' : 'none';
+      if (badge) { badge.style.display = count > 0 ? 'inline' : 'none'; badge.textContent = count; }
       if (countEl) countEl.textContent  = count + '개 세션';
       // 대시보드도 업데이트
       renderDashboardSessions(sessions);
@@ -275,6 +275,8 @@ function renderDashboardSessions(sessions) {
   }
 
   if (sessions.length === 0) {
+    const b = document.getElementById('dashNewBadge');
+    if (b) b.style.display = 'none';
     container.innerHTML = `
       <div style="text-align:center;padding:60px 16px;color:#9ca3af;">
         <div style="font-size:48px;margin-bottom:16px;">💤</div>
@@ -285,6 +287,12 @@ function renderDashboardSessions(sessions) {
   }
 
   const seenSessions = _getSeenSessions();
+  const newCount = sessions.filter(s => s.id && !seenSessions.has(s.id)).length;
+  const dashBadge = document.getElementById('dashNewBadge');
+  if (dashBadge) {
+    dashBadge.textContent = newCount;
+    dashBadge.style.display = newCount > 0 ? 'inline' : 'none';
+  }
 
   container.innerHTML = sessions.map(s => {
     if (!s.id) return '';
