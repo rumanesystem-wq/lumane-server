@@ -395,7 +395,7 @@ function renderDashboardSessions(sessions) {
     ${sortedConvs.map(c => {
       if (!c.id) return '';
       const isNew       = !seenSessions.has(c.id);
-      const borderColor = isNew ? '#f97316' : '#e5e7eb';
+      const borderColor = isNew ? '#ef4444' : '#e5e7eb';
       const savedAt     = c.saved_at
         ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
         : '-';
@@ -409,13 +409,13 @@ function renderDashboardSessions(sessions) {
           <div style="flex:1;min-width:0;">
             <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
               ${escAdmin(c.customer_name || '(이름 미수집)')}
-              ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#f97316;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
+              ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
             </div>
             <div style="font-size:12px;color:#6b7280;">📍 ${escAdmin(c.region || '-')} · 🪞 ${escAdmin(c.layout || '-')} · 💬 ${c.message_count || 0}개</div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
             <span style="font-size:11px;color:#9ca3af;">${savedAt}</span>
-            <span class="detail-btn" style="font-size:13px;color:${isNew ? '#f97316' : '#9ca3af'};font-weight:600;">→ 상세</span>
+            <span class="detail-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#9ca3af'};font-weight:600;">→ 상세</span>
           </div>
         </div>`;
     }).join('')}`;
