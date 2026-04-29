@@ -272,11 +272,11 @@ function _refreshDashBadge() {
   const liveNew = _cachedLiveSessions.filter(s => s.id && !seen.has(s.id)).length;
   const convNew = _cachedConversations.filter(c => c.id && !seen.has(c.id)).length;
   const total   = liveNew + convNew;
-  const badge   = document.getElementById('dashNewBadge');
-  if (badge) {
+  [document.getElementById('dashNewBadge'), document.getElementById('sidebarDashBadge')].forEach(badge => {
+    if (!badge) return;
     badge.textContent = total;
     badge.style.display = total > 0 ? 'inline' : 'none';
-  }
+  });
 }
 
 async function fetchDashboardConversations() {
