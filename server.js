@@ -915,7 +915,7 @@ app.get('/api/admin/sessions', async (_req, res) => {
       id,
       mode: sess.mode,
       customerName: sess.customerName || '(이름 미수집)',
-      messageCount: sess.messages.length,
+      messageCount: sess.messages.filter(m => m.role === 'user').length,
       startedAt: sess.startedAt,
       lastActivity: sess.lastActivity,
       lastMessageAt: sess.lastMessageAt || sess.startedAt,
