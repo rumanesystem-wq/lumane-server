@@ -7,7 +7,8 @@
  */
 async function checkHistoryCount() {
   if (!serverOnline) return;
-  if (document.querySelector('.tab-btn.active')?.id === 'tab-history') {
+  /* 대시보드 탭에 있으면 lastSeenHistoryAt 갱신 (저장된 상담이 대시보드에 통합됨) */
+  if (document.querySelector('.tab-btn.active')?.id === 'tab-dashboard') {
     localStorage.setItem('lastSeenHistoryAt', new Date().toISOString());
     updateHistoryBadge(0);
     const el = document.getElementById('statUnread');
@@ -20,7 +21,7 @@ async function checkHistoryCount() {
     const res = await fetch(`${SERVER}/api/admin/conversations`, { headers: adminHeaders() });
     if (!res.ok) return;
     // await 이후 탭 상태 재확인 (race condition 방지)
-    if (document.querySelector('.tab-btn.active')?.id === 'tab-history') return;
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-dashboard') return;
     const data = await res.json();
     const conversations = data.conversations || [];
     let lastSeenAt = localStorage.getItem('lastSeenHistoryAt');
@@ -39,8 +40,10 @@ async function checkHistoryCount() {
 }
 
 function goToUnreadHistory() {
-  const btn = document.getElementById('tab-history');
-  if (btn) btn.click();
+  switchTab('dashboard');
+  setTimeout(() => {
+    document.getElementById('dashboardSessionList')?.scrollIntoView({ behavior: 'smooth' });
+  }, 100);
 }
 
 /**
@@ -500,94 +503,83 @@ function renderDashboardSessions(sessions) {
     return;
   }
 
-  // ── 실시간 상담 섹션 (미확인 우선 정렬) ──
-  const sortedSessions = [...sessions].sort((a, b) => {
-    const aNew = a.id && (!seenSessions.has(a.id) || _resetSessions.has(a.id)) ? 1 : 0;
-    const bNew = b.id && (!seenSessions.has(b.id) || _resetSessions.has(b.id)) ? 1 : 0;
-    return bNew - aNew;
-  });
-  const liveSection = `
-    <div style="font-size:12px;font-weight:700;color:#6b7280;letter-spacing:.05em;margin-bottom:8px;padding-left:4px;">
-      🟢 실시간 상담 ${sessions.length > 0 ? `(${sessions.length}개)` : '(없음)'}
-    </div>
-    ${sessions.length === 0
-      ? '<div style="text-align:center;padding:16px;color:#9ca3af;font-size:13px;border:1px dashed #e5e7eb;border-radius:12px;margin-bottom:4px;">현재 진행 중인 상담 없음</div>'
-      : sortedSessions.map(s => {
-          if (!s.id) return '';
-          const isAdmin     = s.mode === 'admin';
-          const ago         = timeSince(new Date(s.lastMessageAt));
-          const isNew       = !seenSessions.has(s.id) || _resetSessions.has(s.id);
-          const lastSeen    = _seenMsgCounts[s.id];
-          const msgCount    = s.messageCount ?? 0;
-          const hasNewMsg   = !isNew && lastSeen !== undefined && msgCount > lastSeen;
-          const borderColor = (isNew || hasNewMsg) ? '#ef4444' : '#3b82f6';
-          return `
-            <div data-session-id="${escAttr(s.id)}"
-              style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${borderColor};border-radius:14px;padding:16px 18px;
-                     cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;">
-              <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
-                ${isAdmin ? '👩‍💼' : '🤖'}
-              </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
-                  ${escAdmin(s.customerName)}
-                  ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
-                  ${s.isTest ? '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
-                </div>
-                <div style="font-size:12px;color:#6b7280;">💬 ${s.messageCount}개 메시지 · ${ago}</div>
-                ${s.tokens ? `<div style="font-size:11px;color:#7c3aed;font-weight:600;margin-top:2px;">🪙 ₩${s.tokens.costKRW.toLocaleString()} · ${s.tokens.totalTokens.toLocaleString()}토큰</div>` : ''}
-              </div>
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-                <span style="font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700;
-                  background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
-                  color:${isAdmin ? '#7c3aed' : '#6b7280'};">
-                  ${isAdmin ? '담당자 상담 중' : 'AI 상담 중'}
-                </span>
-                <span class="enter-btn" style="font-size:13px;color:${(isNew || hasNewMsg) ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 입장</span>
-              </div>
-            </div>`;
-        }).join('')
-    }`;
+  // ── 라이브 + 저장 합쳐서 최신순 단일 리스트 ──
+  const liveItems = sessions.filter(s => s.id).map(s => ({
+    type: 'live', id: s.id,
+    sortTime: (() => { const t = new Date(s.lastMessageAt).getTime(); return isNaN(t) ? 0 : t; })(),
+    data: s
+  }));
+  const convItems = _cachedConversations.filter(c => c.id).map(c => ({
+    type: 'saved', id: c.id,
+    sortTime: (() => { const t = new Date(c.saved_at).getTime(); return isNaN(t) ? 0 : t; })(),
+    data: c
+  }));
+  const allItems = [...liveItems, ...convItems].sort((a, b) => b.sortTime - a.sortTime);
 
-  // ── 저장된 상담 섹션 (미확인 우선 정렬) ──
-  const sortedConvs = [..._cachedConversations].sort((a, b) => {
-    const aNew = a.id && !seenSessions.has(a.id) ? 1 : 0;
-    const bNew = b.id && !seenSessions.has(b.id) ? 1 : 0;
-    return bNew - aNew;
-  });
-  const convSection = _cachedConversations.length === 0 ? '' : `
-    <div style="font-size:12px;font-weight:700;color:#6b7280;letter-spacing:.05em;margin:16px 0 8px;padding-left:4px;">
-      📁 저장된 상담 (최근 ${_cachedConversations.length}건)
-    </div>
-    ${sortedConvs.map(c => {
-      if (!c.id) return '';
-      const isNew       = !seenSessions.has(c.id);
-      const borderColor = isNew ? '#ef4444' : '#3b82f6';
-      const savedAt     = c.saved_at
+  container.innerHTML = allItems.map(item => {
+    if (item.type === 'live') {
+      const s        = item.data;
+      const isAdmin  = s.mode === 'admin';
+      const ago      = timeSince(new Date(s.lastMessageAt));
+      const isNew    = !seenSessions.has(s.id) || _resetSessions.has(s.id);
+      const lastSeen = _seenMsgCounts[s.id];
+      const msgCount = s.messageCount ?? 0;
+      const hasNewMsg = !isNew && lastSeen !== undefined && msgCount > lastSeen;
+      const unread   = isNew || hasNewMsg;
+      const subText  = s.tokens
+        ? `🪙 ₩${s.tokens.costKRW.toLocaleString()} · ${s.tokens.totalTokens.toLocaleString()}토큰`
+        : `💬 ${msgCount}개 메시지`;
+      return `
+        <div data-session-id="${escAttr(s.id)}"
+          style="background:#fff;border-bottom:1px solid #f3f4f6;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;"
+          onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
+          <div style="position:relative;flex-shrink:0;">
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;">
+              ${isAdmin ? '👩‍💼' : '🤖'}
+            </div>
+            <div style="position:absolute;bottom:1px;right:1px;width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid #fff;"></div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <div style="display:flex;align-items:center;gap:5px;">
+                <span style="font-size:15px;font-weight:${unread?'700':'600'};color:#111827;">${escAdmin(s.customerName)}</span>
+                ${s.isTest ? '<span style="font-size:10px;padding:1px 5px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
+              </div>
+              <span style="font-size:11px;color:#9ca3af;flex-shrink:0;margin-left:8px;">${ago}</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${subText}</span>
+              ${unread ? '<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">NEW</span>' : ''}
+            </div>
+          </div>
+        </div>`;
+    } else {
+      const c      = item.data;
+      const isNew  = !seenSessions.has(c.id);
+      const timeStr = c.saved_at
         ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
         : '-';
+      const subText = [c.region, c.layout, `💬 ${c.message_count||0}개`].filter(Boolean).join(' · ');
       return `
         <div data-conv-id="${escAttr(c.id)}"
-          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${borderColor};border-radius:14px;padding:14px 18px;
-                 cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;">
-          <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+          style="background:#fff;border-bottom:1px solid #f3f4f6;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;"
+          onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
+          <div style="flex-shrink:0;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:22px;">
             📁
           </div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
-              ${escAdmin(getConvLabel(c))}
-              ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-size:15px;font-weight:${isNew?'700':'600'};color:#111827;">${escAdmin(getConvLabel(c))}</span>
+              <span style="font-size:11px;color:#9ca3af;flex-shrink:0;margin-left:8px;">${timeStr}</span>
             </div>
-            <div style="font-size:12px;color:#6b7280;">📍 ${escAdmin(c.region || '-')} · 🪞 ${escAdmin(c.layout || '-')} · 💬 ${c.message_count || 0}개</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
-            <span style="font-size:11px;color:#9ca3af;">${savedAt}</span>
-            <span class="detail-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 상세</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escAdmin(subText)}</span>
+              ${isNew ? '<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">NEW</span>' : ''}
+            </div>
           </div>
         </div>`;
-    }).join('')}`;
-
-  container.innerHTML = liveSection + convSection;
+    }
+  }).join('');
 }
 
 /**
