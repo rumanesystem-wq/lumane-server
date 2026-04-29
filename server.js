@@ -578,10 +578,13 @@ app.get('/api/og', async (req, res) => {
 
 const VALID_SHAPES = ['ㄱ자', 'ㄷ자', 'ㅡ자', '11자', 'ㅁ자'];
 const SCORE_THRESHOLD = 50;
+// AI 입력 shape → DB 저장 shape 매핑
+const SHAPE_DB_MAP = { 'ㅡ자': '—자(11자)', '11자': '—자(11자)' };
 
 function scoreRow(row, shape, unitsNum, optList) {
   let score = 0;
-  if (shape && row.shape === shape) score += 100;
+  const dbShape = SHAPE_DB_MAP[shape] || shape;
+  if (shape && (row.shape === shape || row.shape === dbShape)) score += 100;
   if (unitsNum > 0 && row.units != null) {
     const diff = Math.abs(row.units - unitsNum);
     score += Math.max(0, 50 - diff * 15);
@@ -615,7 +618,7 @@ app.get('/api/find-example', chatRateLimit, async (req, res) => {
     let query = supabase
       .from('dressroom_images')
       .select('url, shape, units, options');
-    if (shape) query = query.eq('shape', shape);
+    if (shape) query = query.eq('shape', SHAPE_DB_MAP[shape] || shape);
     const { data, error } = await query;
 
     if (error) return res.json({ success: false, reason: 'db_error' });
