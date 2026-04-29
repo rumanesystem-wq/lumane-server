@@ -273,6 +273,7 @@ function renderLiveSessionList(sessions) {
  */
 /* ── 어드민 공유 설정 (서버 저장) ── */
 const _adminSettings = {};
+let _adminSettingsLoaded = false;
 async function loadAdminSettings() {
   try {
     const res = await fetch('/api/admin/settings');
@@ -290,6 +291,11 @@ async function loadAdminSettings() {
       localStorage.removeItem(key);
     }
   } catch {}
+  _adminSettingsLoaded = true;
+  // 설정 로드 완료 후 캐시된 데이터로 대시보드 재렌더링 (seen_initialized 가드 적용)
+  if (_seenCountsLoaded && (_cachedLiveSessions.length > 0 || _cachedConversations.length > 0)) {
+    renderDashboardSessions(_cachedLiveSessions, _cachedConversations);
+  }
 }
 function saveAdminSetting(key, value) {
   _adminSettings[key] = value;
@@ -589,10 +595,13 @@ function renderDashboardSessions(sessions) {
   _cachedLiveSessions = sessions;
   _refreshDashBadge();
 
-  // 서버 읽음 데이터 첫 로드 후 테이블이 비어있으면 현재 모든 세션을 읽음 처리 (초기화)
-  if (_seenCountsLoaded && Object.keys(_seenMsgCounts).length === 0) {
+  // 서버 읽음 데이터 + 어드민 설정이 모두 로드된 후
+  // admin_seen 테이블이 비어있고 seen_initialized 가드가 없으면 → 1회만 전체 읽음 초기화
+  if (_seenCountsLoaded && _adminSettingsLoaded &&
+      Object.keys(_seenMsgCounts).length === 0 && !getAdminSetting('seen_initialized')) {
     sessions.forEach(s => { if (s.id) _saveSeenCount(s.id, s.messageCount ?? 0); });
-    savedConvs.forEach(c => { if (c.id) _saveSeenCount(c.id, c.message_count ?? 0); });
+    _cachedConversations.forEach(c => { if (c.id) _saveSeenCount(c.id, c.message_count ?? 0); });
+    saveAdminSetting('seen_initialized', true);
   }
 
   const seenSessions = _getSeenSessions();
