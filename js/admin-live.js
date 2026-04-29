@@ -540,8 +540,8 @@ function renderDashboardSessions(sessions) {
       const isAdmin  = s.mode === 'admin';
       const ago      = timeSince(new Date(s.lastMessageAt));
       const msgCount = s.messageCount ?? 0;
-      // 현재 열려 있는 세션은 자동 읽음 처리 (보는 중에는 배지 안 뜸)
-      if (liveSelectedId === s.id) _seenMsgCounts[s.id] = msgCount;
+      // 라이브 탭에서 해당 세션을 실시간 보는 중일 때만 자동 읽음 처리
+      if (liveSelectedId === s.id && liveMsgPollTimer !== null) _seenMsgCounts[s.id] = msgCount;
       const isNew    = !seenSessions.has(s.id) || _resetSessions.has(s.id);
       const lastSeen = _seenMsgCounts[s.id];
       const hasNewMsg = !isNew && lastSeen !== undefined && msgCount > lastSeen;
