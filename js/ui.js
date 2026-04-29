@@ -686,7 +686,7 @@ export function updateQuickFromText(text) {
     setQuick(['1자형', 'ㄱ자형', 'ㄷ자형', '11자형'], true); return;
   }
   /* 선반 색상 질문 */
-  if (/(선반\s*색상|선반.*색|색상.*선반)/.test(text)) {
+  if (/(선반\s*색상|선반.*색상)/.test(text)) {
     setQuick(['화이트오크', '솔리드화이트', '메이플', '스톤그레이', '진그레이', '다크월넛', '민트그린'], true); return;
   }
   /* 프레임 색상 질문 */
