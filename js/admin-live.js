@@ -208,21 +208,17 @@ function renderLiveSessionList(sessions) {
           border:2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'};
           background:${isSelected ? '#faf5ff' : '#fff'};transition:all .15s;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:18px;">${isAdmin ? '👩‍💼' : '🤖'}</span>
+          <span style="font-size:18px;position:relative;display:inline-block;">👤<span style="position:absolute;bottom:0;right:-1px;width:8px;height:8px;background:#22c55e;border-radius:50%;border:1.5px solid #fff;"></span></span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;">
               ${escAdmin(s.customerName)}
               ${isNew ? '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;">NEW</span>' : ''}
               ${s.isTest ? '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
             </div>
-            <div style="font-size:11px;color:#9ca3af;font-family:monospace">${escAdmin(s.id.slice(0,18))}…</div>
+            <div style="font-size:11px;color:#9ca3af;">${[s.region, s.layout, `💬 ${msgCount}개`].filter(Boolean).join(' · ') || `💬 ${msgCount}개 메시지`}</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             ${isNew && msgCount > 0 ? `<span class="new-badge" style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${msgCount}</span>` : ''}
-            <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;
-              background:${isAdmin ? '#ede9fe' : '#f3f4f6'};color:${isAdmin ? '#7c3aed' : '#6b7280'};">
-              ${isAdmin ? '담당자 중' : 'AI 중'}
-            </span>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;">
