@@ -1150,12 +1150,8 @@ async function saveConversationManual() {
       try { const d = await res.json(); detail = d.error || ''; } catch(_) {}
       throw new Error(detail || res.status);
     }
-    // 저장 성공 시 seen에서 제거 → 대시보드·저장된 상담에서 미확인(빨간 테두리)으로 표시
-    const seen = _getSeenSessions();
-    seen.delete(liveSelectedId);
-    localStorage.setItem(_SEEN_KEY, JSON.stringify([...seen]));
-    _refreshDashBadge();
     showToast('💾 대화가 저장되었습니다.', 'success');
+    fetchDashboardConversations();
   } catch (err) {
     showToast(`❌ 저장 실패: ${err.message}`, 'error');
   }
