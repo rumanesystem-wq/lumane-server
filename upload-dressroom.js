@@ -22,12 +22,14 @@ const OPTION_KEYWORDS = [
 function parseFilename(relativePath) {
   const parts = relativePath.split('/');
   // parts[0] = 형태 폴더 (ㄱ자, ㄷ자, ...)
-  // parts[1] = 칸수 폴더 (4칸, 6칸, ...)
-  // parts[last] = 파일명
+  // 칸수 폴더는 어느 위치든 /(\d+)칸/ 패턴으로 찾음 (ㅡ자처럼 중첩 폴더 대응)
 
   const shape = parts[0] || '';
-  const unitsMatch = (parts[1] || '').match(/(\d+)칸/);
-  const units = unitsMatch ? parseInt(unitsMatch[1]) : null;
+  let units = null;
+  for (const part of parts) {
+    const m = part.match(/^(\d+)칸$/);
+    if (m) { units = parseInt(m[1]); break; }
+  }
 
   const filename = parts[parts.length - 1];
   const options = OPTION_KEYWORDS.filter(kw => filename.includes(kw));
@@ -81,7 +83,7 @@ async function upload() {
 
     // 2. DB 저장
     const { error: dbError } = await supabase
-      .from('드레스룸이미지')
+      .from('dressroom_images')
       .insert({ storage_key: storageKey, url, shape, units, options, original_name: relativePath });
 
     if (dbError) {
