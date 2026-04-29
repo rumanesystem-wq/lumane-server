@@ -847,7 +847,7 @@ function renderHistoryList(list) {
     const isNew = c.id && !_seenSet.has(c.id);
     const borderColor = isNew ? '#ef4444' : '#3b82f6';
     const savedAt = c.saved_at ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
-    const summaryObj = (() => { try { return typeof c.summary === 'string' ? JSON.parse(c.summary) : c.summary; } catch { return null; } })();
+    const summaryObj = parseSummary(c);
     const summaryText = summaryObj?.상담요약 || '';
     return `
     <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid ${borderColor};border-radius:12px;padding:14px 18px;transition:box-shadow .15s;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;"
@@ -855,7 +855,7 @@ function renderHistoryList(list) {
       onmouseout="this.style.boxShadow='none'">
       <div onclick="if(window.markSessionSeen)markSessionSeen('${escAttr(c.id)}');openHistoryDetail('${escAttr(c.id)}')" style="cursor:pointer;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:15px;font-weight:700;">${escAdmin(c.customer_name || '(이름 미수집)')}</span>
+          <span style="font-size:15px;font-weight:700;">${escAdmin(getConvLabel(c))}</span>
           ${badge(c.save_reason)}
           ${isNew ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:#ef4444;color:#fff;font-weight:700;">NEW</span>' : ''}
         </div>
@@ -935,7 +935,7 @@ async function openHistoryDetail(id) {
     if (!res.ok) throw new Error();
     const { conversation: c } = await res.json();
     const savedAt = c.saved_at ? new Date(c.saved_at).toLocaleString('ko-KR') : '-';
-    document.getElementById('hdTitle').textContent = c.customer_name || '(이름 미수집)';
+    document.getElementById('hdTitle').textContent = getConvLabel(c);
     document.getElementById('hdMeta').textContent  = `저장: ${savedAt} · ${c.message_count || 0}개 메시지`;
     const fmt = n => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
     document.getElementById('hdSummary').innerHTML = `

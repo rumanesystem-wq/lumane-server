@@ -102,3 +102,30 @@ function escAttr(s) {
 
 /* 현재 필터 적용된 견적 목록 (exportExcel에서 사용) */
 let filteredQuotes = null;
+
+/**
+ * summary 필드를 안전하게 파싱합니다 (문자열이면 JSON.parse, 객체면 그대로, 실패하면 null)
+ */
+function parseSummary(c) {
+  try { return typeof c.summary === 'string' ? JSON.parse(c.summary) : (c.summary || null); } catch { return null; }
+}
+
+/**
+ * 저장된 상담 카드 표시 이름 생성
+ * 우선순위: 실명 → summary.이름 → 지역+형태+옵션 조합 → 상담요약 앞부분 → 저장시각
+ */
+function getConvLabel(c) {
+  if (c.customer_name) return c.customer_name;
+  const s = parseSummary(c);
+  if (s?.이름) return s.이름;
+  const parts = [];
+  if (s?.주소) parts.push(s.주소.split(' ')[0]);
+  if (s?.드레스룸형태) parts.push(s.드레스룸형태);
+  const opts = ['거울장','3단서랍','2단서랍','아일랜드장','악세사리장'].filter(k => s?.[k] === true);
+  if (opts.length) parts.push(opts[0]);
+  if (parts.length) return parts.join(' · ');
+  if (s?.상담요약) return s.상담요약.slice(0, 18) + (s.상담요약.length > 18 ? '…' : '');
+  return c.saved_at
+    ? new Date(c.saved_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '(미확인)';
+}

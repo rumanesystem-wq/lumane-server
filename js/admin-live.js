@@ -139,7 +139,6 @@ async function fetchLiveSessions() {
     const data = await res.json();
     const sessions = data.sessions || [];
     renderLiveSessionList(sessions);
-    if (window._checkNotifications) window._checkNotifications(sessions);
 
     /* ── 세션 자동 선택 ── */
     if (sessions.length > 0 && !liveSelectedId) {
@@ -157,6 +156,7 @@ async function fetchLiveSessions() {
  * 세션 목록 렌더링
  */
 function renderLiveSessionList(sessions) {
+  _checkLiveNotifications(sessions);
   const container = document.getElementById('liveSessionList');
   const dot       = document.getElementById('liveDot');
   const countEl   = document.getElementById('liveCount');
@@ -301,8 +301,140 @@ async function fetchDashboardConversations() {
     const data = await res.json();
     _cachedConversations = (data.conversations || []).slice(0, 30);
     _refreshDashBadge();
+    _checkConvNotifications();
   } catch { /* 무시 */ }
 }
+
+/* ================================================================
+   알림 시스템
+================================================================ */
+let _notifSeq       = 0;
+const _notifications = [];
+let _liveNotifReady  = false;
+let _convNotifReady  = false;
+
+const _NOTIF_CONV_KEY = 'lumane_seen_notif_convs';
+const _NOTIF_LIVE_KEY = 'lumane_seen_notif_live';
+function _getSeenNotifConvs() {
+  try { const p = JSON.parse(localStorage.getItem(_NOTIF_CONV_KEY) || '[]'); return new Set(Array.isArray(p) ? p : []); } catch { return new Set(); }
+}
+function _addSeenNotifConv(id) {
+  const set = _getSeenNotifConvs(); set.add(id);
+  const arr = [...set]; localStorage.setItem(_NOTIF_CONV_KEY, JSON.stringify(arr.length > 200 ? arr.slice(-200) : arr));
+}
+function _getSeenNotifLive() {
+  try { const p = JSON.parse(localStorage.getItem(_NOTIF_LIVE_KEY) || '[]'); return new Set(Array.isArray(p) ? p : []); } catch { return new Set(); }
+}
+function _addSeenNotifLive(id) {
+  const set = _getSeenNotifLive(); set.add(id);
+  const arr = [...set]; localStorage.setItem(_NOTIF_LIVE_KEY, JSON.stringify(arr.length > 200 ? arr.slice(-200) : arr));
+}
+
+function _addNotif(type, title, body, targetId) {
+  _notifications.unshift({ id: String(_notifSeq++), type, title, body, targetId, time: new Date(), read: false });
+  if (_notifications.length > 50) _notifications.length = 50;
+  _renderNotifList();
+  _updateBellBadge();
+}
+
+function _updateBellBadge() {
+  const unread = _notifications.filter(n => !n.read).length;
+  const badge  = document.getElementById('bellBadge');
+  if (badge) {
+    badge.textContent = unread > 99 ? '99+' : unread;
+    badge.style.display = unread > 0 ? 'inline' : 'none';
+  }
+}
+
+function _renderNotifList() {
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  if (_notifications.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:#9ca3af;font-size:13px;">알림이 없습니다</div>';
+    return;
+  }
+  list.innerHTML = _notifications.map(n => `
+    <div onclick="handleNotifClick('${escAttr(n.id)}')"
+      data-read-bg="${n.read ? '#fff' : '#eff6ff'}"
+      style="padding:12px 16px;border-bottom:1px solid #f9fafb;cursor:pointer;display:flex;gap:10px;align-items:flex-start;background:${n.read ? '#fff' : '#eff6ff'};"
+      onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background=this.dataset.readBg">
+      <div style="font-size:20px;line-height:1;flex-shrink:0;margin-top:2px;">${n.type === 'saved' ? '📁' : '💬'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:${n.read ? '500' : '700'};color:#111827;margin-bottom:2px;">${escAdmin(n.title)}</div>
+        <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escAdmin(n.body)}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:3px;">${timeSince(n.time)}</div>
+      </div>
+      ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#3b82f6;flex-shrink:0;margin-top:5px;"></div>' : ''}
+    </div>
+  `).join('');
+}
+
+function _checkConvNotifications() {
+  const seen = _getSeenNotifConvs();
+  if (!_convNotifReady) {
+    _cachedConversations.forEach(c => { if (c.id) _addSeenNotifConv(c.id); });
+    _convNotifReady = true;
+    return;
+  }
+  _cachedConversations.forEach(c => {
+    if (!c.id || seen.has(c.id)) return;
+    _addSeenNotifConv(c.id);
+    const region = c.region ? ' · ' + c.region : '';
+    _addNotif('saved', '상담이 저장됐습니다', getConvLabel(c) + region, c.id);
+  });
+}
+
+function _checkLiveNotifications(sessions) {
+  const seen = _getSeenNotifLive();
+  if (!_liveNotifReady) {
+    sessions.forEach(s => { if (s.id) _addSeenNotifLive(s.id); });
+    _liveNotifReady = true;
+    return;
+  }
+  sessions.forEach(s => {
+    if (!s.id || seen.has(s.id)) return;
+    _addSeenNotifLive(s.id);
+    _addNotif('live_start', '새 채팅이 시작됐습니다', s.customerName || '고객', s.id);
+  });
+}
+
+window.toggleNotifPanel = function() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'flex';
+};
+
+window.handleNotifClick = function(id) {
+  const notif = _notifications.find(n => n.id === id);
+  if (!notif) return;
+  notif.read = true;
+  _updateBellBadge();
+  _renderNotifList();
+  const panel = document.getElementById('notifPanel');
+  if (panel) panel.style.display = 'none';
+  if (notif.type === 'saved') {
+    if (typeof openHistoryDetail === 'function') openHistoryDetail(notif.targetId);
+  } else {
+    switchTab('live');
+    setTimeout(() => selectLiveSession(notif.targetId), 100);
+  }
+};
+
+window.markAllNotifsRead = function() {
+  _notifications.forEach(n => n.read = true);
+  _updateBellBadge();
+  _renderNotifList();
+};
+
+/* 패널 외부 클릭 시 닫기 */
+document.addEventListener('click', e => {
+  const panel   = document.getElementById('notifPanel');
+  const wrapper = document.getElementById('notifWrapper');
+  if (panel && panel.style.display !== 'none' && wrapper && !wrapper.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
 
 function renderDashboardSessions(sessions) {
   const container = document.getElementById('dashboardSessionList');
@@ -422,7 +554,7 @@ function renderDashboardSessions(sessions) {
           </div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
-              ${escAdmin(c.customer_name || '(이름 미수집)')}
+              ${escAdmin(getConvLabel(c))}
               ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
             </div>
             <div style="font-size:12px;color:#6b7280;">📍 ${escAdmin(c.region || '-')} · 🪞 ${escAdmin(c.layout || '-')} · 💬 ${c.message_count || 0}개</div>
