@@ -183,13 +183,15 @@ function renderLiveSessionList(sessions) {
   }
 
   if (!container) return;
+  const seenNow = _getSeenSessions();
   container.innerHTML = sessions.map(s => {
     const isSelected = s.id === liveSelectedId;
     const isAdmin    = s.mode === 'admin';
+    const isNew      = s.id && !seenNow.has(s.id);
     const ago        = timeSince(new Date(s.lastMessageAt));
 
     return `
-      <div onclick="selectLiveSession('${escAttr(s.id)}')"
+      <div onclick="markSessionSeen('${escAttr(s.id)}');selectLiveSession('${escAttr(s.id)}')"
         style="padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:6px;
           border:2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'};
           background:${isSelected ? '#faf5ff' : '#fff'};
@@ -203,11 +205,14 @@ function renderLiveSessionList(sessions) {
             </div>
             <div style="font-size:11px;color:#9ca3af;font-family:monospace">${escAdmin(s.id.slice(0,18))}…</div>
           </div>
-          <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;
-            background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
-            color:${isAdmin ? '#7c3aed' : '#6b7280'};">
-            ${isAdmin ? '담당자 중' : 'AI 중'}
-          </span>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            ${isNew && s.messageCount > 0 ? `<span style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${s.messageCount}</span>` : ''}
+            <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;
+              background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
+              color:${isAdmin ? '#7c3aed' : '#6b7280'};">
+              ${isAdmin ? '담당자 중' : 'AI 중'}
+            </span>
+          </div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;">
           <span>💬 ${s.messageCount}개 메시지</span>
@@ -257,10 +262,10 @@ function markSessionSeen(sessionId) {
   // 저장된 상담 카드 즉시 업데이트
   const convCard = document.querySelector(`[data-conv-id="${CSS.escape(sessionId)}"]`);
   if (convCard) {
-    convCard.style.borderColor = '#e5e7eb';
+    convCard.style.borderColor = '#3b82f6';
     convCard.querySelector('.new-badge')?.remove();
     const detailBtn = convCard.querySelector('.detail-btn');
-    if (detailBtn) detailBtn.style.color = '#9ca3af';
+    if (detailBtn) detailBtn.style.color = '#3b82f6';
   }
 }
 window.markSessionSeen = markSessionSeen;
@@ -402,7 +407,7 @@ function renderDashboardSessions(sessions) {
     ${sortedConvs.map(c => {
       if (!c.id) return '';
       const isNew       = !seenSessions.has(c.id);
-      const borderColor = isNew ? '#ef4444' : '#e5e7eb';
+      const borderColor = isNew ? '#ef4444' : '#3b82f6';
       const savedAt     = c.saved_at
         ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
         : '-';
@@ -422,7 +427,7 @@ function renderDashboardSessions(sessions) {
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
             <span style="font-size:11px;color:#9ca3af;">${savedAt}</span>
-            <span class="detail-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#9ca3af'};font-weight:600;">→ 상세</span>
+            <span class="detail-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 상세</span>
           </div>
         </div>`;
     }).join('')}`;
