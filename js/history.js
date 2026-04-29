@@ -203,6 +203,10 @@ export function continueFromHistory(idx) {
 
   /* 히스토리 드로어 닫기 */
   document.getElementById('historyDrawer').classList.remove('open');
+
+  /* 채팅창에 이어하기 안내 메시지 표시 */
+  const label = s.세션ID ? `${s.세션ID} 상담` : '이전 상담';
+  addMsg('assistant', `${label} 내용을 불러왔어요 😊 이어서 질문해 주세요!`);
 }
 
 window.showTranscript      = showTranscript;
