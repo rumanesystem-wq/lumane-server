@@ -550,7 +550,7 @@ function renderDashboardSessions(sessions) {
         : `💬 ${msgCount}개 메시지`;
       return `
         <div data-session-id="${escAttr(s.id)}"
-          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${(isNew||hasNewMsg)?'#ef4444':'#e5e7eb'};border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:background .12s;"
+          style="background:#fff;border:2px solid ${(isNew||hasNewMsg)?'#fecaca':'#dbeafe'};border-left:5px solid ${(isNew||hasNewMsg)?'#ef4444':'#3b82f6'};border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:background .12s;"
           onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
           <div style="position:relative;flex-shrink:0;">
             <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;">
@@ -597,7 +597,7 @@ function renderDashboardSessions(sessions) {
 
       return `
         <div data-conv-id="${escAttr(c.id)}"
-          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${isNew?'#ef4444':'#e5e7eb'};border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:8px;transition:background .12s;"
+          style="background:#fff;border:2px solid ${isNew?'#fecaca':'#dbeafe'};border-left:5px solid ${isNew?'#ef4444':'#3b82f6'};border-radius:14px;padding:14px 16px;cursor:pointer;margin-bottom:8px;transition:background .12s;"
           onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
 
           <!-- 헤더 -->
