@@ -548,8 +548,8 @@ function renderDashboardSessions(sessions) {
               </div>
               <span style="font-size:11px;color:#9ca3af;flex-shrink:0;margin-left:8px;">${ago}</span>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${subText}</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;min-width:0;">
+              <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;">${subText}</span>
               ${unreadCount > 0 ? `<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center;">${unreadCount}</span>` : ''}
             </div>
           </div>
