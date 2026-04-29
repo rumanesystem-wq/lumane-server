@@ -391,16 +391,12 @@ function _checkConvNotifications() {
 
 function _checkLiveNotifications(sessions) {
   const seen = _getSeenNotifLive();
-  if (!_liveNotifReady) {
-    sessions.forEach(s => { if (s.id) _addSeenNotifLive(s.id); });
-    _liveNotifReady = true;
-    return;
-  }
   sessions.forEach(s => {
     if (!s.id || seen.has(s.id)) return;
     _addSeenNotifLive(s.id);
     _addNotif('live_start', '새로운 고객님이 오셨습니다 🙋', s.customerName || '고객', s.id);
   });
+  _liveNotifReady = true;
 }
 
 window.toggleNotifPanel = function() {
