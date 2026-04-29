@@ -77,6 +77,24 @@
         <span id="serverStatus">서버 확인 중...</span>
       </div>
       <button class="btn btn-outline" onclick="refreshData()">🔄 새로고침</button>
+
+      <!-- 알림 종 버튼 -->
+      <div style="position:relative;" id="notifWrapper">
+        <button id="bellBtn" onclick="toggleNotifPanel()"
+          style="position:relative;background:none;border:1px solid #e5e7eb;border-radius:10px;padding:6px 10px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;transition:background .15s;"
+          onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='none'">
+          🔔
+          <span id="bellBadge" style="display:none;position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;min-width:16px;text-align:center;line-height:14px;"></span>
+        </button>
+        <div id="notifPanel" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;max-height:480px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:1000;flex-direction:column;">
+          <div style="padding:14px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <span style="font-size:15px;font-weight:700;">🔔 알림</span>
+            <button onclick="markAllNotifsRead()" style="background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:6px;"
+              onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='none'">모두 읽음</button>
+          </div>
+          <div id="notifList" style="overflow-y:auto;flex:1;max-height:420px;"></div>
+        </div>
+      </div>
     </div>
   </div>
 
