@@ -55,6 +55,11 @@ function startBgPolling() {
     checkHistoryCount();
     historyBgPollTimer = setInterval(checkHistoryCount, 60000);
   }
+  // 대시보드 저장된 상담 목록 — 30초마다 갱신
+  fetchDashboardConversations();
+  if (!convPollTimer) {
+    convPollTimer = setInterval(fetchDashboardConversations, 30000);
+  }
   bgPollTimer = setInterval(async () => {
 
     // ── 오프라인이면 재연결 시도 (Render.com 절전 복귀 대응) ──
@@ -94,6 +99,8 @@ function startBgPolling() {
 function stopBgPolling() {
   clearInterval(bgPollTimer);
   bgPollTimer = null;
+  clearInterval(convPollTimer);
+  convPollTimer = null;
   // historyBgPollTimer는 의도적으로 유지 — 탭과 무관하게 항상 실행
 }
 
@@ -237,17 +244,36 @@ function markSessionSeen(sessionId) {
   seen.add(sessionId);
   const arr = [...seen];
   localStorage.setItem(_SEEN_KEY, JSON.stringify(arr.length > 200 ? arr.slice(arr.length - 200) : arr));
-  // 클릭 즉시 카드 시각 업데이트
-  const card = document.querySelector(`[data-session-id="${CSS.escape(sessionId)}"]`);
-  if (card) {
-    card.style.borderColor = '#3b82f6';
-    const newBadge = card.querySelector('.new-badge');
-    if (newBadge) newBadge.remove();
-    const enterBtn = card.querySelector('.enter-btn');
+  // 실시간 세션 카드 즉시 업데이트
+  const sessionCard = document.querySelector(`[data-session-id="${CSS.escape(sessionId)}"]`);
+  if (sessionCard) {
+    sessionCard.style.borderColor = '#3b82f6';
+    sessionCard.querySelector('.new-badge')?.remove();
+    const enterBtn = sessionCard.querySelector('.enter-btn');
     if (enterBtn) enterBtn.style.color = '#3b82f6';
+  }
+  // 저장된 상담 카드 즉시 업데이트
+  const convCard = document.querySelector(`[data-conv-id="${CSS.escape(sessionId)}"]`);
+  if (convCard) {
+    convCard.style.borderColor = '#e5e7eb';
+    convCard.querySelector('.new-badge')?.remove();
+    const detailBtn = convCard.querySelector('.detail-btn');
+    if (detailBtn) detailBtn.style.color = '#9ca3af';
   }
 }
 window.markSessionSeen = markSessionSeen;
+
+/* ── 저장된 상담 캐시 ── */
+let _cachedConversations = [];
+async function fetchDashboardConversations() {
+  if (!serverOnline) return;
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations`, { headers: adminHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    _cachedConversations = (data.conversations || []).slice(0, 30);
+  } catch { /* 무시 */ }
+}
 
 function renderDashboardSessions(sessions) {
   const container = document.getElementById('dashboardSessionList');
@@ -257,26 +283,45 @@ function renderDashboardSessions(sessions) {
   if (!container._clickInited) {
     container._clickInited = true;
     container.addEventListener('click', e => {
-      const card = e.target.closest('[data-session-id]');
-      if (!card) return;
-      const sessionId = card.dataset.sessionId;
-      markSessionSeen(sessionId);
-      switchTab('live');
-      setTimeout(() => selectLiveSession(sessionId), 100);
+      const sessionCard = e.target.closest('[data-session-id]');
+      const convCard    = e.target.closest('[data-conv-id]');
+      if (sessionCard) {
+        const sessionId = sessionCard.dataset.sessionId;
+        markSessionSeen(sessionId);
+        switchTab('live');
+        setTimeout(() => selectLiveSession(sessionId), 100);
+      } else if (convCard) {
+        const convId = convCard.dataset.convId;
+        markSessionSeen(convId);
+        if (typeof openHistoryDetail === 'function') openHistoryDetail(convId);
+      }
     });
     container.addEventListener('mouseenter', e => {
-      const card = e.target.closest('[data-session-id]');
+      const card = e.target.closest('[data-session-id],[data-conv-id]');
       if (card) card.style.boxShadow = '0 4px 16px rgba(0,0,0,.1)';
     }, true);
     container.addEventListener('mouseleave', e => {
-      const card = e.target.closest('[data-session-id]');
+      const card = e.target.closest('[data-session-id],[data-conv-id]');
       if (card) card.style.boxShadow = 'none';
     }, true);
   }
 
-  if (sessions.length === 0) {
-    const b = document.getElementById('dashNewBadge');
-    if (b) b.style.display = 'none';
+  const seenSessions = _getSeenSessions();
+  const lastSeenAt   = localStorage.getItem('lastSeenHistoryAt');
+
+  const liveNew = sessions.filter(s => s.id && !seenSessions.has(s.id)).length;
+  const convNew  = _cachedConversations.filter(c =>
+    c.id && !seenSessions.has(c.id) && lastSeenAt && new Date(c.saved_at) > new Date(lastSeenAt)
+  ).length;
+  const totalNew = liveNew + convNew;
+
+  const dashBadge = document.getElementById('dashNewBadge');
+  if (dashBadge) {
+    dashBadge.textContent = totalNew;
+    dashBadge.style.display = totalNew > 0 ? 'inline' : 'none';
+  }
+
+  if (sessions.length === 0 && _cachedConversations.length === 0) {
     container.innerHTML = `
       <div style="text-align:center;padding:60px 16px;color:#9ca3af;">
         <div style="font-size:48px;margin-bottom:16px;">💤</div>
@@ -286,47 +331,81 @@ function renderDashboardSessions(sessions) {
     return;
   }
 
-  const seenSessions = _getSeenSessions();
-  const newCount = sessions.filter(s => s.id && !seenSessions.has(s.id)).length;
-  const dashBadge = document.getElementById('dashNewBadge');
-  if (dashBadge) {
-    dashBadge.textContent = newCount;
-    dashBadge.style.display = newCount > 0 ? 'inline' : 'none';
-  }
+  // ── 실시간 상담 섹션 ──
+  const liveSection = `
+    <div style="font-size:12px;font-weight:700;color:#6b7280;letter-spacing:.05em;margin-bottom:8px;padding-left:4px;">
+      🟢 실시간 상담 ${sessions.length > 0 ? `(${sessions.length}개)` : '(없음)'}
+    </div>
+    ${sessions.length === 0
+      ? '<div style="text-align:center;padding:16px;color:#9ca3af;font-size:13px;border:1px dashed #e5e7eb;border-radius:12px;margin-bottom:4px;">현재 진행 중인 상담 없음</div>'
+      : sessions.map(s => {
+          if (!s.id) return '';
+          const isAdmin     = s.mode === 'admin';
+          const ago         = timeSince(new Date(s.lastMessageAt));
+          const isNew       = !seenSessions.has(s.id);
+          const borderColor = isNew ? '#ef4444' : '#3b82f6';
+          return `
+            <div data-session-id="${escAttr(s.id)}"
+              style="background:#fff;border:2px solid ${borderColor};border-radius:14px;padding:16px 18px;
+                     cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+              <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                ${isAdmin ? '👩‍💼' : '🤖'}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
+                  ${escAdmin(s.customerName)}
+                  ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
+                  ${s.isTest ? '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
+                </div>
+                <div style="font-size:12px;color:#6b7280;">💬 ${s.messageCount}개 메시지 · ${ago}</div>
+                ${s.tokens ? `<div style="font-size:11px;color:#7c3aed;font-weight:600;margin-top:2px;">🪙 ₩${s.tokens.costKRW.toLocaleString()} · ${s.tokens.totalTokens.toLocaleString()}토큰</div>` : ''}
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                <span style="font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700;
+                  background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
+                  color:${isAdmin ? '#7c3aed' : '#6b7280'};">
+                  ${isAdmin ? '담당자 상담 중' : 'AI 상담 중'}
+                </span>
+                <span class="enter-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 입장</span>
+              </div>
+            </div>`;
+        }).join('')
+    }`;
 
-  container.innerHTML = sessions.map(s => {
-    if (!s.id) return '';
-    const isAdmin     = s.mode === 'admin';
-    const ago         = timeSince(new Date(s.lastMessageAt));
-    const isNew       = !seenSessions.has(s.id);
-    const borderColor = isNew ? '#ef4444' : '#3b82f6';
-    return `
-      <div data-session-id="${escAttr(s.id)}"
-        style="background:#fff;border:2px solid ${borderColor};border-radius:14px;padding:16px 18px;
-               cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;">
-        <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
-          ${isAdmin ? '👩‍💼' : '🤖'}
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
-            ${escAdmin(s.customerName)}
-            ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#ef4444;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
-            ${s.isTest ? '<span style="font-size:10px;padding:1px 6px;border-radius:8px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
+  // ── 저장된 상담 섹션 ──
+  const convSection = _cachedConversations.length === 0 ? '' : `
+    <div style="font-size:12px;font-weight:700;color:#6b7280;letter-spacing:.05em;margin:16px 0 8px;padding-left:4px;">
+      📁 저장된 상담 (최근 ${_cachedConversations.length}건)
+    </div>
+    ${_cachedConversations.map(c => {
+      if (!c.id) return '';
+      const isNew       = !seenSessions.has(c.id) && !!lastSeenAt && new Date(c.saved_at) > new Date(lastSeenAt);
+      const borderColor = isNew ? '#f97316' : '#e5e7eb';
+      const savedAt     = c.saved_at
+        ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+        : '-';
+      return `
+        <div data-conv-id="${escAttr(c.id)}"
+          style="background:#fff;border:2px solid ${borderColor};border-radius:14px;padding:14px 18px;
+                 cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+          <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+            📁
           </div>
-          <div style="font-size:12px;color:#6b7280;">💬 ${s.messageCount}개 메시지 · ${ago}</div>
-          ${s.tokens ? `<div style="font-size:11px;color:#7c3aed;font-weight:600;margin-top:2px;">🪙 ₩${s.tokens.costKRW.toLocaleString()} · ${s.tokens.totalTokens.toLocaleString()}토큰</div>` : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-          <span style="font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700;
-            background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
-            color:${isAdmin ? '#7c3aed' : '#6b7280'};">
-            ${isAdmin ? '담당자 상담 중' : 'AI 상담 중'}
-          </span>
-          <span class="enter-btn" style="font-size:13px;color:${isNew ? '#ef4444' : '#3b82f6'};font-weight:600;">→ 입장</span>
-        </div>
-      </div>
-    `;
-  }).join('');
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:5px;">
+              ${escAdmin(c.customer_name || '(이름 미수집)')}
+              ${isNew ? '<span class="new-badge" style="font-size:10px;padding:2px 7px;border-radius:8px;background:#f97316;color:#fff;font-weight:700;letter-spacing:.03em;">NEW</span>' : ''}
+            </div>
+            <div style="font-size:12px;color:#6b7280;">📍 ${escAdmin(c.region || '-')} · 🪞 ${escAdmin(c.layout || '-')} · 💬 ${c.message_count || 0}개</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+            <span style="font-size:11px;color:#9ca3af;">${savedAt}</span>
+            <span class="detail-btn" style="font-size:13px;color:${isNew ? '#f97316' : '#9ca3af'};font-weight:600;">→ 상세</span>
+          </div>
+        </div>`;
+    }).join('')}`;
+
+  container.innerHTML = liveSection + convSection;
 }
 
 /**
