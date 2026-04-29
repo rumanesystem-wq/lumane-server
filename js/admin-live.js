@@ -531,7 +531,7 @@ function renderDashboardSessions(sessions) {
         : `💬 ${msgCount}개 메시지`;
       return `
         <div data-session-id="${escAttr(s.id)}"
-          style="background:#fff;border-bottom:1px solid #f3f4f6;border-left:3px solid ${(isNew||hasNewMsg)?'#ef4444':'#e5e7eb'};padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;"
+          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${(isNew||hasNewMsg)?'#ef4444':'#e5e7eb'};border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:background .12s;"
           onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
           <div style="position:relative;flex-shrink:0;">
             <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;">
@@ -562,7 +562,7 @@ function renderDashboardSessions(sessions) {
       const subText = [c.region, c.layout, `💬 ${c.message_count||0}개`].filter(Boolean).join(' · ');
       return `
         <div data-conv-id="${escAttr(c.id)}"
-          style="background:#fff;border-bottom:1px solid #f3f4f6;border-left:3px solid ${isNew?'#ef4444':'#e5e7eb'};padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .12s;"
+          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${isNew?'#ef4444':'#e5e7eb'};border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:background .12s;"
           onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='#fff'">
           <div style="flex-shrink:0;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:22px;">
             📁
