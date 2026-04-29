@@ -526,6 +526,7 @@ function renderDashboardSessions(sessions) {
       const msgCount = s.messageCount ?? 0;
       const hasNewMsg = !isNew && lastSeen !== undefined && msgCount > lastSeen;
       const unread   = isNew || hasNewMsg;
+      const unreadCount = isNew ? msgCount : (hasNewMsg ? msgCount - lastSeen : 0);
       const subText  = s.tokens
         ? `🪙 ₩${s.tokens.costKRW.toLocaleString()} · ${s.tokens.totalTokens.toLocaleString()}토큰`
         : `💬 ${msgCount}개 메시지`;
@@ -549,7 +550,7 @@ function renderDashboardSessions(sessions) {
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;">
               <span style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${subText}</span>
-              ${unread ? '<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">NEW</span>' : ''}
+              ${unreadCount > 0 ? `<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center;">${unreadCount}</span>` : ''}
             </div>
           </div>
         </div>`;
