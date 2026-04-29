@@ -244,6 +244,8 @@ function renderLiveSessionList(sessions) {
 const _SEEN_KEY = 'lumane_seen_sessions';
 /* ── 세션별 마지막으로 읽은 메시지 수 추적 (메모리) ── */
 const _seenMsgCounts = {};
+/* ── 서버 재시작 등으로 세션이 리셋된 경우 추적 ── */
+const _resetSessions = new Set();
 function _getSeenSessions() {
   try {
     const parsed = JSON.parse(localStorage.getItem(_SEEN_KEY) || '[]');
@@ -282,7 +284,7 @@ let _cachedLiveSessions  = [];
 
 function _refreshDashBadge() {
   const seen    = _getSeenSessions();
-  const liveNew = _cachedLiveSessions.filter(s => s.id && !seen.has(s.id)).length;
+  const liveNew = _cachedLiveSessions.filter(s => s.id && (!seen.has(s.id) || _resetSessions.has(s.id))).length;
   const convNew = _cachedConversations.filter(c => c.id && !seen.has(c.id)).length;
   const total   = liveNew + convNew;
   [document.getElementById('dashNewBadge'), document.getElementById('sidebarDashBadge')].forEach(badge => {
@@ -362,17 +364,13 @@ function _renderNotifList() {
 }
 
 function _checkConvNotifications() {
-  if (!_convNotifReady) {
-    _cachedConversations.forEach(c => { if (c.id) _notifiedConvIds.add(c.id); });
-    _convNotifReady = true;
-    return;
-  }
   _cachedConversations.forEach(c => {
     if (!c.id || _notifiedConvIds.has(c.id)) return;
     _notifiedConvIds.add(c.id);
     const region = c.region ? ' · ' + c.region : '';
-    _addNotif('saved', '상담이 저장됐습니다', getConvLabel(c) + region, c.id);
+    _addNotif('saved', '새 상담이 저장됐습니다 📁', getConvLabel(c) + region, c.id);
   });
+  _convNotifReady = true;
 }
 
 function _checkLiveNotifications(sessions) {
