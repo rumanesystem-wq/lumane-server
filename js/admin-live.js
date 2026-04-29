@@ -356,7 +356,7 @@ function renderDashboardSessions(sessions) {
           const borderColor = isNew ? '#ef4444' : '#3b82f6';
           return `
             <div data-session-id="${escAttr(s.id)}"
-              style="background:#fff;border:2px solid ${borderColor};border-radius:14px;padding:16px 18px;
+              style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${borderColor};border-radius:14px;padding:16px 18px;
                      cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;">
               <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,${isAdmin?'#7c3aed,#a855f7':'#6b7280,#9ca3af'});display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
                 ${isAdmin ? '👩‍💼' : '🤖'}
@@ -401,7 +401,7 @@ function renderDashboardSessions(sessions) {
         : '-';
       return `
         <div data-conv-id="${escAttr(c.id)}"
-          style="background:#fff;border:2px solid ${borderColor};border-radius:14px;padding:14px 18px;
+          style="background:#fff;border:1px solid #f3f4f6;border-left:3px solid ${borderColor};border-radius:14px;padding:14px 18px;
                  cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:14px;margin-bottom:8px;">
           <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
             📁
