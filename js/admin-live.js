@@ -307,12 +307,9 @@ function renderDashboardSessions(sessions) {
   }
 
   const seenSessions = _getSeenSessions();
-  const lastSeenAt   = localStorage.getItem('lastSeenHistoryAt');
 
   const liveNew = sessions.filter(s => s.id && !seenSessions.has(s.id)).length;
-  const convNew  = _cachedConversations.filter(c =>
-    c.id && !seenSessions.has(c.id) && lastSeenAt && new Date(c.saved_at) > new Date(lastSeenAt)
-  ).length;
+  const convNew  = _cachedConversations.filter(c => c.id && !seenSessions.has(c.id)).length;
   const totalNew = liveNew + convNew;
 
   const dashBadge = document.getElementById('dashNewBadge');
@@ -379,7 +376,7 @@ function renderDashboardSessions(sessions) {
     </div>
     ${_cachedConversations.map(c => {
       if (!c.id) return '';
-      const isNew       = !seenSessions.has(c.id) && !!lastSeenAt && new Date(c.saved_at) > new Date(lastSeenAt);
+      const isNew       = !seenSessions.has(c.id);
       const borderColor = isNew ? '#f97316' : '#e5e7eb';
       const savedAt     = c.saved_at
         ? new Date(c.saved_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
