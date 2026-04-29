@@ -540,8 +540,6 @@ function renderDashboardSessions(sessions) {
       const isAdmin  = s.mode === 'admin';
       const ago      = timeSince(new Date(s.lastMessageAt));
       const msgCount = s.messageCount ?? 0;
-      // 라이브 탭에서 해당 세션을 실시간 보는 중일 때만 자동 읽음 처리
-      if (liveSelectedId === s.id && liveMsgPollTimer !== null) _seenMsgCounts[s.id] = msgCount;
       const isNew    = !seenSessions.has(s.id) || _resetSessions.has(s.id);
       const lastSeen = _seenMsgCounts[s.id];
       const hasNewMsg = !isNew && lastSeen !== undefined && msgCount > lastSeen;
@@ -703,6 +701,9 @@ async function fetchLiveSessionMsgs() {
     );
     if (!res.ok) return;
     const data = await res.json();
+    // 실시간으로 열람 중인 세션은 항상 읽음 처리 (카톡처럼 보는 중에는 배지 안 뜸)
+    const sessData = _cachedLiveSessions.find(s => s.id === liveSelectedId);
+    if (sessData) _seenMsgCounts[liveSelectedId] = sessData.messageCount ?? 0;
     renderLiveChatPanel(data.session);
   } catch { /* 무시 */ }
 }
