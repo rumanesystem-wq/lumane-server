@@ -52,6 +52,7 @@ function goToUnreadHistory() {
 
 function startBgPolling() {
   if (bgPollTimer) return;
+  _loadSeenCounts();
   // 저장된 상담 미확인 카운트 — 60초마다 독립 실행
   if (!historyBgPollTimer) {
     checkHistoryCount();
@@ -271,8 +272,24 @@ function renderLiveSessionList(sessions) {
  */
 /* ── 확인된 세션 ID 추적 (localStorage) ── */
 const _SEEN_KEY = 'lumane_seen_sessions';
-/* ── 세션별 마지막으로 읽은 메시지 수 추적 (메모리) ── */
+/* ── 세션별 마지막으로 읽은 메시지 수 추적 (서버 저장) ── */
 const _seenMsgCounts = {};
+async function _loadSeenCounts() {
+  try {
+    const res = await fetch('/api/admin/seen-counts');
+    if (!res.ok) return;
+    const { counts } = await res.json();
+    Object.assign(_seenMsgCounts, counts);
+  } catch {}
+}
+function _saveSeenCount(sessionId, count) {
+  _seenMsgCounts[sessionId] = count;
+  fetch('/api/admin/seen-counts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, count })
+  }).catch(() => {});
+}
 /* ── 서버 재시작 등으로 세션이 리셋된 경우 추적 ── */
 const _resetSessions = new Set();
 function _getSeenSessions() {
@@ -502,7 +519,7 @@ function renderDashboardSessions(sessions) {
       if (sessionCard) {
         const sessionId = sessionCard.dataset.sessionId;
         const sess = _cachedLiveSessions.find(s => s.id === sessionId);
-        if (sess) _seenMsgCounts[sessionId] = sess.messageCount ?? 0;
+        if (sess) _saveSeenCount(sessionId, sess.messageCount ?? 0);
         _resetSessions.delete(sessionId);
         markSessionSeen(sessionId);
         switchTab('live');
@@ -804,7 +821,7 @@ async function fetchLiveSessionMsgs() {
     const data = await res.json();
     // 실시간으로 열람 중인 세션은 항상 읽음 처리 (카톡처럼 보는 중에는 배지 안 뜸)
     const sessData = _cachedLiveSessions.find(s => s.id === liveSelectedId);
-    if (sessData) _seenMsgCounts[liveSelectedId] = sessData.messageCount ?? 0;
+    if (sessData) _saveSeenCount(liveSelectedId, sessData.messageCount ?? 0);
     renderLiveChatPanel(data.session);
   } catch { /* 무시 */ }
 }

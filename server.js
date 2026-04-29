@@ -1398,6 +1398,37 @@ app.post('/api/admin/save-conversation', async (req, res) => {
   }
 });
 
+// ── 어드민: 읽음 카운트 조회 ──────────────────────────────────
+app.get('/api/admin/seen-counts', async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('admin_seen')
+      .select('session_id, last_seen_count');
+    if (error) throw error;
+    const map = {};
+    (data || []).forEach(r => { map[r.session_id] = r.last_seen_count; });
+    res.json({ counts: map });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── 어드민: 읽음 카운트 저장 (upsert) ────────────────────────
+app.post('/api/admin/seen-counts', async (req, res) => {
+  const { session_id, count } = req.body;
+  if (!session_id || count === undefined) return res.status(400).json({ error: 'session_id, count 필요' });
+  try {
+    const { error } = await supabase
+      .from('admin_seen')
+      .upsert({ session_id, last_seen_count: count, updated_at: new Date().toISOString() },
+               { onConflict: 'session_id' });
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 견적 목록 API (임시: 메모리 세션에서 접수 완료된 항목 반환) ──
 app.get('/api/quotes', async (_req, res) => {
   try {
