@@ -441,6 +441,7 @@ function renderDashboardSessions(sessions) {
         const sessionId = sessionCard.dataset.sessionId;
         const sess = _cachedLiveSessions.find(s => s.id === sessionId);
         if (sess) _seenMsgCounts[sessionId] = sess.messageCount ?? 0;
+        _resetSessions.delete(sessionId);
         markSessionSeen(sessionId);
         switchTab('live');
         setTimeout(() => selectLiveSession(sessionId), 100);
@@ -465,6 +466,21 @@ function renderDashboardSessions(sessions) {
 
   const seenSessions = _getSeenSessions();
 
+  // 세션 리셋 감지 + 베이스라인 초기화
+  sessions.forEach(s => {
+    if (!s.id) return;
+    const msgCount = s.messageCount ?? 0;
+    const tracked  = _seenMsgCounts[s.id];
+    if (tracked !== undefined && msgCount < tracked) {
+      // 서버 재시작 등으로 메시지 수가 줄어든 경우 → 새 채팅으로 취급
+      delete _seenMsgCounts[s.id];
+      _resetSessions.add(s.id);
+    }
+    if (seenSessions.has(s.id) && _seenMsgCounts[s.id] === undefined && !_resetSessions.has(s.id)) {
+      _seenMsgCounts[s.id] = msgCount; // 이 페이지 로드 시점 베이스라인
+    }
+  });
+
   if (sessions.length === 0 && _cachedConversations.length === 0) {
     container.innerHTML = `
       <div style="text-align:center;padding:60px 16px;color:#9ca3af;">
@@ -477,8 +493,8 @@ function renderDashboardSessions(sessions) {
 
   // ── 실시간 상담 섹션 (미확인 우선 정렬) ──
   const sortedSessions = [...sessions].sort((a, b) => {
-    const aNew = a.id && !seenSessions.has(a.id) ? 1 : 0;
-    const bNew = b.id && !seenSessions.has(b.id) ? 1 : 0;
+    const aNew = a.id && (!seenSessions.has(a.id) || _resetSessions.has(a.id)) ? 1 : 0;
+    const bNew = b.id && (!seenSessions.has(b.id) || _resetSessions.has(b.id)) ? 1 : 0;
     return bNew - aNew;
   });
   const liveSection = `
@@ -491,8 +507,10 @@ function renderDashboardSessions(sessions) {
           if (!s.id) return '';
           const isAdmin     = s.mode === 'admin';
           const ago         = timeSince(new Date(s.lastMessageAt));
-          const isNew       = !seenSessions.has(s.id);
-          const hasNewMsg   = !isNew && (s.messageCount ?? 0) > (_seenMsgCounts[s.id] ?? -1);
+          const isNew       = !seenSessions.has(s.id) || _resetSessions.has(s.id);
+          const lastSeen    = _seenMsgCounts[s.id];
+          const msgCount    = s.messageCount ?? 0;
+          const hasNewMsg   = !isNew && lastSeen !== undefined && msgCount > lastSeen;
           const borderColor = (isNew || hasNewMsg) ? '#ef4444' : '#3b82f6';
           return `
             <div data-session-id="${escAttr(s.id)}"
