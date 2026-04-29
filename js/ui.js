@@ -494,7 +494,10 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
       const sepIdx = clean.indexOf('\n---');
       const quoteText  = sepIdx !== -1 ? clean.slice(0, sepIdx).trim() : clean;
       const followText = sepIdx !== -1
-        ? clean.slice(sepIdx).replace(/^[\s\-]+/gm, s => s.replace(/-/g, '')).replace(/^\(주\)루마네[^\n]*/m, '').trim()
+        ? clean.slice(sepIdx)
+            .replace(/^---$/gm, '')
+            .replace(/^\(주\)루마네[^\n]*/m, '')
+            .trim()
         : '';
 
       const placeholder = document.createElement('div');
@@ -510,7 +513,7 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
           if (followText) {
             const b = document.createElement('div');
             b.className = 'bubble bot';
-            b.innerHTML = esc(followText);
+            b.innerHTML = esc(followText).replace(/\n/g, '<br>');
             bubblesCol.appendChild(b);
           }
           scrollOrPreview('루마네', clean);
@@ -556,7 +559,7 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
     $msgs.appendChild(group);
     addContextMenu(group, clean);
     if (!hasSpecial) appendLinkPreviews(bubblesCol, clean);
-    scrollOrPreview('루마네', clean);
+    if (!isQuote) scrollOrPreview('루마네', clean);
     return;
 
   } else {
