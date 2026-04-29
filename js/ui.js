@@ -490,15 +490,31 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
     if (isQuote) {
       hasSpecial = true;
 
-      /* --- 기준으로 견적 본문과 AI 멘트 분리 */
-      const sepIdx = clean.indexOf('\n---');
-      const quoteText  = sepIdx !== -1 ? clean.slice(0, sepIdx).trim() : clean;
-      const followText = sepIdx !== -1
-        ? clean.slice(sepIdx)
+      /* 견적서 시작 위치('케이트블랑') 기준으로 3구간 분리
+         [introText] \n--- \n [quoteText] \n--- \n [followText] */
+      const quoteStartIdx = clean.search(/케이트블랑/);
+      const introText = quoteStartIdx > 0 ? clean.slice(0, quoteStartIdx).trim() : '';
+      const quoteAndMore = quoteStartIdx !== -1 ? clean.slice(quoteStartIdx) : clean;
+
+      const lastSepIdx = quoteAndMore.lastIndexOf('\n---');
+      const quoteText  = lastSepIdx !== -1 ? quoteAndMore.slice(0, lastSepIdx).trim() : quoteAndMore;
+      const followText = lastSepIdx !== -1
+        ? quoteAndMore.slice(lastSepIdx)
             .replace(/^---$/gm, '')
             .replace(/^\(주\)루마네[^\n]*/m, '')
             .trim()
         : '';
+
+      /* 견적서 앞 AI 인사 멘트 → 먼저 텍스트 버블로 표시 */
+      if (introText) {
+        for (const part of introText.split(/\n\n+/).map(p => p.trim()).filter(Boolean)) {
+          const b = document.createElement('div');
+          b.className = 'bubble bot';
+          b.innerHTML = esc(part).replace(/\n/g, '<br>');
+          bubblesCol.appendChild(b);
+        }
+        scrollOrPreview('루마네', introText);
+      }
 
       const placeholder = document.createElement('div');
       placeholder.className = 'bubble bot';
@@ -521,12 +537,17 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
         .catch(() => {
           if (!placeholder.isConnected) return;
           placeholder.remove();
-          for (const part of parts) {
+          /* introText가 이미 DOM에 있으면 quoteText+followText만 fallback */
+          const fallbackText = introText
+            ? quoteText + (followText ? '\n\n' + followText : '')
+            : clean;
+          for (const part of fallbackText.split(/\n\n+/).map(p => p.trim()).filter(Boolean)) {
             const b = document.createElement('div');
             b.className = 'bubble bot';
-            b.innerHTML = esc(part);
+            b.innerHTML = esc(part).replace(/\n/g, '<br>');
             bubblesCol.appendChild(b);
           }
+          scrollOrPreview('루마네', fallbackText);
         });
     } else {
       for (const part of parts) {
