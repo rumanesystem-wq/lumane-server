@@ -196,8 +196,8 @@ function renderLiveSessionList(sessions) {
       <div data-session-id="${escAttr(s.id)}"
         onclick="markSessionSeen('${escAttr(s.id)}');selectLiveSession('${escAttr(s.id)}')"
         style="padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:6px;
-          border:2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'};
-          background:${isSelected ? '#faf5ff' : '#fff'};
+          border:2px solid ${isSelected ? '#7c3aed' : isNew ? '#ef4444' : '#e5e7eb'};
+          background:${isSelected ? '#faf5ff' : isNew ? '#fff5f5' : '#fff'};
           transition:all .15s;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
           <span style="font-size:18px;">${isAdmin ? '👩‍💼' : '🤖'}</span>
@@ -242,6 +242,8 @@ function renderLiveSessionList(sessions) {
  */
 /* ── 확인된 세션 ID 추적 (localStorage) ── */
 const _SEEN_KEY = 'lumane_seen_sessions';
+/* ── 세션별 마지막으로 읽은 메시지 수 추적 (메모리) ── */
+const _seenMsgCounts = {};
 function _getSeenSessions() {
   try {
     const parsed = JSON.parse(localStorage.getItem(_SEEN_KEY) || '[]');

@@ -600,7 +600,9 @@ function scoreRow(row, shape, unitsNum, optList) {
 
 // ── 예시 이미지 매칭 API (DB 기반) ───────────────────────────
 app.get('/api/find-example', chatRateLimit, async (req, res) => {
-  const { shape = '', units = '', options = '' } = req.query;
+  let { shape = '', units = '', options = '' } = req.query;
+  // AI가 ㅡ 대신 대시 문자(—, –, -)를 쓰는 경우 정규화
+  shape = shape.replace(/^[—–\-]+자$/, 'ㅡ자');
   if (shape && !VALID_SHAPES.includes(shape)) {
     return res.json({ success: false, reason: 'invalid_shape' });
   }
