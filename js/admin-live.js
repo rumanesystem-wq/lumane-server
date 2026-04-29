@@ -189,9 +189,11 @@ function renderLiveSessionList(sessions) {
     const isAdmin    = s.mode === 'admin';
     const isNew      = s.id && !seenNow.has(s.id);
     const ago        = timeSince(new Date(s.lastMessageAt));
+    const msgCount   = s.messageCount ?? 0;
 
     return `
-      <div onclick="markSessionSeen('${escAttr(s.id)}');selectLiveSession('${escAttr(s.id)}')"
+      <div data-session-id="${escAttr(s.id)}"
+        onclick="markSessionSeen('${escAttr(s.id)}');selectLiveSession('${escAttr(s.id)}')"
         style="padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:6px;
           border:2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'};
           background:${isSelected ? '#faf5ff' : '#fff'};
@@ -206,7 +208,7 @@ function renderLiveSessionList(sessions) {
             <div style="font-size:11px;color:#9ca3af;font-family:monospace">${escAdmin(s.id.slice(0,18))}…</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            ${isNew && s.messageCount > 0 ? `<span style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${s.messageCount}</span>` : ''}
+            ${isNew && msgCount > 0 ? `<span class="new-badge" style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;">${msgCount}</span>` : ''}
             <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;
               background:${isAdmin ? '#ede9fe' : '#f3f4f6'};
               color:${isAdmin ? '#7c3aed' : '#6b7280'};">
@@ -215,7 +217,7 @@ function renderLiveSessionList(sessions) {
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;">
-          <span>💬 ${s.messageCount}개 메시지</span>
+          <span>💬 ${msgCount}개 메시지</span>
           <span>${ago}</span>
         </div>
         ${s.tokens ? `<div style="margin-top:5px;font-size:11px;color:#7c3aed;font-weight:600;">🪙 ₩${s.tokens.costKRW.toLocaleString()} · ${s.tokens.totalTokens.toLocaleString()}토큰</div>` : ''}
