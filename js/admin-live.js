@@ -304,6 +304,7 @@ async function fetchDashboardConversations() {
     _cachedConversations = (data.conversations || []).slice(0, 30);
     _refreshDashBadge();
     _checkConvNotifications();
+    renderDashboardSessions(_cachedLiveSessions);
   } catch { /* 무시 */ }
 }
 
@@ -1138,7 +1139,10 @@ function initAdminFileUpload() {
  * 대화 수동 저장
  */
 async function saveConversationManual() {
-  if (!liveSelectedId) return;
+  if (!liveSelectedId) {
+    showToast('선택된 세션이 없습니다.', 'error');
+    return;
+  }
   try {
     const res = await fetch(`${SERVER}/api/admin/save-conversation`, {
       method: 'POST',
@@ -1148,10 +1152,18 @@ async function saveConversationManual() {
     if (!res.ok) {
       let detail = '';
       try { const d = await res.json(); detail = d.error || ''; } catch(_) {}
+      // 세션 만료 시: 대화는 실시간 자동저장되어 있으므로 목록 갱신으로 확인
+      if (detail === '세션 없음' || res.status === 404) {
+        showToast('💾 자동 저장된 상담을 확인합니다.', 'success');
+        await fetchDashboardConversations();
+        renderDashboardSessions(_cachedLiveSessions);
+        return;
+      }
       throw new Error(detail || res.status);
     }
     showToast('💾 대화가 저장되었습니다.', 'success');
-    fetchDashboardConversations();
+    await fetchDashboardConversations();
+    renderDashboardSessions(_cachedLiveSessions);
   } catch (err) {
     showToast(`❌ 저장 실패: ${err.message}`, 'error');
   }
