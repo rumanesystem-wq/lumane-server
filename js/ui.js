@@ -486,7 +486,7 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
     }
 
     /* 견적서 감지 → PNG 이미지로 렌더링 */
-    const looksLikeQuote = /케이트블랑.*견적서/.test(clean) && /고객명|설치지역|총\s*금액|주문내역/.test(clean);
+    const looksLikeQuote = /케이트블랑.*견적서/.test(clean) && /고객명|설치지역|총\s*금액|주문내역|\[고객\s*정보\]|\[설치\s*공간\]|\[금액\]/.test(clean);
     const isQuote = !skipQuoteImage && looksLikeQuote && typeof window.html2canvas === 'function';
     let hasSpecial = false;
 
