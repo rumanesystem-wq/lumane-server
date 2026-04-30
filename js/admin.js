@@ -951,13 +951,16 @@ async function openHistoryDetail(id) {
     document.getElementById('hdTitle').textContent = getConvLabel(c);
     document.getElementById('hdMeta').textContent  = `저장: ${savedAt} · ${c.message_count || 0}개 메시지`;
     const fmt = n => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
+    const summaryObj = parseSummary(c);
+    const 구성내용 = summaryObj?.내용 || '';
     document.getElementById('hdSummary').innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;">
         ${[['연락처', c.phone], ['설치지역', c.region], ['공간사이즈', c.size_raw], ['드레스룸형태', c.layout],
            ['추가옵션', c.options_text], ['프레임색상', c.frame_color], ['선반색상', c.shelf_color], ['요청사항', c.memo]]
           .map(([l, v]) => v ? `<div><span style="color:#9ca3af;font-size:11px;">${l} </span><span>${escAdmin(v)}</span></div>` : '').join('')}
       </div>
-      ${c.estimated_price ? `<div style="margin-top:8px;font-weight:700;color:#c9a96e;">💰 예상 단가: ${fmt(c.estimated_price)}</div>` : ''}`;
+      ${구성내용 ? `<div style="margin-top:8px;"><span style="color:#9ca3af;font-size:11px;">예상 구성 </span><span style="font-size:12.5px;line-height:1.6;">${escAdmin(구성내용)}</span></div>` : ''}
+      ${c.estimated_price ? `<div style="margin-top:8px;font-weight:700;color:#c9a96e;">예상 단가: ${fmt(c.estimated_price)}</div>` : ''}`;
     const msgs = c.messages || [];
     document.getElementById('hdMsgs').innerHTML = msgs.map(m => {
       const isUser = m.role === 'user';
