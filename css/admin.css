@@ -1009,6 +1009,7 @@ body {
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 18px 20px;
+  min-width: 0;
 }
 .stats-card--total {
   background: #1a1a2e;
