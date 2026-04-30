@@ -135,15 +135,15 @@ function renderHistoryList() {
         <div class="hs-summary">${esc(s.요약)}</div>
       </div>
       <div class="hs-btns">
-        <button class="hs-btn outline" onclick="showTranscript(${i})">💬 원문 보기</button>
-        <button class="hs-btn primary" onclick="continueFromHistory(${i})">이어서 상담하기 →</button>
+        <button class="hs-btn outline" onclick="showTranscript('${esc(s.세션ID)}')">💬 원문 보기</button>
+        <button class="hs-btn primary" onclick="continueFromHistory('${esc(s.세션ID)}')">이어서 상담하기 →</button>
       </div>
     </div>
   `).join('');
 }
 
-export function showTranscript(idx) {
-  const s = currentList()[idx];
+export function showTranscript(sessionId) {
+  const s = currentList().find(x => x.세션ID === sessionId);
   if (!s) return;
 
   document.getElementById('tTitle').textContent = `채팅 원문 — ${s.세션ID}`;
@@ -168,8 +168,8 @@ export function closeTranscript(e) {
   document.getElementById('transcriptOverlay').classList.remove('open');
 }
 
-export function continueFromHistory(idx) {
-  const s = currentList()[idx];
+export function continueFromHistory(sessionId) {
+  const s = currentList().find(x => x.세션ID === sessionId);
   if (!s) return;
 
   /* 이전 대화 요약을 Claude history에 주입 */
