@@ -268,18 +268,8 @@ async function autoRegisterQuote(sess, reply) {
     source:         'AI상담',
   };
 
-  const { data: existing } = await supabase
-    .from('quotes')
-    .select('id')
-    .eq('quote_number', quoteNumber)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase.from('quotes').update(payload).eq('id', existing.id);
-  } else {
-    await supabase.from('quotes').insert([payload]);
-    console.log(`✅ AI 견적 자동 등록: ${quoteNumber} (${payload.name})`);
-  }
+  await supabase.from('quotes').upsert(payload, { onConflict: 'quote_number' });
+  console.log(`✅ AI 견적 자동 등록: ${quoteNumber} (${payload.name})`);
 }
 
 // ── 실시간 Supabase upsert (Notion 없음) ─────────────────────
