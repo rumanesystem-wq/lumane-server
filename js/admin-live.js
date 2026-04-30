@@ -594,7 +594,7 @@ function renderDashboardSessions(sessions) {
   // 서버 읽음 데이터 첫 로드 후 테이블이 비어있으면 현재 모든 세션을 읽음 처리 (초기화)
   if (_seenCountsLoaded && Object.keys(_seenMsgCounts).length === 0) {
     sessions.forEach(s => { if (s.id) _saveSeenCount(s.id, s.messageCount ?? 0); });
-    savedConvs.forEach(c => { if (c.id) _saveSeenCount(c.id, c.message_count ?? 0); });
+    (_cachedConversations || []).forEach(c => { if (c.id) _saveSeenCount(c.id, c.message_count ?? 0); });
   }
 
   const seenSessions = _getSeenSessions();
