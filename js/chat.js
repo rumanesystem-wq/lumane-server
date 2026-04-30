@@ -530,7 +530,24 @@ async function send(prefilledText) {
     const errDiv = document.createElement('div');
     errDiv.className = 'msg-group bot';
     errDiv.dataset.mid = errMid;
-    errDiv.innerHTML = `<div class="av">👩‍💼</div><div class="msg-body"><div class="msg-sender">루마네</div><div class="bubble bot">⚠️ 오류가 발생했습니다.<br>${esc(err.message)}${failedText ? `<br><button style="margin-top:8px;padding:4px 10px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;" data-retry>↩ 다시 시도</button>` : ''}</div></div>`;
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble bot';
+    const errText = document.createElement('span');
+    errText.textContent = `⚠️ 오류가 발생했습니다. ${err.message}`;
+    bubble.appendChild(errText);
+    if (failedText) {
+      const retryBtn = document.createElement('button');
+      retryBtn.setAttribute('data-retry', '');
+      retryBtn.style.cssText = 'margin-top:8px;padding:4px 10px;font-size:12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;display:block;';
+      retryBtn.textContent = '↩ 다시 시도';
+      bubble.appendChild(retryBtn);
+    }
+    errDiv.innerHTML = '<div class="av">👩‍💼</div>';
+    const msgBody = document.createElement('div');
+    msgBody.className = 'msg-body';
+    msgBody.innerHTML = '<div class="msg-sender">루마네</div>';
+    msgBody.appendChild(bubble);
+    errDiv.appendChild(msgBody);
     document.getElementById('msgs').appendChild(errDiv);
     document.getElementById('msgs').scrollTop = 99999;
 
