@@ -4,14 +4,15 @@
 import { SERVER, DEMO } from './config.js';
 
 /* ── 세션 ID: localStorage에 저장하여 새로고침해도 유지 ── */
-const SESSION_ID = (() => {
-  const KEY = '루마네_세션ID';
-  let id = localStorage.getItem(KEY);
-  if (!id || !/^S-\d{13}-[a-z0-9]{5}$/.test(id)) {
-    id = 'S-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-    localStorage.setItem(KEY, id);
-  }
+const SESSION_KEY = '루마네_세션ID';
+function generateSessionId() {
+  const id = 'S-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  localStorage.setItem(SESSION_KEY, id);
   return id;
+}
+let SESSION_ID = (() => {
+  const id = localStorage.getItem(SESSION_KEY);
+  return (id && /^S-\d{13}-[a-z0-9]{5}$/.test(id)) ? id : generateSessionId();
 })();
 
 /* ── 테스트 모드: URL에 ?test=1 파라미터가 있으면 활성화 ── */
@@ -582,6 +583,7 @@ function demoGreet() {
 ================================================================ */
 export function newChat() {
   archiveCurrent();
+  SESSION_ID     = generateSessionId();
   history        = [];
   demoIdx        = 0;
   pendingConfirm = false;
