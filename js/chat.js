@@ -589,7 +589,6 @@ function greet() {
       setLoading(false);
     })
     .catch(() => {
-      serverOnline = false;
       demoGreet();
     });
   } else {
