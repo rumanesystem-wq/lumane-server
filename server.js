@@ -310,6 +310,7 @@ async function upsertConversation(sess) {
     const parsed = orderMsg ? parseOrderSheet(orderMsg.content) : {};
     const estimatedPrice = parsed.estimated_price || null;
 
+    const table = sess.isTest ? 'test_conversations' : 'conversations';
     const payload = {
       session_id:      sess.id,
       save_reason:     'realtime',
@@ -326,19 +327,18 @@ async function upsertConversation(sess) {
       message_count:   sess.messages.length,
       started_at:      sess.startedAt,
       messages:        sess.messages,
-      is_test:         sess.isTest || false,
     };
 
     const { data: existing } = await supabase
-      .from('conversations')
+      .from(table)
       .select('id')
       .eq('session_id', sess.id)
       .maybeSingle();
 
     if (existing) {
-      await supabase.from('conversations').update(payload).eq('session_id', sess.id);
+      await supabase.from(table).update(payload).eq('session_id', sess.id);
     } else {
-      await supabase.from('conversations').insert(payload);
+      await supabase.from(table).insert(payload);
     }
   } catch (err) {
     console.error('실시간 저장 오류:', err.message);
@@ -1211,13 +1211,17 @@ app.post('/api/admin/message', (req, res) => {
 // ── 어드민: 저장된 상담 목록 조회 ────────────────────────────
 app.get('/api/admin/conversations', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .order('id', { ascending: false })
-      .limit(200);
-    if (error) throw error;
-    res.json({ conversations: data });
+    const [{ data: real, error: e1 }, { data: test, error: e2 }] = await Promise.all([
+      supabase.from('conversations').select('*').order('id', { ascending: false }).limit(200),
+      supabase.from('test_conversations').select('*').order('id', { ascending: false }).limit(200),
+    ]);
+    if (e1) throw e1;
+    if (e2) throw e2;
+    const merged = [
+      ...(real || []),
+      ...(test || []).map(c => ({ ...c, is_test: true })),
+    ].sort((a, b) => b.id - a.id).slice(0, 200);
+    res.json({ conversations: merged });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
