@@ -104,40 +104,27 @@ const sessions = new Map();
 // 토큰 사용량 → Supabase에 영구 저장
 async function addTokenUsage(sessionId, usage) {
   if (!usage || !sessionId) return;
-  const i  = usage.input_tokens || 0;
-  const o  = usage.output_tokens || 0;
-  const cw = usage.cache_creation_input_tokens || 0;
-  const cr = usage.cache_read_input_tokens || 0;
-  const customerName = sessions.get(sessionId)?.customerName || null;
+  const sess = sessions.get(sessionId);
+  if (!sess) return;
+
+  // 메모리에 먼저 누적 (race condition 방지)
+  sess.tokens.input     += usage.input_tokens || 0;
+  sess.tokens.output    += usage.output_tokens || 0;
+  sess.tokens.cacheWrite += usage.cache_creation_input_tokens || 0;
+  sess.tokens.cacheRead  += usage.cache_read_input_tokens || 0;
+  sess.tokens.turns      += 1;
 
   try {
-    const { data: existing } = await supabase
-      .from('token_stats')
-      .select('id, input_tokens, output_tokens, cache_write_tokens, cache_read_tokens, turns')
-      .eq('session_id', sessionId)
-      .single();
-
-    if (existing) {
-      await supabase.from('token_stats').update({
-        input_tokens:       existing.input_tokens + i,
-        output_tokens:      existing.output_tokens + o,
-        cache_write_tokens: existing.cache_write_tokens + cw,
-        cache_read_tokens:  existing.cache_read_tokens + cr,
-        turns:              existing.turns + 1,
-        customer_name:      customerName,
-        updated_at:         new Date().toISOString(),
-      }).eq('id', existing.id);
-    } else {
-      await supabase.from('token_stats').insert({
-        session_id:         sessionId,
-        customer_name:      customerName,
-        input_tokens:       i,
-        output_tokens:      o,
-        cache_write_tokens: cw,
-        cache_read_tokens:  cr,
-        turns:              1,
-      });
-    }
+    await supabase.from('token_stats').upsert({
+      session_id:         sessionId,
+      customer_name:      sess.customerName || null,
+      input_tokens:       sess.tokens.input,
+      output_tokens:      sess.tokens.output,
+      cache_write_tokens: sess.tokens.cacheWrite,
+      cache_read_tokens:  sess.tokens.cacheRead,
+      turns:              sess.tokens.turns,
+      updated_at:         new Date().toISOString(),
+    }, { onConflict: 'session_id' });
   } catch (err) {
     console.error('토큰 저장 오류:', err.message);
   }
@@ -165,6 +152,7 @@ function getOrCreateSession(sessionId) {
       adminTyping: false,     // 상담원이 입력 중 여부
       customerTyping: false,  // 고객이 입력 중 여부
       fallbackSent: false,    // API 오류 fallback 메시지 이미 보냈는지
+      tokens: { input: 0, output: 0, cacheWrite: 0, cacheRead: 0, turns: 0 },
     });
   }
   return sessions.get(sessionId);
