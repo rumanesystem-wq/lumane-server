@@ -713,12 +713,14 @@ async function buildApiMessages(messages) {
       ? [{ role: 'user', content: '[이전 대화 계속]' }]
       : [];
 
-    return [
+    const built = [
       { role: 'user', content: `[이전 상담 요약] ${summary}` },
       { role: 'assistant', content: '네, 이전 상담 내용 파악했습니다. 계속 도와드릴게요.' },
       ...prefix,
       ...recentMsgs,
     ];
+    // 연속 동일 role 제거 (Anthropic API 요구사항)
+    return built.filter((m, i) => i === 0 || m.role !== built[i - 1].role);
   } catch (err) {
     console.warn('[buildApiMessages] 요약 실패, 슬라이딩 윈도우로 폴백:', err.message);
     return clean.slice(-MAX_API_MESSAGES);
