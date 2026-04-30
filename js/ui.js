@@ -827,6 +827,10 @@ export function setQuick(labels, isChoice = false) {
 
 /* ── AI 응답에서 퀵 버튼 자동 감지 ── */
 export function updateQuickFromText(text) {
+  /* 견적서 완료 텍스트면 퀵버튼 감지 스킵 */
+  const isQuote = /\[설치\s*공간\]/.test(text) && /\[금액\]/.test(text);
+  if (isQuote) { setQuick([]); return; }
+
   /* ①②③ 스타일 선택지 자동 감지 */
   const circled = '①②③④⑤⑥⑦⑧⑨⑩';
   const choiceLines = text.split('\n').filter(l => circled.includes(l.trim()[0]));
@@ -837,12 +841,12 @@ export function updateQuickFromText(text) {
   if (/(드레스룸\s*형태|형태.*어떻게|어떤\s*형태|형태.*선택|어느\s*형태)/.test(text)) {
     setQuick(['1자형', 'ㄱ자형', 'ㄷ자형', '11자형'], true); return;
   }
-  /* 선반 색상 질문 */
-  if (/(선반\s*색상|선반.*색상)/.test(text)) {
+  /* 선반 색상 질문 — 견적서 항목 언급이 아닌 실제 질문만 */
+  if (/(선반\s*색상.*어떻게|선반\s*색상.*알려|선반\s*색상.*선택|선반\s*색상.*원하|어떤\s*선반\s*색상|선반\s*색상은)/.test(text)) {
     setQuick(['화이트오크', '솔리드화이트', '메이플', '스톤그레이', '진그레이', '다크월넛', '민트그린'], true); return;
   }
   /* 프레임 색상 질문 */
-  if (/(프레임\s*색상|프레임.*색|기둥.*색|색상.*프레임)/.test(text)) {
+  if (/(프레임\s*색상.*어떻게|프레임\s*색상.*알려|프레임\s*색상.*선택|어떤\s*프레임\s*색|프레임\s*색상은)/.test(text)) {
     setQuick(['화이트', '블랙', '실버', '샴페인골드'], true); return;
   }
   /* 색상 전반 질문 (선반+프레임 동시 언급 또는 일반 색상 질문) */
