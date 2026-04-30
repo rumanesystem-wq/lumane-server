@@ -714,6 +714,7 @@ function renderDashboardSessions(sessions) {
               <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
                 <span style="font-size:15px;font-weight:${isNew?'700':'600'};color:#111827;">${escAdmin(getConvLabel(c))}</span>
                 ${c.layout ? `<span style="font-size:11px;padding:1px 6px;border-radius:6px;background:#ede9fe;color:#7c3aed;font-weight:600;">${escAdmin(c.layout)}</span>` : ''}
+                ${c.is_test ? '<span style="font-size:10px;padding:1px 5px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
                 ${isNew ? '<span style="font-size:10px;padding:1px 5px;border-radius:6px;background:#ef4444;color:#fff;font-weight:700;">NEW</span>' : ''}
               </div>
               <div style="font-size:11px;color:#9ca3af;margin-top:1px;">${timeStr} · 💬 ${c.message_count||0}개</div>
