@@ -253,25 +253,37 @@
       </div>
     </section>
 
-    <!-- 견적상담 채팅 임베드 -->
-    <section class="chat-embed-section">
-      <div class="chat-embed-header">
-        <div class="section-badge">견적상담</div>
-        <h2 class="section-title">바로 상담받기</h2>
-        <p class="section-sub">공간 사이즈, 원하시는 형태, 색상만 알려주시면 맞춤 견적을 바로 안내해 드려요.</p>
-      </div>
-      <div class="chat-embed-wrap">
-
-          <iframe
-            id="chat-embed-frame"
-            src="/chat?embed=1"
-            class="chat-embed-frame"
-            title="견적상담"
-            allow="clipboard-write"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            referrerpolicy="strict-origin-when-cross-origin"
-            loading="lazy"
-          ></iframe>
+    <!-- AI 견적상담 소개 -->
+    <section class="section ai-consult-section">
+      <div class="container">
+        <div class="ai-consult-inner">
+          <div class="ai-consult-text">
+            <div class="section-badge">AI 견적상담</div>
+            <h2 class="section-title">루마네 AI 상담원이<br>맞춤 견적을 도와드려요</h2>
+            <p class="section-sub">공간 사이즈와 원하시는 형태·색상만 알려주시면<br>루마네 AI가 즉시 예상 견적을 안내해 드립니다.</p>
+            <ul class="ai-consult-features">
+              <li><i class="fas fa-check-circle"></i> 24시간 언제든 실시간 응답</li>
+              <li><i class="fas fa-check-circle"></i> 공간 사진 전송 시 자동 치수 분석</li>
+              <li><i class="fas fa-check-circle"></i> 상담 내용 자동 저장 후 담당자 확인</li>
+            </ul>
+            <a href="https://lumane-server.onrender.com/chat" target="_blank" rel="noopener noreferrer" class="btn btn-primary ai-consult-btn">
+              <i class="fas fa-comments" aria-hidden="true"></i> 상담 시작하기
+            </a>
+          </div>
+          <div class="ai-consult-visual">
+            <div class="ai-consult-bubble ai-consult-bubble--bot">
+              <span class="ai-bubble-avatar">루</span>
+              <div class="ai-bubble-msg">안녕하세요! 저는 케이트블랑 AI 상담원 루마네예요.<br>공간 사이즈를 알려주시면 바로 견적을 안내해 드릴게요 😊</div>
+            </div>
+            <div class="ai-consult-bubble ai-consult-bubble--user">
+              <div class="ai-bubble-msg">좌측 2400mm, 정면 600mm, 우측 2400mm예요.</div>
+            </div>
+            <div class="ai-consult-bubble ai-consult-bubble--bot">
+              <span class="ai-bubble-avatar">루</span>
+              <div class="ai-bubble-msg">감사합니다! ㄷ자형 기준으로 예상 견적을 계산해 드릴게요 🔍</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -436,7 +448,7 @@
 
   <!-- 플로팅 버튼 -->
   <div class="floating-group">
-    <a href="https://www.instagram.com/kateblanc_official/" target="_blank" rel="noopener" class="floating-btn floating-insta" title="인스타그램"><i class="fab fa-instagram"></i></a>
+    <a href="https://www.instagram.com/kateblanc_official/" target="_blank" rel="noopener" class="floating-btn floating-insta" title="인스타그램"><i class="fab fa-instagram"></i><span>인스타그램</span></a>
     <a href="/quote" class="floating-btn floating-quote" title="견적요청"><i class="fas fa-pencil-ruler"></i><span>견적요청</span></a>
   </div>
 
