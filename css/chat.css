@@ -169,7 +169,7 @@ html, body {
   .h-av { width: 38px; height: 38px; font-size: 18px; }
   .h-name { font-size: 14px; }
   .h-sub  { font-size: 10.5px; }
-  .h-status span { display: none; }
+  .h-status span { font-size: 10px; }
   .h-history-btn, .h-collect-btn { display: none !important; }
   .h-search-btn { font-size: 15px; padding: 5px 7px; }
 }
@@ -430,7 +430,7 @@ html, body {
 
 /* 시간 */
 .msg-time {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--gray-400);
   white-space: nowrap;
 }
@@ -488,6 +488,13 @@ html, body {
   transition: opacity .3s;
   pointer-events: none;
   white-space: nowrap;
+}
+/* 모바일: 입력창 위가 아닌 상단으로 이동 (콘텐츠 가림 방지) */
+@media (max-width: 767px) {
+  .copy-toast {
+    bottom: auto;
+    top: max(16px, env(safe-area-inset-top));
+  }
 }
 
 /* ── 퀵 답변 버튼 ───────────────────────────────── */
@@ -661,7 +668,7 @@ html, body {
 .btn-new {
   padding: 14px 36px;
   background: linear-gradient(135deg, #c9a96e, #a8883f);
-  color: var(--white); border: none; border-radius: 30px;
+  color: var(--white); border: none; border-radius: 24px;
   font-size: 15px; font-weight: 700; cursor: pointer;
   font-family: 'Noto Sans KR', sans-serif;
   box-shadow: 0 4px 14px rgba(201,169,110,.3);
@@ -920,7 +927,7 @@ html, body {
 }
 .transcript-box-head .close-btn:hover { background: var(--gray-200); }
 .transcript-box-meta {
-  font-size: 11px; color: var(--gray-400);
+  font-size: 12px; color: var(--gray-400);
 }
 .transcript-msgs {
   flex: 1; overflow-y: auto;
@@ -1335,7 +1342,7 @@ html, body {
   background: var(--purple); flex-shrink: 0;
 }
 .rb-content { flex: 1; min-width: 0; }
-.rb-who { font-size: 11px; font-weight: 700; color: var(--purple); }
+.rb-who { font-size: 12px; font-weight: 700; color: var(--purple); }
 .rb-preview { font-size: 12px; color: var(--gray-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rb-close {
   background: none; border: none; font-size: 15px;
