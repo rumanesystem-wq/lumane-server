@@ -349,7 +349,8 @@ async function saveConversation(sess, reason) {
   try {
     // 실시간 저장 데이터 최신화 + save_reason 업데이트
     await upsertConversation(sess);
-    await supabase.from('conversations')
+    const saveTable = sess.isTest ? 'test_conversations' : 'conversations';
+    await supabase.from(saveTable)
       .update({ save_reason: reason })
       .eq('session_id', sess.id);
 
