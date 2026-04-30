@@ -8,8 +8,8 @@
   --green:       #10b981;
   --gray-100:    #f3f4f6;
   --gray-200:    #e5e7eb;
-  --gray-400:    #9ca3af;
-  --gray-600:    #6b7280;
+  --gray-400:    #6b7280;   /* 대비 상향: #9ca3af → #6b7280 */
+  --gray-600:    #4b5563;   /* 대비 상향: #6b7280 → #4b5563 */
   --gray-900:    #2c2820;   /* 케이트블랑 다크 */
   --white:       #ffffff;
   --chat-bg:     #faf9f7;   /* 케이트블랑 웜화이트 */
@@ -145,6 +145,12 @@ html, body {
     height: 100dvh; /* Android Chrome / iOS Safari 주소창 대응 */
     min-height: unset;
     overflow: hidden;
+  }
+  /* iOS Safari: 키보드 팝업 시 레이아웃 밀림 방지 */
+  @supports (-webkit-touch-callout: none) {
+    .shell {
+      height: -webkit-fill-available;
+    }
   }
 
   /* 입력창 하단 safe area (안드로이드 제스처 네비 + iOS 홈바) */
@@ -985,7 +991,7 @@ html, body {
 .qt-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .qt-table td {
   border: 1px solid #999;
@@ -1010,8 +1016,8 @@ html, body {
 }
 .qt-table td.sub-lbl {
   background: #efefef;
-  font-size: 11.5px;
-  color: #444;
+  font-size: 13px;
+  color: #333;
   text-align: center;
   white-space: nowrap;
 }
@@ -1019,12 +1025,12 @@ html, body {
   background: #555;
   color: #fff;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
 }
 .qt-table td.footer-val {
-  font-size: 10.5px;
-  color: #333;
+  font-size: 12px;
+  color: #222;
 }
 
 .qt-table td[contenteditable="true"] {
@@ -1037,11 +1043,27 @@ html, body {
 }
 
 .qt-check-wrap {
-  display: flex; align-items: center; gap: 5px;
+  display: flex; align-items: center; gap: 6px;
 }
 .qt-check-wrap input[type="checkbox"] {
-  width: 14px; height: 14px; cursor: pointer;
+  width: 20px; height: 20px; cursor: pointer;
   accent-color: #c0392b;
+  flex-shrink: 0;
+}
+/* 모바일: 체크박스 터치 영역 최소 44px 확보 */
+@media (max-width: 767px) {
+  .qt-check-wrap {
+    min-height: 44px;
+  }
+  .qt-check-wrap input[type="checkbox"] {
+    width: 22px; height: 22px;
+  }
+  .quote-inner {
+    overflow-x: auto;
+  }
+  .qt-table {
+    min-width: 360px;
+  }
 }
 
 .qt-floor-plan {
@@ -1069,7 +1091,7 @@ html, body {
 .qa-print { background: var(--purple); color: #fff; }
 .qa-close { background: var(--gray-200); color: var(--gray-900); }
 .qa-print:hover { opacity: .88; }
-.qa-close:hover { background: var(--gray-400); color: #fff; }
+.qa-close:hover { background: #9ca3af; color: #fff; }
 
 .collect-drawer {
   background: var(--white);

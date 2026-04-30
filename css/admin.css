@@ -1,4 +1,14 @@
 /* =============================================
+   색상 대비 보정 (WCAG AA 기준)
+   #9ca3af(3.0:1) → #6b7280(4.5:1)
+   #6b7280(4.5:1) → #4b5563(7.0:1)
+============================================= */
+:root {
+  --text-muted:    #4b5563;   /* 보조 텍스트 (기존 #6b7280) */
+  --text-disabled: #6b7280;   /* 비활성 텍스트 (기존 #9ca3af) */
+}
+
+/* =============================================
    전체 레이아웃 & 기본 스타일
 ============================================= */
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -179,9 +189,9 @@ body {
   border: 1px solid #e5e7eb;
 }
 
-.stat-label { font-size: 12px; color: #6b7280; font-weight: 500; }
+.stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
 .stat-value { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-top: 6px; }
-.stat-change { font-size: 12px; margin-top: 4px; color: #6b7280; }
+.stat-change { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
 .stat-change.up { color: #16a34a; }
 .stat-change.down { color: #dc2626; }
 
@@ -375,9 +385,9 @@ body {
 }
 
 .quote-name { font-size: 14px; font-weight: 600; }
-.quote-phone { font-size: 13px; color: #6b7280; }
+.quote-phone { font-size: 13px; color: var(--text-muted); }
 .quote-region { font-size: 13px; color: #374151; }
-.quote-date { font-size: 12px; color: #9ca3af; }
+.quote-date { font-size: 12px; color: var(--text-disabled); }
 .quote-manager { font-size: 13px; color: #374151; }
 
 /* 상태 배지 */
@@ -809,11 +819,11 @@ body {
 /* 모바일 뒤로가기 버튼 (기본 숨김) */
 .live-back-btn {
   display: none;
-  width: 32px; height: 32px;
+  width: 44px; height: 44px;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 20px;
   cursor: pointer;
   align-items: center;
   justify-content: center;
