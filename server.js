@@ -664,6 +664,10 @@ app.get('/api/find-example', chatRateLimit, async (req, res) => {
 async function isRelevantMessage(userMessage) {
   try {
     const safeMsg = (typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage)).slice(0, 500);
+
+    // 전화번호 패턴 포함 시 Haiku 호출 없이 통과 (이름+번호 입력 차단 방지)
+    if (/01[0-9][-\s]?\d{3,4}[-\s]?\d{4}/.test(safeMsg)) return true;
+
     const check = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 10,
