@@ -547,7 +547,7 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
           for (const part of fallbackText.split(/\n\n+/).map(p => p.trim()).filter(Boolean)) {
             const b = document.createElement('div');
             b.className = 'bubble bot';
-            b.innerHTML = esc(part).replace(/\n/g, '<br>');
+            b.innerHTML = esc(part).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             bubblesCol.appendChild(b);
           }
           scrollOrPreview('루마네', fallbackText);
@@ -561,7 +561,7 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
         } else {
           const b = document.createElement('div');
           b.className = 'bubble bot';
-          b.innerHTML = esc(part);
+          b.innerHTML = esc(part).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
           bubblesCol.appendChild(b);
         }
       }
