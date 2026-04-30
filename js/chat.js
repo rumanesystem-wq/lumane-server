@@ -117,6 +117,8 @@ function clearHistory() {
 /* ── Admin 난입 상태 ── */
 let adminMode      = false;   // true = admin이 현재 대화 중
 let pollTimer      = null;    // 폴링 타이머
+let silentTimer    = null;    // 서버 재확인 타이머
+let updateTimer    = null;    // 배포 감지 타이머
 
 /* ================================================================
    서버 상태 확인
@@ -831,7 +833,8 @@ async function startChat() {
   }
 
   /* 오프라인이면 30초마다 서버 재확인 (Render.com 절전 후 복귀 대응) */
-  setInterval(checkServerSilent, 30000);
+  if (silentTimer) clearInterval(silentTimer);
+  silentTimer = setInterval(checkServerSilent, 30000);
 
   /* 배포 자동감지 — 새 버전 배포 시 자동 새로고침 */
   startUpdateChecker();
@@ -865,7 +868,8 @@ async function startUpdateChecker() {
     if (r.ok) _deployedVersion = (await r.json()).v;
   } catch { /* 무시 */ }
 
-  setInterval(async () => {
+  if (updateTimer) clearInterval(updateTimer);
+  updateTimer = setInterval(async () => {
     if (!serverOnline) return;
     try {
       const r = await fetch(`${SERVER}/api/version?t=${Date.now()}`);
