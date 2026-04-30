@@ -116,10 +116,14 @@ export function printQuote() {
   </tbody></table>
   </body></html>`;
 
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  win.print();
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  win.location.href = blobUrl;
+  win.addEventListener('load', () => {
+    win.focus();
+    win.print();
+    URL.revokeObjectURL(blobUrl);
+  });
 }
 
 /* ── 상담 자동 저장 (접수 확정 시 자동 호출, 버튼 없음) ── */
