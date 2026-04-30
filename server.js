@@ -299,7 +299,6 @@ async function autoRegisterQuote(sess, reply) {
 // ── 실시간 Supabase upsert (Notion 없음) ─────────────────────
 async function upsertConversation(sess) {
   if (!sess || !sess.messages || sess.messages.length === 0) return;
-  if (sess.isTest) return; // 테스트 세션은 DB 저장 제외
   // 고객 메시지가 하나도 없으면 저장하지 않음 (인사만 보고 나간 경우)
   const userMsgCount = sess.messages.filter(m => m.role === 'user').length;
   if (userMsgCount === 0) return;
@@ -327,6 +326,7 @@ async function upsertConversation(sess) {
       message_count:   sess.messages.length,
       started_at:      sess.startedAt,
       messages:        sess.messages,
+      is_test:         sess.isTest || false,
     };
 
     const { data: existing } = await supabase
