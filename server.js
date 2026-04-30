@@ -240,7 +240,7 @@ function parseOrderSheet(text) {
     shelf_color:     shelf_color || null,
     size_raw,
     options_text,
-    estimated_price: priceNum(get(/총\s*합계[:\s*]*([0-9,]+)원/)) || priceNum(get(/견적[:\s]+([0-9,]+)원/)),
+    estimated_price: priceNum(get(/총\s*합계[:\s*]*([0-9,]+)원/)) || priceNum(get(/견적[:\s]+([0-9,]+)원/)) || priceNum(get(/할인\s*후\s*금액[:\s*]*([0-9,]+)원/)) || priceNum(get(/할인후\s*금액[:\s*]*([0-9,]+)원/)),
   };
 }
 
