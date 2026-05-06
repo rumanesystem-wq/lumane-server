@@ -52,6 +52,26 @@ function clearUnreadFilter() {
 }
 window.clearUnreadFilter = clearUnreadFilter;
 
+/* ── 대시보드에서 저장 상담 삭제 ── */
+async function deleteSavedConvFromDash(id, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  if (!id) return;
+  if (!confirm('이 상담 기록을 삭제하시겠습니까? 복구할 수 없습니다.')) return;
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations/${encodeURIComponent(id)}`, {
+      method: 'DELETE', headers: adminHeaders(),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.status); }
+    _cachedConversations = _cachedConversations.filter(c => String(c.id) !== String(id));
+    renderDashboardSessions(_cachedLiveSessions);
+    if (typeof showToast === 'function') showToast('상담 기록이 삭제됐습니다.', 'success');
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(`삭제 실패: ${err.message}`, 'error');
+    else alert(`삭제 실패: ${err.message}`);
+  }
+}
+window.deleteSavedConvFromDash = deleteSavedConvFromDash;
+
 /**
  * 백그라운드 세션 카운트 폴링 (항상 실행, 5초마다)
  * — 라이브 탭 밖에서도 새 손님 알림 뱃지 유지
@@ -770,6 +790,11 @@ function renderDashboardSessions(sessions) {
               <div style="font-size:11px;color:#9ca3af;margin-top:1px;">${timeStr} · 💬 ${c.message_count||0}개</div>
             </div>
             ${c.estimated_price ? `<div style="font-size:13px;font-weight:700;color:#d97706;flex-shrink:0;">${Number(c.estimated_price).toLocaleString()}원</div>` : ''}
+            <button type="button" title="삭제"
+              onclick="deleteSavedConvFromDash('${escAttr(c.id)}', event)"
+              style="flex-shrink:0;background:transparent;border:none;color:#9ca3af;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;"
+              onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626'"
+              onmouseout="this.style.background='transparent';this.style.color='#9ca3af'">🗑</button>
           </div>
 
           <!-- 정보 그리드 -->
