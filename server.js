@@ -855,7 +855,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
 
 // ── 세션 등록 API ─────────────────────────────────────────────
 app.post('/api/session/register', async (req, res) => {
-  const { sessionId, nickname, isTest } = req.body;
+  const { sessionId, nickname, isTest, src, src2 } = req.body;
   if (!sessionId || !SESSION_ID_RE.test(sessionId)) {
     return res.status(400).json({ error: '유효하지 않은 sessionId' });
   }
@@ -867,6 +867,22 @@ app.post('/api/session/register', async (req, res) => {
     sess.customerNameIsTemp = true;
   }
   if (isTest === true) sess.isTest = true;
+  // 유입 소스 저장 (메모리 + DB)
+  if (src && typeof src === 'string')   sess.src  = src.trim().slice(0, 50);
+  if (src2 && typeof src2 === 'string') sess.src2 = src2.trim().slice(0, 50);
+  if (sess.src || sess.src2) {
+    supabase.from('visitor_logs').upsert(
+      {
+        session_id: sessionId,
+        src: sess.src || null,
+        src2: sess.src2 || null,
+        visited_date: new Date().toISOString().slice(0, 10),
+      },
+      { onConflict: 'session_id,visited_date', ignoreDuplicates: true }
+    ).then(({ error }) => {
+      if (error) console.warn('[visitor_logs] 저장 실패:', error.message);
+    });
+  }
   // 재방문 여부 확인
   if (sess.nickname && sess.isReturning === undefined) {
     try {
@@ -878,6 +894,38 @@ app.post('/api/session/register', async (req, res) => {
     } catch { sess.isReturning = false; }
   }
   res.json({ ok: true });
+});
+
+// ── 어드민: 유입 소스 통계 ────────────────────────────────
+app.get('/api/admin/source-stats', async (req, res) => {
+  const VALID_PERIODS = ['today', 'week', 'month', 'all'];
+  const period = VALID_PERIODS.includes(req.query.period) ? req.query.period : 'today';
+  let query = supabase.from('visitor_logs').select('src, src2, session_id, visited_date');
+  const today = new Date().toISOString().slice(0, 10);
+  if (period === 'today') {
+    query = query.eq('visited_date', today);
+  } else if (period === 'week') {
+    const d = new Date(); d.setDate(d.getDate() - 6);
+    query = query.gte('visited_date', d.toISOString().slice(0, 10));
+  } else if (period === 'month') {
+    const d = new Date(); d.setMonth(d.getMonth() - 1);
+    query = query.gte('visited_date', d.toISOString().slice(0, 10));
+  }
+  try {
+    const { data, error } = await query;
+    if (error) throw error;
+    const counts = {};
+    (data || []).forEach(r => {
+      const key = r.src || '직접';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    const list = Object.entries(counts)
+      .map(([src, count]) => ({ src, count }))
+      .sort((a, b) => b.count - a.count);
+    res.json({ period, total: (data || []).length, counts: list });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── 세션 상태 폴링 API (고객 → 서버, 2초마다) ─────────────────

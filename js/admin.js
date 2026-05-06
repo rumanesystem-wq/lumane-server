@@ -669,8 +669,9 @@ function switchTab(tab) {
     document.getElementById('topbarTitle').textContent = '📊 대시보드';
     window.saveAdminSetting?.('lastSeenHistoryAt', new Date().toISOString());
     if (typeof updateHistoryBadge === 'function') updateHistoryBadge(0);
-    // 대시보드 진입 시 즉시 세션 목록 로드
+    // 대시보드 진입 시 즉시 세션 목록 + 유입 소스 로드
     fetchLiveSessions();
+    if (typeof loadSourceStats === 'function') loadSourceStats('today');
   } else if (tab === 'quotes') {
     navItems[1].classList.add('active');
     document.getElementById('topbarTitle').textContent = '📋 견적 목록';

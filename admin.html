@@ -143,6 +143,20 @@
       </div>
     </div>
 
+    <!-- 유입 소스 -->
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px 18px;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:700;color:#111827;">📥 유입 소스</div>
+        <div style="display:flex;gap:4px;" id="srcPeriodBtns">
+          <button data-period="today" onclick="loadSourceStats('today')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer;font-weight:600;">오늘</button>
+          <button data-period="week"  onclick="loadSourceStats('week')"  style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;font-weight:600;">이번 주</button>
+          <button data-period="month" onclick="loadSourceStats('month')" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;font-weight:600;">이번 달</button>
+          <button data-period="all"   onclick="loadSourceStats('all')"   style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;font-weight:600;">전체</button>
+        </div>
+      </div>
+      <div id="sourceStatsList" style="font-size:13px;color:#6b7280;">로딩 중…</div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
       <div style="min-width:0;">
         <div style="font-size:18px;font-weight:700;">📬 들어온 상담</div>
