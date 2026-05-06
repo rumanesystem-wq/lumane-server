@@ -79,7 +79,8 @@ window.deleteSavedConvFromDash = deleteSavedConvFromDash;
 
 function startBgPolling() {
   if (bgPollTimer) return;
-  _loadSeenCounts();
+  // 이미 로드된 경우 재로드 생략 (서버 저장 지연 시 메모리 최신값이 덮어쓰여지는 것 방지)
+  if (!_seenCountsLoaded) _loadSeenCounts();
   loadAdminSettings();
   // 저장된 상담 미확인 카운트 — 60초마다 독립 실행
   if (!historyBgPollTimer) {
@@ -385,7 +386,9 @@ const _resetSessions = new Set();
 function markSessionSeen(sessionId) {
   if (!sessionId) return;
   const id = String(sessionId);
-  if (_seenMsgCounts[id] === undefined) _saveSeenCount(id, 0);
+  // _seenMsgCounts[id]가 undefined일 때 0으로 저장하던 코드 제거 —
+  // 0 저장 시 이후 모든 메시지가 hasNewMsg=true로 잡혀 잘못된 미확인 표시 유발.
+  // 호출자가 _saveSeenCount(id, currentCount)로 정확한 값 저장 책임.
   _refreshDashBadge();
   // 미확인만 보기 필터 활성 시, 읽음 처리된 카드 즉시 사라지도록 재렌더링
   if (_unreadOnlyMode) {
@@ -617,6 +620,9 @@ function renderDashboardSessions(sessions) {
         setTimeout(() => selectLiveSession(sessionId), 100);
       } else if (convCard) {
         const convId = convCard.dataset.convId;
+        // 저장 상담도 message_count 포함해서 저장 (0 저장 방지)
+        const conv = _cachedConversations.find(c => String(c.id) === String(convId));
+        if (conv) _saveSeenCount(convId, conv.message_count ?? 0);
         markSessionSeen(convId);
         if (typeof openHistoryDetail === 'function') openHistoryDetail(convId);
       }
@@ -889,10 +895,11 @@ window.selectSavedConvInPanel = function(convId) {
   liveSelectedId       = null;
   _selectedSavedConvId = convId;
 
-  markSessionSeen(convId);
-
+  // _saveSeenCount 먼저 호출 — markSessionSeen에서 0 저장 제거 후 호출자 책임
   const conv = _cachedConversations.find(c => c.id === convId);
-  if (!conv) return;
+  if (!conv) return;  // early return 먼저 — conv 없으면 이후 패널 렌더링 불가
+  _saveSeenCount(String(convId), conv.message_count ?? 0);
+  markSessionSeen(convId);
 
   const label   = getConvLabel(conv);
   const timeStr = conv.saved_at
