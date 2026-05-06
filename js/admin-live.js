@@ -940,7 +940,8 @@ window.selectSavedConvInPanel = function(convId) {
   _selectedSavedConvId = convId;
 
   // _saveSeenCount 먼저 호출 — markSessionSeen에서 0 저장 제거 후 호출자 책임
-  const conv = _cachedConversations.find(c => c.id === convId);
+  // String 변환 — c.id가 lumane schema에서 bigint(숫자)일 때 string convId와 매칭되도록
+  const conv = _cachedConversations.find(c => String(c.id) === String(convId));
   if (!conv) return;  // early return 먼저 — conv 없으면 이후 패널 렌더링 불가
   _saveSeenCount(String(convId), conv.message_count ?? 0);
   markSessionSeen(convId);
