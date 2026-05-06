@@ -1361,7 +1361,7 @@ function renderLiveChatPanel(sess) {
   const tk = (window._liveTokenMap || {})[sess.id];
   const tkStr = tk ? ` · 🪙 ₩${tk.costKRW.toLocaleString()} (${tk.totalTokens.toLocaleString()}토큰)` : '';
   document.getElementById('livePanelMeta').textContent =
-    `세션 ${sess.id.slice(0, 20)}… · 메시지 ${sess.messages.length}개${tkStr}`;
+    `세션 ${String(sess.id).slice(0, 20)}… · 메시지 ${sess.messages.length}개${tkStr}`;
 
   document.getElementById('livePanelActions').innerHTML = isAdmin
     ? `<button class="btn btn-outline" onclick="releaseSession()" style="font-size:13px;">🤖 AI에게 넘기기</button>`
