@@ -376,7 +376,9 @@ function _saveSeenCount(sessionId, count) {
     method: 'POST',
     headers: adminHeaders(),
     body: JSON.stringify({ session_id: id, count })
-  }).catch(() => {});
+  })
+    .then(r => { if (!r.ok) console.warn('[seen-counts] 저장 실패:', r.status, id, count); })
+    .catch(err => console.warn('[seen-counts] 저장 네트워크 오류:', err.message, id, count));
 }
 /* ── 서버 재시작 등으로 세션이 리셋된 경우 추적 ── */
 const _resetSessions = new Set();
@@ -640,16 +642,11 @@ function renderDashboardSessions(sessions) {
 
   const seenSessions = _getSeenSessions();
 
-  // 세션 리셋 감지 + 베이스라인 초기화
+  // 베이스라인 초기화만 수행 (세션 리셋 자동 감지는 비활성 — 잘못된 미확인 표시 방지)
   sessions.forEach(s => {
     if (!s.id) return;
     const msgCount = s.messageCount ?? 0;
     const sid = String(s.id);
-    const tracked  = _seenMsgCounts[sid];
-    if (tracked !== undefined && msgCount < tracked) {
-      delete _seenMsgCounts[sid];
-      _resetSessions.add(sid);
-    }
     if (seenSessions.has(sid) && _seenMsgCounts[sid] === undefined && !_resetSessions.has(sid)) {
       _seenMsgCounts[sid] = msgCount;
     }
