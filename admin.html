@@ -26,7 +26,7 @@
   </div>
 
   <div class="sidebar-nav">
-    <div class="nav-item active" onclick="switchTab('dashboard')">
+    <div class="nav-item active" onclick="if(typeof clearUnreadFilter==='function')clearUnreadFilter();switchTab('dashboard')">
       <span class="nav-icon">📊</span> 대시보드
       <span id="sidebarDashBadge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:auto;"></span>
     </div>
@@ -102,7 +102,7 @@
 
   <!-- 탭 바 -->
   <div class="tab-bar">
-    <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 대시보드 <span id="dashNewBadge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;vertical-align:middle;margin-left:2px;"></span></button>
+    <button class="tab-btn active" id="tab-dashboard" onclick="if(typeof clearUnreadFilter==='function')clearUnreadFilter();switchTab('dashboard')">📊 대시보드 <span id="dashNewBadge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;vertical-align:middle;margin-left:2px;"></span></button>
     <button class="tab-btn" id="tab-stat-detail" style="display:none;"></button>
     <button class="tab-btn" id="tab-quotes" onclick="switchTab('quotes')">📋 견적 목록 <span class="new-badge" id="quoteTabBadge" style="display:none;vertical-align:middle;"></span></button>
     <button class="tab-btn" id="tab-live" onclick="switchTab('live')">💬 대화</button>
