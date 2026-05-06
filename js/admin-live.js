@@ -665,11 +665,15 @@ function renderDashboardSessions(sessions) {
     sortTime: (() => { const t = new Date(s.lastMessageAt).getTime(); return isNaN(t) ? 0 : t; })(),
     data: s
   }));
-  const convItems = _cachedConversations.filter(c => c.id).map(c => ({
-    type: 'saved', id: c.id,
-    sortTime: (() => { const t = new Date(c.saved_at).getTime(); return isNaN(t) ? 0 : t; })(),
-    data: c
-  }));
+  // 활성 라이브 세션과 같은 session_id의 저장 상담은 중복 표시 방지
+  const activeLiveSessionIds = new Set(sessions.filter(s => s.id).map(s => String(s.id)));
+  const convItems = _cachedConversations
+    .filter(c => c.id && !activeLiveSessionIds.has(String(c.session_id)))
+    .map(c => ({
+      type: 'saved', id: c.id,
+      sortTime: (() => { const t = new Date(c.saved_at).getTime(); return isNaN(t) ? 0 : t; })(),
+      data: c
+    }));
   let allItems = [...liveItems, ...convItems].sort((a, b) => b.sortTime - a.sortTime);
 
   // 미확인만 보기 필터 적용
