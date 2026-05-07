@@ -382,14 +382,31 @@ app.use((req, res, next) => {
 // ── favicon.ico — 404 방지 ──
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// ── 클린 URL (확장자 없이 접근) ──────────────────────────────
-app.get('/admin', (req, res) => res.sendFile(__dirname + '/admin.html'));
-app.get('/chat',  (req, res) => res.sendFile(__dirname + '/chat.html'));
-app.get('/quote', (req, res) => res.sendFile(__dirname + '/quote.html'));
-app.get('/blog',  (req, res) => res.sendFile(__dirname + '/blog.html'));
+// ── 공개 HTML 파일 (확장자 유무 둘 다 지원) ──────────────────
+const _noCacheHtml = (res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+};
+const _serveHtml = (file) => (req, res) => {
+  _noCacheHtml(res);
+  res.sendFile(__dirname + '/' + file);
+};
+app.get('/',           _serveHtml('index.html'));
+app.get('/index.html', _serveHtml('index.html'));
+app.get('/admin',      _serveHtml('admin.html'));
+app.get('/admin.html', _serveHtml('admin.html'));
+app.get('/chat',       _serveHtml('chat.html'));
+app.get('/chat.html',  _serveHtml('chat.html'));
+app.get('/quote',      _serveHtml('quote.html'));
+app.get('/quote.html', _serveHtml('quote.html'));
+app.get('/blog',       _serveHtml('blog.html'));
+app.get('/blog.html',  _serveHtml('blog.html'));
 
-// ── 정적 파일 제공 — HTML/JS/CSS는 캐시 안 함 (항상 최신 버전) ──
-app.use(express.static(__dirname, {
+// ── 정적 자산 화이트리스트 (보안: 루트 전체 노출 차단) ──────
+// 외부 공개 가능한 정적 폴더만 명시적으로 허용.
+// 비공개: 지침/, 백업본/, scripts/, 작업일지/, 운영메모/, server.js 등
+const _staticOpts = {
   setHeaders(res, filePath) {
     if (/\.(html|js|css)$/.test(filePath)) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -397,7 +414,12 @@ app.use(express.static(__dirname, {
       res.setHeader('Expires', '0');
     }
   }
-}));
+};
+app.use('/css',          express.static(path.join(__dirname, 'css'),          _staticOpts));
+app.use('/js',           express.static(path.join(__dirname, 'js'),           _staticOpts));
+app.use('/images',       express.static(path.join(__dirname, 'images'),       _staticOpts));
+app.use('/preview_site', express.static(path.join(__dirname, 'preview_site'), _staticOpts));
+app.get('/floorplan_preview.html', _serveHtml('floorplan_preview.html'));
 
 // ── 헬스 체크 ─────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
