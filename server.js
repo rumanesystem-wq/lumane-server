@@ -411,6 +411,8 @@ app.get('/quote',      _serveHtml('quote.html'));
 app.get('/quote.html', _serveHtml('quote.html'));
 app.get('/blog',       _serveHtml('blog.html'));
 app.get('/blog.html',  _serveHtml('blog.html'));
+app.get('/privacy',      _serveHtml('privacy.html'));
+app.get('/privacy.html', _serveHtml('privacy.html'));
 
 // ── 정적 자산 화이트리스트 (보안: 루트 전체 노출 차단) ──────
 // 외부 공개 가능한 정적 폴더만 명시적으로 허용.
