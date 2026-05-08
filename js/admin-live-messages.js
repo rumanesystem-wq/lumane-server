@@ -595,6 +595,3 @@ function initLiveMsgsScrollListener() {
     if (atBottom) updateScrollBtn(false);
   });
 }
-
-/**
- * 경과 시간 표시 (예: "2분 전")
