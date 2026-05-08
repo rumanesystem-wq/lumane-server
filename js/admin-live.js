@@ -1655,14 +1655,11 @@ function fmtLiveTime(iso) {
     return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(m).padStart(2, '0')}`;
   } catch { return ''; }
 }
-let adminPendingFile      = null;
-let adminPendingObjectUrl = null;
-
 async function showAdminAttachBar(rawFile) {
   const file = await compressImageIfNeeded(rawFile);
-  adminPendingFile = file;
+  setAdminPendingFile(file);
   if (adminPendingObjectUrl) URL.revokeObjectURL(adminPendingObjectUrl);
-  adminPendingObjectUrl = URL.createObjectURL(file);
+  setAdminPendingObjectUrl(URL.createObjectURL(file));
 
   const bar = document.getElementById('adminAttachBar');
   if (!bar) return;
@@ -1701,8 +1698,8 @@ function showAdminLightbox(src) {
 }
 
 function clearAdminPendingFile() {
-  if (adminPendingObjectUrl) { URL.revokeObjectURL(adminPendingObjectUrl); adminPendingObjectUrl = null; }
-  adminPendingFile = null;
+  if (adminPendingObjectUrl) { URL.revokeObjectURL(adminPendingObjectUrl); setAdminPendingObjectUrl(null); }
+  setAdminPendingFile(null);
   const bar = document.getElementById('adminAttachBar');
   if (bar) bar.style.display = 'none';
   refreshAdminSendBtn();

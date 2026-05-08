@@ -28,6 +28,8 @@ let _adminCtxMenu         = null;
 let _adminSearchMatches   = [];
 let _adminSearchIdx       = -1;
 let _adminSearchOpen      = false;
+let adminPendingFile      = null;
+let adminPendingObjectUrl = null;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -139,4 +141,20 @@ function setAdminSearchIdx(idx) {
  */
 function setAdminSearchOpen(v) {
   _adminSearchOpen = !!v;
+}
+
+/**
+ * 어드민 첨부 파일 (보낼 예정인 File 객체, null = 첨부 없음)
+ * lifecycle: setAdminPendingObjectUrl과 짝으로 다뤄야 함 (URL.createObjectURL/revokeObjectURL)
+ */
+function setAdminPendingFile(file) {
+  adminPendingFile = file;
+}
+
+/**
+ * 어드민 첨부 파일 미리보기 URL (URL.createObjectURL 결과, null = 미리보기 해제)
+ * 호출자 책임: 새 URL 설정 전에 옛 URL을 revokeObjectURL로 해제
+ */
+function setAdminPendingObjectUrl(url) {
+  adminPendingObjectUrl = url;
 }
