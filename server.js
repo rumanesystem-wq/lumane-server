@@ -1025,6 +1025,9 @@ app.get('/api/admin/sessions', async (_req, res) => {
   const list = [];
   const sessionIds = [];
   for (const [id, sess] of sessions) {
+    // 고객이 메시지를 한 번도 안 보낸 세션은 어드민 목록에서 제외
+    const userMsgCount = sess.messages.filter(m => m.role === 'user').length;
+    if (userMsgCount === 0) continue;
     list.push({
       id,
       mode: sess.mode,
