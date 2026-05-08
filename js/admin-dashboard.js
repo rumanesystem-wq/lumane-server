@@ -150,6 +150,20 @@ function _formatSizeRaw(raw) {
   return raw;
 }
 
+async function fetchDashboardConversations() {
+  if (!serverOnline) return;
+  if (typeof document !== 'undefined' && document.hidden) return;
+  try {
+    const res = await fetch(`${SERVER}/api/admin/conversations`, { headers: adminHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    setCachedConversations((data.conversations || []).slice(0, 30));
+    _refreshDashBadge();
+    _checkConvNotifications();
+    renderDashboardSessions(_cachedLiveSessions);
+  } catch { /* 무시 */ }
+}
+
 function _refreshDashBadge() {
   // 책갈피(seen-counts) 로드 전에는 카운트 계산 보류 — 잘못된 미확인 표시 방지
   if (!_seenCountsLoaded) return;
