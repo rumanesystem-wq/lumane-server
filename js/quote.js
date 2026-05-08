@@ -138,7 +138,6 @@ export async function autoSaveConversation(history) {
     if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
     const data = await res.json();
     if (!data.success) throw new Error(data.error || '저장 실패');
-    console.log('✅ 상담 자동 저장 완료:', data.summary?.이름 || '(이름 미확인)');
 
     return data.summary;
   } catch (err) {

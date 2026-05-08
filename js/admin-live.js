@@ -393,7 +393,6 @@ window.getAdminSetting  = getAdminSetting;
 
 /* ── 세션별 마지막으로 읽은 메시지 수 추적 (서버 저장) ── */
 const _seenMsgCounts = {};
-// _seenCountsLoaded 는 admin-state.js로 이동됨 (setter: setSeenCountsLoaded)
 function _getSeenSessions() {
   return new Set(Object.keys(_seenMsgCounts));
 }
@@ -487,8 +486,7 @@ function _formatSizeRaw(raw) {
 }
 
 /* ── 저장된 상담 캐시 ── */
-// _cachedConversations / _cachedLiveSessions / _selectedSavedConvId / _unreadOnlyMode 는 admin-state.js로 이동됨
-// (setters: setCachedConversations / setCachedLiveSessions / setSelectedSavedConvId / setUnreadOnlyMode)
+
 
 function _refreshDashBadge() {
   // 책갈피(seen-counts) 로드 전에는 카운트 계산 보류 — 잘못된 미확인 표시 방지
@@ -539,9 +537,7 @@ async function fetchDashboardConversations() {
 /* ================================================================
    알림 시스템
 ================================================================ */
-// _notifSeq 는 admin-state.js로 이동됨 (helper: incNotifSeq — postfix++ 대체)
 const _notifications = [];
-// _liveNotifReady / _convNotifReady 는 admin-state.js로 이동됨 (setters: setLiveNotifReady, setConvNotifReady)
 
 /* 알림 중복 방지 — 페이지 세션 내 인메모리 (localStorage 오염 방지) */
 const _notifiedLiveIds = new Set();
@@ -904,7 +900,6 @@ function renderDashboardSessions(sessions) {
  * byClick=true: 사용자가 명시적으로 카드 클릭 (읽음 처리)
  * byClick=false: 자동 선택 (읽음 처리 안 함, 빨간 NEW 유지)
  */
-// _liveSelectedByClick 는 admin-state.js로 이동됨 (setter: setLiveSelectedByClick)
 async function selectLiveSession(sessionId, byClick = false) {
   clearInterval(liveMsgPollTimer);
   liveMsgPollTimer = null;
