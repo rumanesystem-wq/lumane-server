@@ -1592,6 +1592,43 @@ app.get('/api/quotes', async (_req, res) => {
   }
 });
 
+// ── 견적 수정 API (어드민 전용) ─────────────────────────────
+// 어드민 모달에서 상태/담당자/메모/특이사항/후속연락 변경 시 호출
+app.patch('/api/quotes/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ error: 'id required' });
+
+    const body = req.body || {};
+    const updates = {};
+    if (typeof body.status   === 'string') updates.status   = body.status.slice(0, 50);
+    if (typeof body.manager  === 'string') updates.manager  = body.manager.slice(0, 100);
+    if (typeof body.memo     === 'string') updates.memo     = body.memo.slice(0, 2000);
+    if (typeof body.special  === 'string') updates.special  = body.special.slice(0, 2000);
+    if (typeof body.followup === 'boolean') updates.followup = body.followup;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: '수정할 항목이 없습니다' });
+    }
+
+    const { data, error } = await supabase
+      .from('quotes')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) {
+      if (error.code === 'PGRST116') return res.status(404).json({ error: 'not found' });
+      throw error;
+    }
+
+    res.json({ ok: true, quote: data });
+  } catch (err) {
+    console.error('견적 수정 오류:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 삭제됨 (보안): /api/quote POST, /api/save-conversation POST, /api/conversations GET
 // 사용처 없는 죽은 라우트 + 인증 부재로 인한 PII 노출 위험 → 일괄 제거.
 // AI 자동 견적 등록은 autoRegisterQuote() 내부 함수로 처리 (별도 라우트 불필요).
