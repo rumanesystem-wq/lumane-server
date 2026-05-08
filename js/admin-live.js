@@ -542,8 +542,7 @@ async function fetchDashboardConversations() {
 ================================================================ */
 let _notifSeq       = 0;
 const _notifications = [];
-// _liveNotifReady 는 admin-state.js로 이동됨 (setter: setLiveNotifReady)
-let _convNotifReady  = false;
+// _liveNotifReady / _convNotifReady 는 admin-state.js로 이동됨 (setters: setLiveNotifReady, setConvNotifReady)
 
 /* 알림 중복 방지 — 페이지 세션 내 인메모리 (localStorage 오염 방지) */
 const _notifiedLiveIds = new Set();
@@ -599,7 +598,7 @@ function _checkConvNotifications() {
     const region = c.region ? ' · ' + c.region : '';
     _addNotif('saved', '새 상담이 저장됐습니다 📁', getConvLabel(c) + region, c.id);
   });
-  _convNotifReady = true;
+  setConvNotifReady(true);
 }
 
 function _checkLiveNotifications(sessions) {

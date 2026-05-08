@@ -19,6 +19,7 @@ let _cachedLiveSessions   = [];
 let _selectedSavedConvId  = null;
 let _liveSelectedByClick  = false;
 let _liveNotifReady       = false;
+let _convNotifReady       = false;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -63,4 +64,12 @@ function setLiveSelectedByClick(v) {
  */
 function setLiveNotifReady(v) {
   _liveNotifReady = !!v;
+}
+
+/**
+ * 저장된 상담 알림 시스템 준비 완료 플래그
+ * (초기 로딩 완료 후 새 저장 상담 등장 시에만 알림 발생)
+ */
+function setConvNotifReady(v) {
+  _convNotifReady = !!v;
 }
