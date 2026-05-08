@@ -8,7 +8,7 @@ require('dotenv').config(); // .env 파일 로드
 
 const express   = require('express');
 const cors      = require('cors');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { Client: NotionClient } = require('@notionhq/client');
@@ -69,7 +69,7 @@ app.use(express.json());
 const chatRateLimit = rateLimit({
   windowMs: 60 * 1000,   // 1분
   max: 10,               // 최대 10회
-  keyGenerator: (req) => req.ip,
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     console.warn(`🚫 Rate limit 초과: ${req.ip}`);
     res.status(429).json({
@@ -319,7 +319,7 @@ async function upsertConversation(sess) {
 
     await supabase.from(table).upsert(payload, { onConflict: 'session_id' });
   } catch (err) {
-    console.error('실시간 저장 오류:', err.message);
+    console.error(`[FAIL_UPSERT] session=${sess.id} msgCount=${sess.messages.length} err=${err.message}`);
   }
 }
 
@@ -824,8 +824,8 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         }
       }
       upsertConversation(sess).catch(e => {
-        console.error('syncOnly 저장 실패:', e.message);
-        setTimeout(() => upsertConversation(sess).catch(e2 => console.error('syncOnly 재시도 실패:', e2.message)), 2000);
+        console.error(`[FAIL_SYNC_1] session=${sess.id} err=${e.message}`);
+        setTimeout(() => upsertConversation(sess).catch(e2 => console.error(`[FAIL_SYNC_2] session=${sess.id} err=${e2.message}`)), 2000);
       });
       return res.json({ ok: true, synced: messages.length });
     }
@@ -902,8 +902,8 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       }
 
       upsertConversation(sess).catch(e => {
-        console.error('실시간 저장 실패:', e.message);
-        setTimeout(() => upsertConversation(sess).catch(e2 => console.error('실시간 저장 재시도 실패:', e2.message)), 2000);
+        console.error(`[FAIL_AI_SAVE_1] session=${sess.id} err=${e.message}`);
+        setTimeout(() => upsertConversation(sess).catch(e2 => console.error(`[FAIL_AI_SAVE_2] session=${sess.id} err=${e2.message}`)), 2000);
       });
       autoRegisterQuote(sess, reply).catch(e => console.error('견적 자동 등록 실패:', e.message));
     }
