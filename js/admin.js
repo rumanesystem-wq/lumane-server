@@ -1149,7 +1149,6 @@ let _notifiedMsgCounts = {};
 
 function notifyNewSession(sess) {
   if (Notification.permission !== 'granted') return;
-  if (document.visibilityState === 'visible') return; // 탭이 활성화 중이면 알림 불필요
   new Notification('💬 새 상담 연결', {
     body: `${sess.customerName || '고객'}님이 상담을 시작했습니다`,
     icon: '/favicon.ico',
@@ -1158,7 +1157,6 @@ function notifyNewSession(sess) {
 
 function notifyNewMessage(sess) {
   if (Notification.permission !== 'granted') return;
-  if (document.visibilityState === 'visible') return;
   new Notification('📩 새 메시지', {
     body: `${sess.customerName || '고객'}: 새 메시지가 도착했습니다`,
     icon: '/favicon.ico',

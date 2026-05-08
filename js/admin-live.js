@@ -166,6 +166,7 @@ function startBgPolling() {
       if (countEl) countEl.textContent  = count + '개 세션';
       // 대시보드도 업데이트
       _checkLiveNotifications(sessions);
+      if (typeof window._checkNotifications === 'function') window._checkNotifications(sessions);
       renderDashboardSessions(sessions);
       const dashDot   = document.getElementById('dashDot');
       const dashCount = document.getElementById('dashCount');
@@ -207,6 +208,7 @@ function stopLivePolling() {
   liveSelectedId       = null;
   _selectedSavedConvId = null;
   liveAdminMode        = false;
+  _liveSelectedByClick = false;
   startBgPolling(); // 탭 이탈 후에도 알림 뱃지 유지
 }
 
@@ -291,7 +293,7 @@ function renderLiveSessionList(sessions) {
     const msgCount   = s.messageCount ?? 0;
     return `
       <div data-session-id="${escAttr(s.id)}"
-        onclick="markSessionSeen('${escAttr(s.id)}');selectLiveSession('${escAttr(s.id)}')"
+        onclick="selectLiveSession('${escAttr(s.id)}',true)"
         style="padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:6px;
           border:2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'};
           background:${isSelected ? '#faf5ff' : '#fff'};transition:all .15s;">
@@ -638,7 +640,7 @@ window.handleNotifClick = function(id) {
     if (typeof openHistoryDetail === 'function') openHistoryDetail(notif.targetId);
   } else {
     switchTab('live');
-    setTimeout(() => selectLiveSession(notif.targetId), 100);
+    setTimeout(() => selectLiveSession(notif.targetId, true), 100);
   }
 };
 
@@ -674,7 +676,7 @@ function renderDashboardSessions(sessions) {
         _resetSessions.delete(sessionId);
         markSessionSeen(sessionId);
         switchTab('live');
-        setTimeout(() => selectLiveSession(sessionId), 100);
+        setTimeout(() => selectLiveSession(sessionId, true), 100);
       } else if (convCard) {
         const convId = convCard.dataset.convId;
         // 저장 상담도 message_count 포함해서 저장 (0 저장 방지)
@@ -899,12 +901,16 @@ function renderDashboardSessions(sessions) {
 
 /**
  * 세션 선택 — 오른쪽 채팅 패널에 표시
+ * byClick=true: 사용자가 명시적으로 카드 클릭 (읽음 처리)
+ * byClick=false: 자동 선택 (읽음 처리 안 함, 빨간 NEW 유지)
  */
-async function selectLiveSession(sessionId) {
+let _liveSelectedByClick = false;
+async function selectLiveSession(sessionId, byClick = false) {
   clearInterval(liveMsgPollTimer);
   liveMsgPollTimer = null;
   liveSelectedId = sessionId;
-  markSessionSeen(sessionId);
+  _liveSelectedByClick = byClick;
+  if (byClick) markSessionSeen(sessionId);
 
   await fetchLiveSessionMsgs();
 
@@ -1024,8 +1030,11 @@ async function fetchLiveSessionMsgs() {
     if (!res.ok) return;
     const data = await res.json();
     // 실시간으로 열람 중인 세션은 항상 읽음 처리 (카톡처럼 보는 중에는 배지 안 뜸)
-    const sessData = _cachedLiveSessions.find(s => String(s.id) === String(liveSelectedId));
-    if (sessData) _saveSeenCount(String(liveSelectedId), sessData.messageCount ?? 0);
+    // 사용자가 직접 클릭한 세션만 자동 읽음 (자동 선택은 빨간 NEW 유지)
+    if (_liveSelectedByClick) {
+      const sessData = _cachedLiveSessions.find(s => String(s.id) === String(liveSelectedId));
+      if (sessData) _saveSeenCount(String(liveSelectedId), sessData.messageCount ?? 0);
+    }
     renderLiveChatPanel(data.session);
   } catch { /* 무시 */ }
 }
