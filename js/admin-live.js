@@ -1788,7 +1788,6 @@ async function sendAdminMsg() {
  * admin 입력창 Ctrl+V 이미지 붙여넣기 → 칩 방식
  */
 /* ── 타이핑 상태 전송 ── */
-let _typingTimer = null;
 function sendAdminTyping(isTyping) {
   if (!liveSelectedId) return;
   fetch(`${SERVER}/api/admin/typing`, {
@@ -1807,7 +1806,7 @@ function initAdminPaste() {
     // 타이핑 중 → true 전송, 2초 뒤 멈추면 false
     sendAdminTyping(true);
     clearTimeout(_typingTimer);
-    _typingTimer = setTimeout(() => sendAdminTyping(false), 2000);
+    setTypingTimer(setTimeout(() => sendAdminTyping(false), 2000));
   });
 
   input.addEventListener('paste', (e) => {
@@ -1821,10 +1820,8 @@ function initAdminPaste() {
 }
 
 /* ── admin 답장 바 ── */
-let _adminReplyContent = null;
-
 function showAdminReplyBar(role, content) {
-  _adminReplyContent = content;
+  setAdminReplyContent(content);
   const bar     = document.getElementById('adminReplyBar');
   const label   = document.getElementById('adminReplyLabel');
   const preview = document.getElementById('adminReplyPreview');
@@ -1837,7 +1834,7 @@ function showAdminReplyBar(role, content) {
 }
 
 function clearAdminReplyBar() {
-  _adminReplyContent = null;
+  setAdminReplyContent(null);
   const bar = document.getElementById('adminReplyBar');
   if (bar) bar.style.display = 'none';
 }
@@ -1955,10 +1952,8 @@ function escAdminReg(str) {
 }
 
 /* ── admin 메시지 우클릭 컨텍스트 메뉴 ── */
-let _adminCtxMenu = null;
-
 function closeAdminCtxMenu() {
-  if (_adminCtxMenu) { _adminCtxMenu.remove(); _adminCtxMenu = null; }
+  if (_adminCtxMenu) { _adminCtxMenu.remove(); setAdminCtxMenu(null); }
   document.removeEventListener('click', closeAdminCtxMenu, { once: true });
   document.removeEventListener('contextmenu', closeAdminCtxMenu, { once: true });
 }
@@ -2012,7 +2007,7 @@ function showAdminCtxMenu(x, y, role, content) {
     }
   });
 
-  _adminCtxMenu = menu;
+  setAdminCtxMenu(menu);
   setTimeout(() => {
     document.addEventListener('click', closeAdminCtxMenu, { once: true });
     document.addEventListener('contextmenu', closeAdminCtxMenu, { once: true });

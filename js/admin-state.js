@@ -22,6 +22,9 @@ let _liveNotifReady       = false;
 let _convNotifReady       = false;
 let _unreadOnlyMode       = false;
 let _notifSeq             = 0;
+let _typingTimer          = null;
+let _adminReplyContent    = null;
+let _adminCtxMenu         = null;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -90,4 +93,25 @@ function setUnreadOnlyMode(v) {
  */
 function incNotifSeq() {
   return _notifSeq++;
+}
+
+/**
+ * 타이핑 상태 전송 디바운스 타이머
+ */
+function setTypingTimer(t) {
+  _typingTimer = t;
+}
+
+/**
+ * 어드민 답장 바 컨텍스트 (답장 대상 메시지 본문)
+ */
+function setAdminReplyContent(content) {
+  _adminReplyContent = content;
+}
+
+/**
+ * 어드민 메시지 우클릭 컨텍스트 메뉴 DOM 참조
+ */
+function setAdminCtxMenu(menu) {
+  _adminCtxMenu = menu;
 }
