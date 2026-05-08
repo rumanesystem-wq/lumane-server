@@ -40,14 +40,14 @@ async function checkHistoryCount() {
 
 function goToUnreadHistory() {
   switchTab('dashboard');
-  _unreadOnlyMode = true; // 항상 ON 고정. 끄기는 배너 [전체 보기] 버튼으로만.
+  setUnreadOnlyMode(true); // 항상 ON 고정. 끄기는 배너 [전체 보기] 버튼으로만.
   renderDashboardSessions(_cachedLiveSessions);
   setTimeout(() => {
     document.getElementById('dashboardSessionList')?.scrollIntoView({ behavior: 'smooth' });
   }, 100);
 }
 function clearUnreadFilter() {
-  _unreadOnlyMode = false;
+  setUnreadOnlyMode(false);
   renderDashboardSessions(_cachedLiveSessions);
 }
 window.clearUnreadFilter = clearUnreadFilter;
@@ -487,9 +487,8 @@ function _formatSizeRaw(raw) {
 }
 
 /* ── 저장된 상담 캐시 ── */
-// _cachedConversations / _cachedLiveSessions / _selectedSavedConvId 는 admin-state.js로 이동됨
-// (setters: setCachedConversations / setCachedLiveSessions / setSelectedSavedConvId)
-let _unreadOnlyMode       = false; // 미확인만 보기 필터
+// _cachedConversations / _cachedLiveSessions / _selectedSavedConvId / _unreadOnlyMode 는 admin-state.js로 이동됨
+// (setters: setCachedConversations / setCachedLiveSessions / setSelectedSavedConvId / setUnreadOnlyMode)
 
 function _refreshDashBadge() {
   // 책갈피(seen-counts) 로드 전에는 카운트 계산 보류 — 잘못된 미확인 표시 방지

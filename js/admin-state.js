@@ -20,6 +20,7 @@ let _selectedSavedConvId  = null;
 let _liveSelectedByClick  = false;
 let _liveNotifReady       = false;
 let _convNotifReady       = false;
+let _unreadOnlyMode       = false;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -72,4 +73,12 @@ function setLiveNotifReady(v) {
  */
 function setConvNotifReady(v) {
   _convNotifReady = !!v;
+}
+
+/**
+ * 미확인만 보기 필터 토글
+ * 켜면 미확인 상담만 보이고, 배너 [전체 보기] 버튼으로 끔
+ */
+function setUnreadOnlyMode(v) {
+  _unreadOnlyMode = !!v;
 }
