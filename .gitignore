@@ -4,3 +4,14 @@ node_modules/
 .claude/
 *.bak
 루마네_프로젝트_대화기록.md
+.gstack/
+백업본/
+.codex/
+.deploy-trigger
+preview_site/
+홍보물제작기_자료/
+code_sandbox_light_*/
+diagram.html
+diagram.png
+업데이트_*.txt
+AGENTS.md
