@@ -21,6 +21,7 @@ let _liveSelectedByClick  = false;
 let _liveNotifReady       = false;
 let _convNotifReady       = false;
 let _unreadOnlyMode       = false;
+let _notifSeq             = 0;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -81,4 +82,12 @@ function setConvNotifReady(v) {
  */
 function setUnreadOnlyMode(v) {
   _unreadOnlyMode = !!v;
+}
+
+/**
+ * 알림 시퀀스 번호 증가 (postfix `_notifSeq++` 대체)
+ * 현재 값 반환 후 1 증가 — 호출처에서 새 알림 ID로 사용
+ */
+function incNotifSeq() {
+  return _notifSeq++;
 }

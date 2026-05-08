@@ -539,7 +539,7 @@ async function fetchDashboardConversations() {
 /* ================================================================
    알림 시스템
 ================================================================ */
-let _notifSeq       = 0;
+// _notifSeq 는 admin-state.js로 이동됨 (helper: incNotifSeq — postfix++ 대체)
 const _notifications = [];
 // _liveNotifReady / _convNotifReady 는 admin-state.js로 이동됨 (setters: setLiveNotifReady, setConvNotifReady)
 
@@ -548,7 +548,7 @@ const _notifiedLiveIds = new Set();
 const _notifiedConvIds = new Set();
 
 function _addNotif(type, title, body, targetId) {
-  _notifications.unshift({ id: String(_notifSeq++), type, title, body, targetId, time: new Date(), read: false });
+  _notifications.unshift({ id: String(incNotifSeq()), type, title, body, targetId, time: new Date(), read: false });
   if (_notifications.length > 50) _notifications.length = 50;
   _renderNotifList();
   _updateBellBadge();
