@@ -18,6 +18,7 @@ let _cachedConversations  = [];
 let _cachedLiveSessions   = [];
 let _selectedSavedConvId  = null;
 let _liveSelectedByClick  = false;
+let _liveNotifReady       = false;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -54,4 +55,12 @@ function setSelectedSavedConvId(v) {
  */
 function setLiveSelectedByClick(v) {
   _liveSelectedByClick = !!v;
+}
+
+/**
+ * 라이브 세션 알림 시스템 준비 완료 플래그
+ * (초기 로딩 완료 후 새 세션 등장 시에만 알림 발생)
+ */
+function setLiveNotifReady(v) {
+  _liveNotifReady = !!v;
 }

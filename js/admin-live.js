@@ -542,7 +542,7 @@ async function fetchDashboardConversations() {
 ================================================================ */
 let _notifSeq       = 0;
 const _notifications = [];
-let _liveNotifReady  = false;
+// _liveNotifReady 는 admin-state.js로 이동됨 (setter: setLiveNotifReady)
 let _convNotifReady  = false;
 
 /* 알림 중복 방지 — 페이지 세션 내 인메모리 (localStorage 오염 방지) */
@@ -612,7 +612,7 @@ function _checkLiveNotifications(sessions) {
     if (adminSeen.has(sid)) return;
     _addNotif('live_start', '새로운 고객님이 오셨습니다 🙋', s.customerName || '고객', s.id);
   });
-  _liveNotifReady = true;
+  setLiveNotifReady(true);
 }
 
 window.toggleNotifPanel = function() {
