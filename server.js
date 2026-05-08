@@ -297,7 +297,9 @@ async function saveConversation(sess, reason) {
     console.log(`💾 대화 저장 완료 (${reason}): ${sess.id.slice(0, 16)}…`);
 
     // Make → Notion 전달 (대화 종료 시에만) — 임시 비활성화
-    /* const MAKE_WEBHOOK = 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
+    // 활성화 시: .env 에 MAKE_WEBHOOK_URL=https://... 추가 후 아래 블록 주석 해제
+    /* const MAKE_WEBHOOK = process.env.MAKE_WEBHOOK_URL;
+    if (!MAKE_WEBHOOK) throw new Error('MAKE_WEBHOOK_URL 환경변수 필요');
     const conversation = sess.messages.map(m =>
       `${m.role === 'user' ? '고객' : '루마네'}: ${(m.content || '').replace(/"/g, "'").replace(/\\/g, '').replace(/[\r\n\t]/g, ' ')}`
     ).join(' | ');
