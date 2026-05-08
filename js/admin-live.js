@@ -806,6 +806,7 @@ function renderDashboardSessions(sessions) {
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
               <div style="display:flex;align-items:center;gap:5px;">
                 <span style="font-size:15px;font-weight:${unread?'700':'600'};color:#111827;">${escAdmin(s.customerName)}</span>
+                ${s.startedAt ? `<span style="font-size:11px;color:#9ca3af;font-weight:500;" title="첫 상담 시각">${new Date(s.startedAt).toLocaleTimeString('ko-KR', { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' })}</span>` : ''}
                 <span style="font-size:11px;padding:1px 6px;border-radius:6px;background:#f3f4f6;color:#4b5563;font-weight:600;">${escAdmin(s.src || '직접방문')}</span>
                 ${s.isTest ? '<span style="font-size:10px;padding:1px 5px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:700;">테스트</span>' : ''}
                 ${!s.isTest && s.isReturning ? '<span style="font-size:10px;padding:1px 5px;border-radius:6px;background:#d1fae5;color:#065f46;font-weight:700;">재방문</span>' : ''}
