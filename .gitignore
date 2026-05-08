@@ -15,3 +15,9 @@ diagram.html
 diagram.png
 업데이트_*.txt
 AGENTS.md
+
+# service_role key 평문 노출 — 절대 git 추적 금지 (.env로 분리해야 안전)
+scripts/migrate-dressroom-images.js
+scripts/migrate-dressroom-storage.js
+scripts/export-dressroom-images.js
+skill/
