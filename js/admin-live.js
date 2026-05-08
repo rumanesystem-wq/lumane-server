@@ -1840,26 +1840,22 @@ function clearAdminReplyBar() {
 }
 
 /* ── admin 채팅 검색 ── */
-let _adminSearchMatches = [];
-let _adminSearchIdx     = -1;
-let _adminSearchOpen    = false;
-
 function toggleAdminSearch() {
   _adminSearchOpen ? closeAdminSearch() : openAdminSearch();
 }
 
 function openAdminSearch() {
-  _adminSearchOpen = true;
+  setAdminSearchOpen(true);
   const bar = document.getElementById('adminSearchBar');
   if (bar) { bar.style.display = 'flex'; }
   document.getElementById('adminSearchInput')?.focus();
 }
 
 function closeAdminSearch() {
-  _adminSearchOpen = false;
+  setAdminSearchOpen(false);
   clearAdminSearchHighlights();
-  _adminSearchMatches = [];
-  _adminSearchIdx = -1;
+  setAdminSearchMatches([]);
+  setAdminSearchIdx(-1);
   const bar = document.getElementById('adminSearchBar');
   if (bar) bar.style.display = 'none';
   const inp = document.getElementById('adminSearchInput');
@@ -1885,8 +1881,8 @@ function initAdminSearch() {
 
 function runAdminSearch(query) {
   clearAdminSearchHighlights();
-  _adminSearchMatches = [];
-  _adminSearchIdx = -1;
+  setAdminSearchMatches([]);
+  setAdminSearchIdx(-1);
   if (!query) { updateAdminSearchCount(0, 0); return; }
   const bubbles = document.querySelectorAll('#liveMsgs [data-role]');
   const lq = query.toLowerCase();
@@ -1920,13 +1916,13 @@ function runAdminSearch(query) {
     bubble.querySelectorAll('.admin-search-hl').forEach(m => _adminSearchMatches.push(m));
   });
   updateAdminSearchCount(_adminSearchMatches.length > 0 ? 1 : 0, _adminSearchMatches.length);
-  if (_adminSearchMatches.length > 0) { _adminSearchIdx = 0; scrollToAdminMatch(0); }
+  if (_adminSearchMatches.length > 0) { setAdminSearchIdx(0); scrollToAdminMatch(0); }
 }
 
 function stepAdminSearch(dir) {
   if (!_adminSearchMatches.length) return;
   _adminSearchMatches[_adminSearchIdx]?.classList.remove('admin-search-hl-active');
-  _adminSearchIdx = (_adminSearchIdx + dir + _adminSearchMatches.length) % _adminSearchMatches.length;
+  setAdminSearchIdx((_adminSearchIdx + dir + _adminSearchMatches.length) % _adminSearchMatches.length);
   _adminSearchMatches[_adminSearchIdx]?.classList.add('admin-search-hl-active');
   scrollToAdminMatch(_adminSearchIdx);
   updateAdminSearchCount(_adminSearchIdx + 1, _adminSearchMatches.length);

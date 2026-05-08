@@ -25,6 +25,9 @@ let _notifSeq             = 0;
 let _typingTimer          = null;
 let _adminReplyContent    = null;
 let _adminCtxMenu         = null;
+let _adminSearchMatches   = [];
+let _adminSearchIdx       = -1;
+let _adminSearchOpen      = false;
 
 /**
  * 읽음 카운트 적재 완료 플래그 갱신
@@ -114,4 +117,26 @@ function setAdminReplyContent(content) {
  */
 function setAdminCtxMenu(menu) {
   _adminCtxMenu = menu;
+}
+
+/**
+ * 어드민 검색: 매치된 노드 배열 (재할당용 setter)
+ * 배열 내부 변경(push/splice 등)은 직접 _adminSearchMatches 사용 가능
+ */
+function setAdminSearchMatches(arr) {
+  _adminSearchMatches = Array.isArray(arr) ? arr : [];
+}
+
+/**
+ * 어드민 검색: 현재 매치 인덱스 (-1 = 매치 없음/리셋)
+ */
+function setAdminSearchIdx(idx) {
+  _adminSearchIdx = Number.isFinite(idx) ? idx : -1;
+}
+
+/**
+ * 어드민 검색 바 열림 상태
+ */
+function setAdminSearchOpen(v) {
+  _adminSearchOpen = !!v;
 }
