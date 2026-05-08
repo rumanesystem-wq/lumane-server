@@ -168,47 +168,7 @@ function getOrCreateSession(sessionId) {
 }
 
 // ── 대화 내용 Supabase 저장 ─────────────────────────────────
-const OPT_PRICES = [
-  { re: /이불긴장/,                                        price: 350000 },
-  { re: /이불장/,                                          price: 200000 },
-  { re: /화장대/,                                          price: 250000 },
-  { re: /아일랜드장.{0,5}손잡이|손잡이.{0,5}아일랜드장/,  price: 219000 },
-  { re: /아일랜드장/,                                      price: 169000 },
-  { re: /거울장/,                                          price: 169000 },
-  { re: /4단\s*서랍/,                                      price: 160000 },
-  { re: /3단\s*서랍/,                                      price: 119000 },
-  { re: /2단\s*서랍/,                                      price:  99000 },
-  { re: /서랍(?!장)/,                                      price:  99000 },
-  { re: /바지걸이/,                                        price: 138000 },
-  { re: /디바이더/,                                        price:  69000 },
-  { re: /7단\s*코너/,                                      price: 120000 },
-  { re: /6단\s*코너/,                                      price:  90000 },
-  { re: /5단\s*코너/,                                      price:  60000 },
-  { re: /7단\s*선반/,                                      price:  80000 },
-  { re: /6단\s*선반/,                                      price:  60000 },
-  { re: /5단\s*선반/,                                      price:  40000 },
-];
-
-function calcEstimatedPrice(sizeRaw, layout, optRaw) {
-  const nums = (sizeRaw || '').replace(/[×xX×]/g, ' ').match(/\d{3,4}/g) || [];
-  const w = parseInt(nums[0] || '0', 10);
-  const d = parseInt(nums[1] || '0', 10);
-  let totalMm = 0;
-  if (w > 0) {
-    if (/ㄷ|U자|U형/.test(layout))      totalMm = w + d * 2;
-    else if (/ㄱ|L자|L형/.test(layout)) totalMm = w + d;
-    else if (/ㅁ|사방/.test(layout))    totalMm = (w + d) * 2;
-    else                                totalMm = w;
-  }
-  const hangerPrice = Math.ceil(totalMm / 100) * 10000;
-  let optTotal = 0;
-  if (optRaw && !/없어요|없음|없습|아니오|아니요/i.test(optRaw)) {
-    for (const o of OPT_PRICES) {
-      if (o.re.test(optRaw)) { optTotal += o.price; break; }
-    }
-  }
-  return hangerPrice + optTotal;
-}
+// (삭제: OPT_PRICES + calcEstimatedPrice — 호출처 0건, parseOrderSheet가 본문 텍스트에서 직접 가격 파싱)
 
 function parseOrderSheet(text) {
   const get = (re) => { const m = text.match(re); return m ? m[1].trim() : null; };
@@ -1337,41 +1297,7 @@ app.get('/api/admin/conversations/:id', async (req, res) => {
   }
 });
 
-// ── 어드민: Notion 재전송 ─────────────────────────────────────
-app.post('/api/admin/conversations/:id/resend-notion', async (req, res) => {
-  try {
-    const { data: c, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
-    if (error) throw error;
-    const MAKE_WEBHOOK = process.env.MAKE_WEBHOOK_URL || 'https://hook.eu1.make.com/xalfs9y2jj2doxoikl3se5j3j3jve8f0';
-    if (!process.env.MAKE_WEBHOOK_URL) {
-      console.warn('⚠️ MAKE_WEBHOOK_URL 환경변수 미설정 — 코드에 박힌 기본값 사용 중. .env에 추가 권장.');
-    }
-    const msgs = Array.isArray(c.messages) ? c.messages : [];
-    const conversation = msgs.map(m =>
-      `${m.role === 'user' ? '고객' : '루마네'}: ${(m.content || '').replace(/"/g, "'").replace(/\\/g, '').replace(/[\r\n\t]/g, ' ')}`
-    ).join(' | ');
-    const wr = await fetch(MAKE_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: c.session_id, save_reason: c.save_reason,
-        customer_name: c.customer_name, phone: c.phone, region: c.region,
-        size_raw: c.size_raw, layout: c.layout, options_text: c.options_text,
-        frame_color: c.frame_color, shelf_color: c.shelf_color, memo: c.memo,
-        estimated_price: c.estimated_price, message_count: c.message_count,
-        saved_at: c.saved_at, conversation,
-      }),
-    });
-    if (!wr.ok) throw new Error('웹훅 전송 실패');
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// (삭제: /api/admin/conversations/:id/resend-notion — 어드민 UI에서 Notion 재전송 버튼 제거 후 잔재, 클라이언트 호출처 0건)
 
 // ── 어드민: 저장된 상담 삭제 ─────────────────────────────────
 app.delete('/api/admin/conversations/:id', requireAdmin, async (req, res) => {
@@ -1430,62 +1356,7 @@ app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req
   }
 });
 
-// ── 어드민: 저장된 상담 Claude 재파싱 ──────────────────────────
-app.post('/api/admin/conversations/:id/reparse', async (req, res) => {
-  try {
-    const { data: c, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
-    if (error) throw error;
-
-    const msgs = Array.isArray(c.messages) ? c.messages : [];
-    if (msgs.length === 0) return res.status(400).json({ error: '메시지 없음' });
-
-    const conversation = msgs.map(m =>
-      `${m.role === 'user' ? '고객' : '루마네'}: ${m.content || ''}`
-    ).join('\n');
-
-    const aiRes = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      system: '너는 드레스룸 시공 상담 요약 전문가야. 상담 대화에서 아래 항목을 추출해서 반드시 JSON 형식으로만 답변해. 모르면 null로 표기해. 마크다운 코드블록(```)을 절대 사용하지 말고 순수 JSON만 반환해.\n\n추출 항목: name, phone, region, layout, size_raw, frame_color, shelf_color, options_text, estimated_price, memo\n\n규칙:\n1. size_raw는 좌측/정면/우측 치수 문자열.\n2. estimated_price는 총 합계 금액(숫자만, 없으면 null).\n3. memo는 특이사항 한 줄.',
-      messages: [{ role: 'user', content: conversation }],
-    });
-
-    let parsed = {};
-    try {
-      parsed = JSON.parse(aiRes.content[0].text);
-    } catch {
-      return res.status(500).json({ error: 'Claude 응답 파싱 실패', raw: aiRes.content[0].text });
-    }
-
-    const updates = {};
-    if (parsed.name)           updates.customer_name   = parsed.name;
-    if (parsed.phone)          updates.phone           = parsed.phone;
-    if (parsed.region)         updates.region          = parsed.region;
-    if (parsed.layout)         updates.layout          = parsed.layout;
-    if (parsed.size_raw)       updates.size_raw        = parsed.size_raw;
-    if (parsed.frame_color)    updates.frame_color     = parsed.frame_color;
-    if (parsed.shelf_color)    updates.shelf_color     = parsed.shelf_color;
-    if (parsed.options_text)   updates.options_text    = parsed.options_text;
-    if (parsed.estimated_price) updates.estimated_price = parseInt(String(parsed.estimated_price).replace(/,/g, '')) || null;
-    if (parsed.memo)           updates.memo            = parsed.memo;
-
-    if (Object.keys(updates).length > 0) {
-      const { error: upErr } = await supabase
-        .from('conversations')
-        .update(updates)
-        .eq('id', req.params.id);
-      if (upErr) throw upErr;
-    }
-
-    res.json({ ok: true, updated: updates });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// (삭제: /api/admin/conversations/:id/reparse — 어드민 UI에서 재파싱 버튼 제거 후 잔재, 클라이언트 호출처 0건)
 
 // ── 어드민: 대화 수동 저장 ────────────────────────────────────
 app.post('/api/admin/save-conversation', async (req, res) => {
