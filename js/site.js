@@ -56,6 +56,81 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ── 유입 경로 추적 → /chat 링크에 ?src= 자동 부착 ──────────
+// (인스타 → 랜딩 → /chat 흐름에서 referrer 손실 방지)
+(function trackEntrySource() {
+  const SRC_KEY = '루마네_유입소스';
+
+  // 1. referrer URL → src 라벨 매핑
+  function detectSrcFromReferrer() {
+    const ref = (document.referrer || '').toLowerCase();
+    if (!ref) return 'direct';
+    if (ref.includes('instagram.com'))               return 'instagram';
+    if (ref.includes('facebook.com') || ref.includes('fb.com')) return 'facebook';
+    if (ref.includes('google.'))                     return 'google';
+    if (ref.includes('naver.com'))                   return 'naver';
+    if (ref.includes('daum.net') || ref.includes('kakao')) return 'kakao';
+    if (ref.includes('youtube.com'))                 return 'youtube';
+    if (ref.includes('tiktok.com'))                  return 'tiktok';
+    try {
+      const host = new URL(document.referrer).hostname;
+      // 같은 도메인 내부 이동은 'direct' 아닌 'internal' 처리
+      if (host === location.hostname) return 'internal';
+      return host.replace(/^www\./, '').slice(0, 50);
+    } catch { return 'direct'; }
+  }
+
+  // 2. 우선순위: URL ?src= → localStorage 저장값 → referrer 추정
+  // 영문·숫자·_·- 만 허용 (어드민 표시 시 XSS·이상 문자 방지)
+  const sanitize = (v) => (v || '').trim().replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 50);
+  const qs    = new URLSearchParams(location.search);
+  const qSrc  = sanitize(qs.get('src'));
+  const qSrc2 = sanitize(qs.get('src2'));
+
+  let src = '', src2 = '';
+  if (qSrc) {
+    src = qSrc; src2 = qSrc2;
+  } else {
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem(SRC_KEY) || '{}'); } catch {}
+    if (stored.src) {
+      // internal 재방문은 덮어쓰지 않음 — 최초 외부 유입 유지
+      src = stored.src; src2 = stored.src2 || '';
+    } else {
+      src = detectSrcFromReferrer();
+      src2 = '';
+    }
+  }
+
+  // 3. localStorage에 저장 (재방문·하위 페이지 이동 시 유지)
+  if (src && src !== 'internal') {
+    try { localStorage.setItem(SRC_KEY, JSON.stringify({ src, src2 })); } catch {}
+  }
+
+  // 4. 페이지의 모든 /chat 링크에 ?src=... 자동 부착
+  function attachSrcToChatLinks() {
+    if (!src || src === 'internal') return;  // internal 라벨은 어드민에 노출시키지 않음
+    document.querySelectorAll('a[href]').forEach(a => {
+      const href = a.getAttribute('href') || '';
+      // /chat 또는 /chat.html 또는 https://lumane-server.onrender.com/chat 형태
+      if (!/(^|\/)chat(\.html)?(\?|$|#)|onrender\.com\/chat/.test(href)) return;
+      try {
+        const u = new URL(href, location.origin);
+        if (!u.searchParams.has('src')) u.searchParams.set('src', src);
+        if (src2 && !u.searchParams.has('src2')) u.searchParams.set('src2', src2);
+        // 절대/상대 형태 보존
+        a.setAttribute('href', href.startsWith('http') ? u.toString() : u.pathname + u.search + u.hash);
+      } catch {}
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachSrcToChatLinks);
+  } else {
+    attachSrcToChatLinks();
+  }
+})();
+
 // ── 채팅 임베드 → 견적 폼 자동 채우기 ──────────
 function setVal(id, val) {
   const el = document.getElementById(id);
