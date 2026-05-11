@@ -1334,6 +1334,28 @@ app.delete('/api/admin/conversations/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// ── 어드민: 라이브 세션 즉시 삭제 (메모리 + DB 양쪽) ──────────
+app.delete('/api/admin/sessions/:sessionId', requireAdmin, async (req, res) => {
+  const sessionId = req.params.sessionId;
+  if (!sessionId) return res.status(400).json({ error: 'sessionId 필요' });
+  try {
+    // 메모리 세션 제거
+    const existed = sessions.delete(sessionId);
+    // DB 저장 행도 함께 제거 (두 테이블 병렬, 한쪽 실패해도 다른 쪽 진행)
+    const [r1, r2] = await Promise.allSettled([
+      supabase.from('conversations').delete().eq('session_id', sessionId),
+      supabase.from('test_conversations').delete().eq('session_id', sessionId),
+    ]);
+    if (r1.status === 'rejected' || r1.value?.error) console.warn('conversations 삭제 경고:', r1.reason?.message || r1.value?.error?.message);
+    if (r2.status === 'rejected' || r2.value?.error) console.warn('test_conversations 삭제 경고:', r2.reason?.message || r2.value?.error?.message);
+    console.log(`🗑 라이브 세션 삭제: ${sessionId} (memory=${existed})`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('라이브 세션 삭제 오류:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 어드민: 대화 → 견적접수 등록 ─────────────────────────────
 app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req, res) => {
   try {

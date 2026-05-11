@@ -132,6 +132,28 @@ async function deleteSavedConvFromDash(id, ev) {
 }
 window.deleteSavedConvFromDash = deleteSavedConvFromDash;
 
+/* ── 대시보드에서 라이브(진행 중) 세션 즉시 삭제 (테스트 정리용) ── */
+async function deleteLiveSessionFromDash(sessionId, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  if (!sessionId) return;
+  if (!confirm('이 진행 중인 대화를 삭제하시겠습니까? 메모리·DB 모두에서 제거됩니다.')) return;
+  try {
+    const res = await fetch(`${SERVER}/api/admin/sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE', headers: adminHeaders(),
+    });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.status); }
+    // 캐시에서 즉시 제거 + 재렌더
+    setCachedLiveSessions(_cachedLiveSessions.filter(s => String(s.id) !== String(sessionId)));
+    setCachedConversations(_cachedConversations.filter(c => String(c.session_id) !== String(sessionId)));
+    renderDashboardSessions(_cachedLiveSessions);
+    if (typeof showToast === 'function') showToast('진행 중 대화가 삭제됐습니다.', 'success');
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(`삭제 실패: ${err.message}`, 'error');
+    else alert(`삭제 실패: ${err.message}`);
+  }
+}
+window.deleteLiveSessionFromDash = deleteLiveSessionFromDash;
+
 /* ── options_text 파싱 ("기본행거 66cm: 70,000원 / 이불장: 200,000원" → 배열) ── */
 function _parseOptionsItems(optText) {
   if (!optText) return [];
@@ -356,6 +378,11 @@ function renderDashboardSessions(sessions) {
               ${unreadCount > 0 ? `<span style="flex-shrink:0;margin-left:6px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center;">${unreadCount}</span>` : ''}
             </div>
           </div>
+          <button type="button" title="진행 중 대화 삭제 (테스트 정리)"
+            onclick="deleteLiveSessionFromDash('${escAttr(s.id)}', event)"
+            style="flex-shrink:0;background:transparent;border:none;color:#9ca3af;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;"
+            onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626'"
+            onmouseout="this.style.background='transparent';this.style.color='#9ca3af'">🗑</button>
         </div>`;
     } else {
       const c      = item.data;
