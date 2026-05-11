@@ -933,10 +933,21 @@ app.post('/api/session/register', async (req, res) => {
 });
 
 // ── 어드민: 유입 소스 통계 ────────────────────────────────
+const _sourceStatsCache = new Map(); // period -> { payload, expiresAt }
+const SOURCE_STATS_TTL = 60 * 1000;  // 60초
+
 app.get('/api/admin/source-stats', async (req, res) => {
   const VALID_PERIODS = ['today', 'week', 'month', 'all'];
   const period = VALID_PERIODS.includes(req.query.period) ? req.query.period : 'today';
-  let query = supabase.from('visitor_logs').select('src, src2, session_id, visited_date');
+
+  // 메모리 캐시 히트 시 즉시 반환
+  const cached = _sourceStatsCache.get(period);
+  if (cached && cached.expiresAt > Date.now()) {
+    return res.json(cached.payload);
+  }
+
+  // 필요한 컬럼만 + 최대 10000행 safety limit
+  let query = supabase.from('visitor_logs').select('src, visited_date').limit(10000);
   const today = new Date().toISOString().slice(0, 10);
   if (period === 'today') {
     query = query.eq('visited_date', today);
@@ -945,6 +956,10 @@ app.get('/api/admin/source-stats', async (req, res) => {
     query = query.gte('visited_date', d.toISOString().slice(0, 10));
   } else if (period === 'month') {
     const d = new Date(); d.setMonth(d.getMonth() - 1);
+    query = query.gte('visited_date', d.toISOString().slice(0, 10));
+  } else if (period === 'all') {
+    // all도 최근 90일로 제한 (오래된 데이터 누적 시 무한정 커지지 않게)
+    const d = new Date(); d.setDate(d.getDate() - 90);
     query = query.gte('visited_date', d.toISOString().slice(0, 10));
   }
   try {
@@ -958,7 +973,9 @@ app.get('/api/admin/source-stats', async (req, res) => {
     const list = Object.entries(counts)
       .map(([src, count]) => ({ src, count }))
       .sort((a, b) => b.count - a.count);
-    res.json({ period, total: (data || []).length, counts: list });
+    const payload = { period, total: (data || []).length, counts: list };
+    _sourceStatsCache.set(period, { payload, expiresAt: Date.now() + SOURCE_STATS_TTL });
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
