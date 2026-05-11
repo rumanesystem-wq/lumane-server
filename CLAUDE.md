@@ -18,6 +18,77 @@ Claude Code는 **빠르게 작업하되, 위험한 수정은 반드시 멈추고
 
 ---
 
+## 0-1. 멀티 탭 + 배포 분리 규칙 (2026-05-08 추가)
+
+이 프로젝트는 여러 Claude Code 작업 탭을 동시에 사용한다. 탭별 역할은 고정하지 않지만 **배포 권한은 탭에 따라 다르다.**
+
+### 작업 탭 (3번, 4번, 5번 등 일반 작업 탭)
+- 작업과 푸시는 **dev 서버(Render)** 에만 — `git push`로 자동 배포
+- **cloudtype(운영) 폴더 절대 건드리지 말 것** (기존 규칙 유지)
+- 사용자가 "양쪽 다 배포" 같이 말해도 → **dev만 처리**, 운영 배포는 메인(배포몬) 탭에서 진행해 달라고 안내
+- "운영 배포해" / "cloudtype 배포해" 명령 받으면 → **거부하고 메인 탭에서 진행 안내**
+
+### 메인 탭 (배포몬)
+- 운영(cloudtype) 배포 전담 탭
+- 사용자가 **"운영 배포해"** 등 명시 명령할 때만 cloudtype 처리
+- 운영 배포 시간대는 **사용자가 직접 판단해서 명령**한다 (Claude는 시간 자동 검증 X)
+
+### 메인 탭 운영 배포 워크플로우 (필수 단계)
+
+사용자가 운영 배포 명령 시 아래 순서를 반드시 따른다:
+
+**1단계 — dev 최신 동기화**
+```
+git -C "시스템행거 AI 루마네" pull
+```
+
+**2단계 — 마지막 운영 배포 이후 변경 내역 추출**
+- 기준점: cloudtype 리포의 `last-prod-deploy` 태그 (없으면 사용자에게 기준 시점 확인)
+- dev 리포에서 그 시점 이후 커밋 추출
+```
+git -C "시스템행거 AI 루마네" log [기준]..HEAD --oneline
+```
+
+**3단계 — 한국어 변경 요약 보고**
+사용자에게 다음 형식으로 보고:
+```
+지난 운영 배포 이후 dev에 푸시된 작업:
+- [커밋해시] [한국어 요약 — 어느 파일 어떤 변경]
+- ...
+
+영향받는 파일:
+- 시스템행거 AI 루마네/server.js (line X-Y 추가)
+- 시스템행거 AI 루마네/js/admin-live.js (수정)
+- ...
+
+cloudtype에 동기화하고 푸시할까요?
+```
+
+**4단계 — 사용자 확인 후 동기화**
+- 변경된 파일만 cp (전체 덮어쓰기 X)
+- cloudtype 전용 라인 보존 필수:
+  - server.js: `{ db: { schema: process.env.DB_SCHEMA || 'public' } }`
+  - server.js: `const PORT = process.env.PORT || 3001;`
+  - 그 외 cloudtype-specific 라인이 있으면 신중히 머지
+
+**5단계 — cloudtype 커밋·푸시**
+```
+git -C "lumane-cloudtype" add [변경 파일]
+git -C "lumane-cloudtype" commit -m "..."
+git -C "lumane-cloudtype" push
+```
+
+**6단계 — 배포 시점 태깅 (양쪽)**
+- cloudtype에 `last-prod-deploy` 태그 갱신 (다음 배포 기준점):
+```
+git -C "lumane-cloudtype" tag -f last-prod-deploy
+git -C "lumane-cloudtype" push -f origin last-prod-deploy
+```
+
+이 태그가 다음 운영 배포 시 변경 내역 추출 기준이 된다.
+
+---
+
 ## 1. 작업 시작 전 규칙
 
 모든 작업을 시작할 때 매번 긴 보고서를 작성하지 않는다.  
@@ -186,7 +257,7 @@ HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.
 
 ## 6. 에이전트 팀 구성
 
-이 프로젝트는 5개의 전문 에이전트로 구성된 팀을 사용합니다.
+이 프로젝트는 6개의 전문 에이전트로 구성된 팀을 사용합니다.
 
 | 에이전트 | 역할 |
 |---------|------|
@@ -195,6 +266,7 @@ HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.
 | `web-security-auditor` | 보안 취약점 검사 |
 | `code-bug-fixer` | 버그 탐지 및 수정 |
 | `frontend-test-validator` | 테스트 검증 |
+| `final-reviewer` | 작업 완료 후 최종 검토 (요청-결과 일치, 규칙 준수, 사용자 관점) |
 
 ---
 
@@ -211,6 +283,7 @@ HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.
 - 보안만 빠르게 확인 → `@web-security-auditor`
 - 버그만 확인 → `@code-bug-fixer`
 - 테스트만 확인 → `@frontend-test-validator`
+- 작업 다 끝났는지 최종 점검 → `@final-reviewer`
 
 ---
 
@@ -272,7 +345,8 @@ C:\Users\kateb\.claude\agents\
 ├── html-css-js-reviewer.md
 ├── web-security-auditor.md
 ├── code-bug-fixer.md
-└── frontend-test-validator.md
+├── frontend-test-validator.md
+└── final-reviewer.md
 ```
 
 ---
