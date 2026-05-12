@@ -684,6 +684,9 @@ function switchTab(tab) {
   } else if (tab === 'tokens') {
     document.getElementById('topbarTitle').textContent = '🪙 토큰 사용량';
     loadTokenStats();
+  } else if (tab === 'trash') {
+    document.getElementById('topbarTitle').textContent = '🗑 휴지통';
+    if (typeof loadTrash === 'function') loadTrash();
   } else if (tab === 'stat-detail') {
     document.getElementById('topbarTitle').textContent = '📊 상담 현황';
   } else if (tab === 'history') {

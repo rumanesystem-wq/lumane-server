@@ -107,6 +107,7 @@
     <button class="tab-btn" id="tab-quotes" onclick="switchTab('quotes')">📋 견적 목록 <span class="new-badge" id="quoteTabBadge" style="display:none;vertical-align:middle;"></span></button>
     <button class="tab-btn" id="tab-live" onclick="switchTab('live')">💬 대화</button>
     <button class="tab-btn" id="tab-tokens" onclick="switchTab('tokens')">🪙 토큰 사용량</button>
+    <button class="tab-btn" id="tab-trash" onclick="switchTab('trash')">🗑 휴지통 <span class="trash-badge" id="trashTabBadge" style="display:none;background:#9ca3af;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;vertical-align:middle;margin-left:2px;"></span></button>
   </div>
 
   <!-- =============================================
@@ -446,6 +447,22 @@
   </div>
 
   <!-- =============================================
+       휴지통 탭
+  ============================================= -->
+  <div class="section" id="section-trash">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:18px;font-weight:700;">🗑 휴지통</div>
+      <button onclick="loadTrash()" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">↻ 새로고침</button>
+    </div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:14px;">
+      삭제된 상담은 여기에 보관됩니다. 복원하면 원래 자리로 돌아가요.
+    </div>
+    <div id="trashListWrap" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+      <div id="trashList" style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">로딩 중…</div>
+    </div>
+  </div>
+
+  <!-- =============================================
        저장된 상담 탭
   ============================================= -->
   <div class="section" id="section-history">
@@ -752,6 +769,7 @@
 <script src="js/admin-live.js"></script>
 <script src="js/admin-modal.js"></script>
 <script src="js/admin-quote.js"></script>
+<script src="js/admin-trash.js"></script>
 <script src="js/admin.js"></script>
 
 </body>
