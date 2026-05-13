@@ -78,14 +78,25 @@
     const iso = getLastBackup();
     if (!iso) {
       lastEl.textContent = '-';
-      infoEl.innerHTML = '아직 백업한 적이 없습니다.';
+      // L1 fix: innerHTML 대신 textContent (XSS safe + 다른 admin 코드 패턴과 일관성)
+      infoEl.textContent = '아직 백업한 적이 없습니다.';
       warnEl.style.display = 'none';
       return;
     }
 
     const formatted = formatKst(iso) || '-';
     const rel = relativeFromNow(iso);
-    infoEl.innerHTML = `마지막 백업: <strong>${formatted}</strong> <span style="color:#6b7280;">(${rel})</span>`;
+    // L1 fix: DOM API로 안전하게 구성
+    infoEl.textContent = '';
+    infoEl.appendChild(document.createTextNode('마지막 백업: '));
+    const strong = document.createElement('strong');
+    strong.textContent = formatted;
+    infoEl.appendChild(strong);
+    infoEl.appendChild(document.createTextNode(' '));
+    const span = document.createElement('span');
+    span.style.color = '#6b7280';
+    span.textContent = '(' + rel + ')';
+    infoEl.appendChild(span);
 
     const days = daysSince(iso);
     if (days >= 7) {
@@ -158,6 +169,7 @@
   }
 
   async function downloadAll() {
+    // M4 fix: fallback 파일명은 ASCII (Safari 호환). Content-Disposition은 서버가 한글로 정확히 보냄.
     await triggerDownload(`${SERVER}/api/admin/export`, 'lumane-backup.zip');
   }
 
@@ -166,7 +178,8 @@
       toast('❌ 지원하지 않는 테이블입니다.', 'error');
       return;
     }
-    await triggerDownload(`${SERVER}/api/admin/export/${encodeURIComponent(table)}`, `${TABLE_LABEL[table]}.csv`);
+    // M4 fix: fallback 파일명은 ASCII table key (Safari 호환). 서버 응답 Content-Disposition에 한글명 들어있음.
+    await triggerDownload(`${SERVER}/api/admin/export/${encodeURIComponent(table)}`, `lumane-${table}.csv`);
   }
 
   // ── 외부 노출 ─────────────────────────────────────────────

@@ -994,8 +994,12 @@ app.post('/api/session/register', async (req, res) => {
     });
   }
   // 재방문 여부 확인 + 직전 견적 요약 추출 (session_id 매칭)
+  // M2 fix: fire-and-forget — 응답 즉시 반환, detect는 백그라운드
+  // (isReturning은 첫 /api/chat 시점까지만 필요 → 그 사이 보통 완료됨)
   if (sess.isReturning === undefined) {
-    await detectReturningCustomer(sess);
+    detectReturningCustomer(sess).catch(err =>
+      console.warn('[detectReturningCustomer bg] session=' + sess.id + ' err=' + err.message)
+    );
   }
   res.json({ ok: true });
 });
@@ -1606,8 +1610,10 @@ function backupRateLimit(req, res, next) {
     return res.status(429).json({ error: '1분에 한 번만 다운로드 가능합니다. 잠시 후 다시 시도해 주세요.' });
   }
   _backupLastTs.set(ip, now);
-  // 메모리 정리 (10분 이상 된 항목 제거)
-  if (_backupLastTs.size > 100) {
+  // M3 fix: 메모리 정리 트리거 완화 — 10개만 넘어도 만료된 항목(10분 이상) 제거
+  //   - 이전: size > 100일 때만 (적은 트래픽 환경에선 영원히 안 비워짐)
+  //   - 이후: size > 10이면 정리 → 소규모 운영에서도 cleanup 작동
+  if (_backupLastTs.size > 10) {
     for (const [k, v] of _backupLastTs.entries()) {
       if (now - v > 600_000) _backupLastTs.delete(k);
     }
@@ -1635,10 +1641,21 @@ function toCsv(rows) {
 }
 
 // 테이블 전체 SELECT (soft-delete 행 포함 — 별도 필터 없이 그대로)
+// L3 fix: Supabase 기본 limit 1000 → 페이지네이션으로 누락 방지 (최대 50,000행 cap)
 async function fetchTableAll(table) {
-  const { data, error } = await supabase.from(table).select('*');
-  if (error) throw new Error(`${table}: ${error.message}`);
-  return data || [];
+  const PAGE = 1000;
+  const MAX_ROWS = 50000;
+  const all = [];
+  for (let offset = 0; offset < MAX_ROWS; offset += PAGE) {
+    const { data, error } = await supabase.from(table)
+      .select('*')
+      .range(offset, offset + PAGE - 1);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE) break; // 마지막 페이지
+  }
+  return all;
 }
 
 // 파일명용 타임스탬프 (YYYY-MM-DD-HHmm, KST)
@@ -2056,21 +2073,21 @@ app.post('/api/summarize', async (req, res) => {
 });
 
 // ── customer 스키마 probe (재방문 감지에 필요한 컬럼 존재 여부) ──
-// conversations 테이블에 customer_name 컬럼이 있는지 1회 확인.
-// 없으면 detectReturningCustomer는 즉시 스킵 (안전 fallback).
+// M1 fix: detectReturningCustomer가 사용하는 모든 컬럼 검증 (session_id, layout, size_raw, frame_color, shelf_color, estimated_price, started_at, deleted_at).
+// 하나라도 없으면 detectReturningCustomer는 즉시 스킵 (안전 fallback).
 let customerSchemaAvailable = false;
 async function probeCustomerSchema() {
   try {
     const { error } = await supabase
       .from('conversations')
-      .select('customer_name', { head: true, count: 'exact' })
+      .select('session_id, layout, size_raw, frame_color, shelf_color, estimated_price, started_at, deleted_at', { head: true, count: 'exact' })
       .limit(1);
     if (error) throw error;
     customerSchemaAvailable = true;
-    console.log('✅ conversations.customer_name 스키마 사용 가능 — 재방문 감지 활성');
+    console.log('✅ conversations 재방문 감지용 컬럼 전부 사용 가능 — 재방문 감지 활성');
   } catch (err) {
     customerSchemaAvailable = false;
-    console.warn('⚠️ conversations.customer_name 스키마 사용 불가 — 재방문 감지 비활성:', err.message);
+    console.warn('⚠️ conversations 재방문 감지용 컬럼 일부 누락 — 재방문 감지 비활성:', err.message);
   }
 }
 
