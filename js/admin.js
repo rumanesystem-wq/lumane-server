@@ -37,6 +37,18 @@ async function loadStats() {
     document.getElementById('statNewToday').textContent = `신규 ${d.newToday ?? '—'}명`;
     document.getElementById('statNewWeek').textContent  = `신규 ${d.newWeek  ?? '—'}명`;
     document.getElementById('statNewMonth').textContent = `신규 ${d.newMonth ?? '—'}명`;
+    // 오늘 방문자 카드 (피드백 반영)
+    const visitorsEl = document.getElementById('statVisitorsToday');
+    const engagedEl  = document.getElementById('statEngagedToday');
+    if (visitorsEl) visitorsEl.textContent = (d.visitorsToday ?? '—') + '명';
+    if (engagedEl) {
+      const v = Number(d.visitorsToday) || 0;
+      const e = Number(d.engagedToday) || 0;
+      const pct = v > 0 ? Math.round((e / v) * 100) : 0;
+      engagedEl.textContent = v > 0
+        ? `그 중 대화: ${e}명 (${pct}%)`
+        : `그 중 대화: ${e}명`;
+    }
   } catch { /* 통계 로드 실패 시 무시 */ }
 }
 
