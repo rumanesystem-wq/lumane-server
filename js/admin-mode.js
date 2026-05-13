@@ -268,7 +268,12 @@ async function sendAdminMsg() {
       const name = file.name && file.name !== 'image.png' ? file.name : `screenshot-${Date.now()}.png`;
       const fd   = new FormData();
       fd.append('file', file, name);
-      const up = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
+      /* H2 fix: 어드민 인증 — Authorization만 부착 (Content-Type은 multipart boundary 자동 설정용으로 비워둠) */
+      const up = await fetch(`${SERVER}/api/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
+        body: fd,
+      });
       if (!up.ok) throw new Error('upload');
       const upData = await up.json();
       if (!upData.success) throw new Error('upload');

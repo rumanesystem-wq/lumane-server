@@ -476,22 +476,55 @@ const STORAGE_BUCKET = 'lumane-uploads';
   }
 })();
 
+// H2 fix: 업로드 보안 강화 — 확장자 화이트리스트 축소(이미지+PDF), 5MB 제한
 const uploadMw = multer({
   storage: multer.memoryStorage(),
-  limits:  { fileSize: 10 * 1024 * 1024 },
+  limits:  { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ok = /\.(jpe?g|png|gif|webp|pdf|mp4|webm|ogg|mov|mp3|wav|m4a|aac)$/i
-      .test(path.extname(file.originalname));
-    cb(ok ? null : new Error('지원하지 않는 형식'), ok);
+    const ok = /\.(jpe?g|png|webp|heic|heif|pdf)$/i.test(path.extname(file.originalname));
+    cb(ok ? null : new Error('지원하지 않는 형식 (이미지/PDF만 가능)'), ok);
   },
 });
 
-app.post('/api/upload', uploadMw.single('file'), async (req, res) => {
+// H2 fix: 업로드 rate limit — IP당 분당 5회
+const _uploadRate = new Map();
+function uploadRateLimit(req, res, next) {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  const arr = (_uploadRate.get(ip) || []).filter(t => now - t < 60_000);
+  if (arr.length >= 5) {
+    return res.status(429).json({ error: '업로드 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' });
+  }
+  arr.push(now);
+  _uploadRate.set(ip, arr);
+  // 주기적 정리
+  if (_uploadRate.size > 200) {
+    for (const [k, v] of _uploadRate) {
+      if (v.length === 0 || now - v[v.length - 1] > 60_000) _uploadRate.delete(k);
+    }
+  }
+  next();
+}
+
+app.post('/api/upload', uploadRateLimit, uploadMw.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '파일이 없습니다' });
+
+  // H2 fix: 인증 검증 — 어드민 토큰이 있으면 통과, 아니면 유효한 채팅 세션 필요
+  const auth = req.headers.authorization || '';
+  const isAdminCall = ADMIN_TOKEN && auth === `Bearer ${ADMIN_TOKEN}`;
+  if (!isAdminCall) {
+    const sessionId = req.body?.sessionId || req.body?.session_id;
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 8) {
+      return res.status(401).json({ error: '유효한 세션이 필요합니다' });
+    }
+    if (!sessions.has(sessionId)) {
+      return res.status(403).json({ error: '세션이 등록되지 않았습니다. 페이지를 새로고침해 주세요.' });
+    }
+  }
 
   const ext      = path.extname(req.file.originalname).toLowerCase();
   const filename = Date.now() + '-' + Math.random().toString(36).slice(2, 7) + ext;
-  const isImage  = /\.(jpe?g|png|gif|webp)$/i.test(ext);
+  const isImage  = /\.(jpe?g|png|webp|heic|heif)$/i.test(ext);
 
   try {
     const { error } = await supabase.storage
@@ -1253,6 +1286,161 @@ app.get('/api/admin/stats', async (_req, res) => {
   } catch (err) {
     console.error('통계 조회 오류:', err.message);
     res.status(500).json({ error: '통계를 불러오는 중 오류가 발생했습니다.' });
+  }
+});
+
+// ── 어드민: 방문자 통계 통합 API (KPI·추이·깔때기·소스별·시간대) ───
+app.get('/api/admin/stats/visitors', async (req, res) => {
+  try {
+    const range = Math.min(Math.max(parseInt(req.query.range) || 7, 1), 90);
+    const KST_OFFSET = 9 * 60 * 60 * 1000;
+    const kstNow = new Date(Date.now() + KST_OFFSET);
+    const todayKstStr = kstNow.toISOString().slice(0, 10);
+    const todayStart = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()));
+
+    // 기간 시작 (KST date string)
+    const rangeStartDate = new Date(todayStart);
+    rangeStartDate.setUTCDate(todayStart.getUTCDate() - (range - 1));
+    const rangeStartStr = rangeStartDate.toISOString().slice(0, 10);
+
+    // 병렬 쿼리: visitor_logs, conversations, quotes
+    const [vlRes, cvRes, qtRes] = await Promise.all([
+      supabase.from('visitor_logs')
+        .select('session_id, src, visited_date')
+        .gte('visited_date', rangeStartStr)
+        .limit(50000),
+      supabase.from('conversations')
+        .select('session_id, started_at, src')
+        .is('deleted_at', null)
+        .gte('started_at', rangeStartDate.toISOString())
+        .limit(50000),
+      supabase.from('quotes')
+        .select('quote_number, created_at, source, status')
+        .gte('created_at', rangeStartDate.toISOString())
+        .limit(50000),
+    ]);
+
+    const visitorRows = vlRes.data || [];
+    const convRows    = cvRes.data || [];
+    const quoteRows   = qtRes.data || [];
+
+    // 오늘 방문/대화 session_id 집합
+    const visitorsTodaySet = new Set(
+      visitorRows.filter(v => v.visited_date === todayKstStr).map(v => v.session_id).filter(Boolean)
+    );
+    const engagedTodaySet = new Set(
+      convRows.filter(c => new Date(c.started_at) >= todayStart && c.session_id).map(c => c.session_id)
+    );
+    const engagedTodayInVisited = [...engagedTodaySet].filter(id => visitorsTodaySet.has(id));
+
+    // 오늘 견적/접수
+    const quotedToday = quoteRows.filter(q => new Date(q.created_at) >= todayStart).length;
+    const submittedToday = quoteRows.filter(q =>
+      new Date(q.created_at) >= todayStart && q.status && q.status !== '접수'
+    ).length;
+
+    // 일별 추이 (range 일)
+    const daily = [];
+    for (let i = range - 1; i >= 0; i--) {
+      const d = new Date(todayStart);
+      d.setUTCDate(todayStart.getUTCDate() - i);
+      const dStr = d.toISOString().slice(0, 10);
+      const dNext = new Date(d); dNext.setUTCDate(d.getUTCDate() + 1);
+
+      const visitorsOnDay = new Set(
+        visitorRows.filter(v => v.visited_date === dStr).map(v => v.session_id).filter(Boolean)
+      );
+      const engagedOnDay = new Set(
+        convRows.filter(c => {
+          const t = new Date(c.started_at);
+          return t >= d && t < dNext && c.session_id;
+        }).map(c => c.session_id)
+      );
+      const quotedOnDay = quoteRows.filter(q => {
+        const t = new Date(q.created_at);
+        return t >= d && t < dNext;
+      }).length;
+
+      daily.push({
+        date: dStr,
+        visitors: visitorsOnDay.size,
+        engaged: [...engagedOnDay].filter(id => visitorsOnDay.has(id)).length,
+        quoted: quotedOnDay,
+      });
+    }
+
+    // 전체 기간 깔때기
+    const totalVisitors = new Set(visitorRows.map(v => v.session_id).filter(Boolean)).size;
+    const totalEngaged = new Set(
+      convRows.filter(c => c.session_id).map(c => c.session_id)
+    ).size;
+    const totalQuoted = quoteRows.length;
+    const totalSubmitted = quoteRows.filter(q => q.status && q.status !== '접수').length;
+
+    // 유입소스별 성과 (전체 기간)
+    const sourceMap = new Map(); // src → {visitors:Set, engaged:Set, quoted:Set, submitted:Set}
+    visitorRows.forEach(v => {
+      const key = v.src || '직접';
+      if (!sourceMap.has(key)) sourceMap.set(key, { visitors: new Set(), engaged: new Set(), quoted: 0, submitted: 0 });
+      if (v.session_id) sourceMap.get(key).visitors.add(v.session_id);
+    });
+    convRows.forEach(c => {
+      const key = c.src || '직접';
+      if (!sourceMap.has(key)) sourceMap.set(key, { visitors: new Set(), engaged: new Set(), quoted: 0, submitted: 0 });
+      if (c.session_id) sourceMap.get(key).engaged.add(c.session_id);
+    });
+    quoteRows.forEach(q => {
+      const key = q.source || '직접';
+      if (!sourceMap.has(key)) sourceMap.set(key, { visitors: new Set(), engaged: new Set(), quoted: 0, submitted: 0 });
+      sourceMap.get(key).quoted++;
+      if (q.status && q.status !== '접수') sourceMap.get(key).submitted++;
+    });
+
+    const bySource = [...sourceMap.entries()].map(([src, m]) => {
+      const v = m.visitors.size;
+      const e = m.engaged.size;
+      return {
+        src,
+        visitors:  v,
+        engaged:   e,
+        quoted:    m.quoted,
+        submitted: m.submitted,
+        engageRate: v > 0 ? Math.round((e / v) * 1000) / 10 : 0,
+        quoteRate:  v > 0 ? Math.round((m.quoted / v) * 1000) / 10 : 0,
+      };
+    }).sort((a, b) => b.visitors - a.visitors);
+
+    // 시간대별 분포 (오늘 대화 시작 시각 기준)
+    const hourly = Array.from({ length: 24 }, (_, h) => ({ hour: h, conversations: 0 }));
+    convRows.forEach(c => {
+      const t = new Date(c.started_at);
+      if (t >= todayStart) {
+        const kstHour = new Date(t.getTime() + KST_OFFSET).getUTCHours();
+        hourly[kstHour].conversations++;
+      }
+    });
+
+    res.json({
+      kpi: {
+        visitorsToday:  visitorsTodaySet.size,
+        engagedToday:   engagedTodayInVisited.length,
+        quotedToday,
+        submittedToday,
+      },
+      daily,
+      funnel: {
+        visited:   totalVisitors,
+        engaged:   totalEngaged,
+        quoted:    totalQuoted,
+        submitted: totalSubmitted,
+      },
+      bySource,
+      hourly,
+      range,
+    });
+  } catch (err) {
+    console.error('방문자 통계 조회 오류:', err.message);
+    res.status(500).json({ error: '방문자 통계를 불러오는 중 오류가 발생했습니다.' });
   }
 });
 

@@ -1107,8 +1107,8 @@ export function addFileMsg(url, name, isImage) {
 
 /* ── 파일 공통 업로드 처리 ── */
 export async function uploadFile(file, onFileSend) {
-  if (file.size > 10 * 1024 * 1024) {
-    showCopyToast('파일은 10MB 이하만 첨부 가능합니다');
+  if (file.size > 5 * 1024 * 1024) {
+    showCopyToast('파일은 5MB 이하만 첨부 가능합니다');
     return;
   }
   showCopyToast('업로드 중...');
@@ -1117,6 +1117,9 @@ export async function uploadFile(file, onFileSend) {
     /* 클립보드 이미지는 파일명이 없을 수 있어 기본값 지정 */
     const name = file.name && file.name !== 'image.png' ? file.name : `screenshot-${Date.now()}.png`;
     fd.append('file', file, name);
+    /* H2 fix: 서버가 세션 검증 — sessionId 같이 전송 */
+    const sid = localStorage.getItem('루마네_세션ID');
+    if (sid) fd.append('sessionId', sid);
     const r = await fetch(`${SERVER}/api/upload`, { method: 'POST', body: fd });
     if (!r.ok) throw new Error('업로드 실패');
     const data = await r.json();
