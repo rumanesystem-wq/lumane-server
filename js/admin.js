@@ -686,6 +686,11 @@ function switchTab(tab) {
     loadTokenStats();
   } else if (tab === 'stat-detail') {
     document.getElementById('topbarTitle').textContent = '📊 상담 현황';
+  } else if (tab === 'backup') {
+    document.getElementById('topbarTitle').textContent = '📦 백업';
+    if (window.lumaneBackup && typeof lumaneBackup.renderBackupTab === 'function') {
+      lumaneBackup.renderBackupTab();
+    }
   } else if (tab === 'history') {
     document.getElementById('topbarTitle').textContent = '🗂️ 저장된 상담';
     updateHistoryBadge(0);

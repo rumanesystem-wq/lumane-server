@@ -13,6 +13,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const { Client: NotionClient } = require('@notionhq/client');
 const multer = require('multer');
+const AdmZip = require('adm-zip');
 const fs   = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -1406,6 +1407,138 @@ app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req
 });
 
 // (삭제: /api/admin/conversations/:id/reparse — 어드민 UI에서 재파싱 버튼 제거 후 잔재, 클라이언트 호출처 0건)
+
+// ── 어드민: 데이터 백업 (CSV / ZIP) ──────────────────────────
+// 화이트리스트: 백업 가능한 테이블 (Phase 2 — customer/install 제외)
+const BACKUP_TABLES = ['conversations', 'test_conversations', 'quotes'];
+
+// 메모리 기반 분당 1회 rate limit (IP별)
+const _backupLastTs = new Map();
+function backupRateLimit(req, res, next) {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  const last = _backupLastTs.get(ip) || 0;
+  if (now - last < 60_000) {
+    const retryAfter = Math.ceil((60_000 - (now - last)) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: '1분에 한 번만 다운로드 가능합니다. 잠시 후 다시 시도해 주세요.' });
+  }
+  _backupLastTs.set(ip, now);
+  // 메모리 정리 (10분 이상 된 항목 제거)
+  if (_backupLastTs.size > 100) {
+    for (const [k, v] of _backupLastTs.entries()) {
+      if (now - v > 600_000) _backupLastTs.delete(k);
+    }
+  }
+  next();
+}
+
+// CSV 변환 헬퍼 (UTF-8 BOM + CRLF + 이스케이프)
+function toCsv(rows) {
+  if (!rows || rows.length === 0) return '﻿';
+  const headers = Object.keys(rows[0]);
+  const escape = (v) => {
+    if (v === null || v === undefined) return '';
+    let s = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+    // CSV injection 방어: 수식 트리거 문자로 시작하면 앞에 작은따옴표
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  };
+  const lines = [headers.join(',')];
+  for (const r of rows) {
+    lines.push(headers.map(h => escape(r[h])).join(','));
+  }
+  return '﻿' + lines.join('\r\n');
+}
+
+// 테이블 전체 SELECT (soft-delete 행 포함 — 별도 필터 없이 그대로)
+async function fetchTableAll(table) {
+  const { data, error } = await supabase.from(table).select('*');
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return data || [];
+}
+
+// 파일명용 타임스탬프 (YYYY-MM-DD-HHmm, KST)
+function backupTimestamp() {
+  const now = new Date();
+  // KST = UTC+9
+  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}-${pad(kst.getUTCHours())}${pad(kst.getUTCMinutes())}`;
+}
+
+// 한글 파일명 매핑
+const TABLE_FILE_KO = {
+  conversations: '상담기록',
+  test_conversations: '테스트상담',
+  quotes: '견적',
+};
+
+// 전체 ZIP 다운로드
+app.get('/api/admin/export', backupRateLimit, async (req, res) => {
+  try {
+    const ts = backupTimestamp();
+    const zip = new AdmZip();
+    const counts = {};
+    for (const table of BACKUP_TABLES) {
+      const rows = await fetchTableAll(table);
+      counts[table] = rows.length;
+      const csv = toCsv(rows);
+      const ko = TABLE_FILE_KO[table] || table;
+      zip.addFile(`${ko}.csv`, Buffer.from(csv, 'utf8'));
+    }
+    const manifestLines = [
+      `루마네 데이터 백업`,
+      `생성 시각: ${new Date().toISOString()}`,
+      `생성 시각(KST): ${ts}`,
+      ``,
+      `포함 테이블 (행수):`,
+      ...BACKUP_TABLES.map(t => `  - ${TABLE_FILE_KO[t]} (${t}): ${counts[t]}행`),
+      ``,
+      `※ soft-delete된 행도 포함되어 있습니다.`,
+    ];
+    zip.addFile('_manifest.txt', Buffer.from('﻿' + manifestLines.join('\r\n'), 'utf8'));
+
+    const buf = zip.toBuffer();
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="lumane-backup-${ts}.zip"`,
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.send(buf);
+    console.log(`📦 전체 백업 다운로드: ${ts} (${Object.entries(counts).map(([k,v]) => `${k}=${v}`).join(', ')})`);
+  } catch (err) {
+    console.error('백업(ZIP) 오류:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 단일 테이블 CSV 다운로드
+app.get('/api/admin/export/:table', backupRateLimit, async (req, res) => {
+  const table = req.params.table;
+  if (!BACKUP_TABLES.includes(table)) {
+    return res.status(400).json({ error: '지원하지 않는 테이블입니다.' });
+  }
+  try {
+    const rows = await fetchTableAll(table);
+    const csv = toCsv(rows);
+    const ts = backupTimestamp();
+    const ko = TABLE_FILE_KO[table] || table;
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(ko)}-${ts}.csv"`,
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.send(csv);
+    console.log(`📄 단일 CSV 다운로드: ${table} (${rows.length}행)`);
+  } catch (err) {
+    console.error('백업(CSV) 오류:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ── 어드민: 대화 수동 저장 ────────────────────────────────────
 app.post('/api/admin/save-conversation', async (req, res) => {
