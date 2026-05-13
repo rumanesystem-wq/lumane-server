@@ -1523,17 +1523,26 @@ app.delete('/api/admin/conversations/:id/purge', requireAdmin, async (req, res) 
 });
 
 // ── 어드민: 저장된 상담 상세 (전체 메시지 포함) ─────────────
+// H1 fix: id 충돌 방지 — 두 테이블 자동 폴백 조회
+// ?test=1 힌트 있으면 test_conversations 먼저, 없으면 conversations 먼저
+async function _findConv(req) {
+  const id = req.params.id;
+  const order = req.query.test === '1'
+    ? ['test_conversations', 'conversations']
+    : ['conversations', 'test_conversations'];
+  for (const table of order) {
+    const { data, error } = await supabase
+      .from(table).select('*').eq('id', id).is('deleted_at', null).maybeSingle();
+    if (error) throw error;
+    if (data) return { table, data };
+  }
+  return null;
+}
 app.get('/api/admin/conversations/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', req.params.id)
-      .is('deleted_at', null)
-      .maybeSingle();
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: '삭제된 상담이거나 존재하지 않습니다' });
-    res.json({ conversation: data });
+    const found = await _findConv(req);
+    if (!found) return res.status(404).json({ error: '삭제된 상담이거나 존재하지 않습니다' });
+    res.json({ conversation: found.data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1542,14 +1551,17 @@ app.get('/api/admin/conversations/:id', async (req, res) => {
 // (삭제: /api/admin/conversations/:id/resend-notion — 어드민 UI에서 Notion 재전송 버튼 제거 후 잔재, 클라이언트 호출처 0건)
 
 // ── 어드민: 저장된 상담 삭제 ─────────────────────────────────
+// H1 fix: 자동 폴백으로 어느 테이블에 있든 정확히 찾아 삭제
 app.delete('/api/admin/conversations/:id', requireAdmin, async (req, res) => {
   try {
+    const found = await _findConv(req);
+    if (!found) return res.status(404).json({ error: '삭제할 상담이 없습니다' });
     const { error } = await supabase
-      .from('conversations')
+      .from(found.table)
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', req.params.id);
     if (error) throw error;
-    console.log(`🗑 상담 soft-delete: id=${req.params.id}`);
+    console.log(`🗑 상담 soft-delete: table=${found.table} id=${req.params.id}`);
     res.json({ ok: true });
   } catch (err) {
     console.error(`[FAIL_DELETE_CONV] id=${req.params.id} err=${err.message}`);
@@ -1583,16 +1595,12 @@ app.delete('/api/admin/sessions/:sessionId', requireAdmin, async (req, res) => {
 });
 
 // ── 어드민: 대화 → 견적접수 등록 ─────────────────────────────
+// H1 fix: 자동 폴백
 app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req, res) => {
   try {
-    const { data: c, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('id', req.params.id)
-      .is('deleted_at', null)
-      .maybeSingle();
-    if (error) throw error;
-    if (!c) return res.status(404).json({ error: '삭제된 상담이거나 존재하지 않습니다' });
+    const found = await _findConv(req);
+    if (!found) return res.status(404).json({ error: '삭제된 상담이거나 존재하지 않습니다' });
+    const c = found.data;
 
     const quoteNumber = 'KB-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(Date.now()).slice(-4);
 
