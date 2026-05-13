@@ -611,6 +611,12 @@ function greet() {
       addMsg('bot', reply);
       saveHistory();
       setLoading(false);
+      // 첫 인사 후 시작 도우미 — 모바일 진입 손님이 키보드 없이도 대화 시작 가능
+      setQuick([
+        '드레스룸 견적 받고 싶어요',
+        '옵션이랑 가격 궁금해요',
+        '그냥 둘러볼게요',
+      ]);
     })
     .catch(() => {
       demoGreet();
