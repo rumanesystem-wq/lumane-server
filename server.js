@@ -162,6 +162,12 @@ function getOrCreateSession(sessionId) {
       customerTyping: false,  // 고객이 입력 중 여부
       fallbackSent: false,    // API 오류 fallback 메시지 이미 보냈는지
       tokens: { input: 0, output: 0, cacheWrite: 0, cacheRead: 0, turns: 0 },
+      // ── 재방문 컨텍스트 (Phase 2) ──
+      // isReturning: 직전 conversations에 같은 session_id 행이 있으면 true (probe 후 1회만)
+      // previousQuoteSummary: 직전 견적 요약 문자열 (형태/치수/색상/금액). 없으면 null
+      // previousQuoteInjected: 시스템 프롬프트에 1회 주입했는지 마커 (재주입 방지)
+      previousQuoteSummary:  null,
+      previousQuoteInjected: false,
     });
   }
   return sessions.get(sessionId);
@@ -827,17 +833,30 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
   // ts/mid 등 extra 필드 제거 + 긴 대화 자동 요약
   const apiMessages = await buildApiMessages(messages);
 
+  // ── 재방문 고객 직전 견적 1회 주입 ─────────────────────────
+  // 조건: 재방문 확정 + 직전 견적 요약 보유 + 아직 미주입
+  // 주입 위치: system 배열의 두 번째 블록 (캐시 분리 — 메인 프롬프트는 ephemeral 캐시 유지)
+  const systemBlocks = [
+    {
+      type: 'text',
+      text: getSystemPrompt(),
+      cache_control: { type: 'ephemeral' },  // 시스템 프롬프트 캐싱 (5분간 유지, 재사용 시 90% 절감)
+    },
+  ];
+  const sessRef = sessionId && sessions.has(sessionId) ? sessions.get(sessionId) : null;
+  if (sessRef && sessRef.isReturning === true && sessRef.previousQuoteInjected !== true && sessRef.previousQuoteSummary) {
+    systemBlocks.push({
+      type: 'text',
+      text: `\n[재방문 고객 컨텍스트]\n이 고객은 이전에 상담받은 이력이 있습니다. 직전 상담의 견적 요약은 다음과 같습니다:\n${sessRef.previousQuoteSummary}\n\n응대 시 주의:\n- 이 정보를 먼저 들이밀지 말 것. 고객이 직접 이전 상담 얘기를 꺼내거나 "지난번에..." 같은 단서를 줄 때만 자연스럽게 활용한다.\n- 이전 견적 금액·치수를 먼저 언급하지 말 것. 고객이 묻기 전까지는 모르는 척 진행한다.\n- 고객이 이전 상담을 분명히 언급하면 위 요약을 참고해서 구체적으로 안내한다.`,
+    });
+    sessRef.previousQuoteInjected = true;
+  }
+
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: [
-        {
-          type: 'text',
-          text: getSystemPrompt(),
-          cache_control: { type: 'ephemeral' },  // 시스템 프롬프트 캐싱 (5분간 유지, 재사용 시 90% 절감)
-        },
-      ],
+      system: systemBlocks,
       messages: apiMessages,
     });
 
@@ -919,18 +938,58 @@ app.post('/api/session/register', async (req, res) => {
       if (error) console.warn('[visitor_logs] 저장 실패:', error.message);
     });
   }
-  // 재방문 여부 확인
-  if (sess.nickname && sess.isReturning === undefined) {
-    try {
-      const { count } = await supabase
-        .from('conversations')
-        .select('id', { count: 'exact', head: true })
-        .eq('customer_name', sess.nickname);
-      sess.isReturning = (count || 0) > 0;
-    } catch { sess.isReturning = false; }
+  // 재방문 여부 확인 + 직전 견적 요약 추출 (session_id 매칭)
+  if (sess.isReturning === undefined) {
+    await detectReturningCustomer(sess);
   }
   res.json({ ok: true });
 });
+
+// ── 재방문 감지 + 직전 견적 요약 추출 ─────────────────────────
+// session_id가 localStorage에 영구 저장되는 점을 이용해 동일 브라우저 재방문을 감지.
+// conversations 테이블은 session_id로 UPSERT되므로(onConflict: 'session_id'),
+// 같은 session_id의 이전 기록이 존재하면 = 재방문.
+// 닉네임 매칭은 사용하지 않음 (자동 부여 랜덤 닉네임 + 브라우저별 다름 → 무의미).
+// 테스트 세션·conversations 미가용 시 안전 스킵.
+async function detectReturningCustomer(sess) {
+  try {
+    if (sess.isTest) { sess.isReturning = false; return; }
+    if (!customerSchemaAvailable) { sess.isReturning = false; return; }
+    if (!sess.id) { sess.isReturning = false; return; }
+
+    // 이 session_id의 이전 기록 찾기
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('session_id, layout, size_raw, frame_color, shelf_color, estimated_price, started_at')
+      .eq('session_id', sess.id)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) { sess.isReturning = false; return; }
+
+    sess.isReturning = true;
+
+    // 인젝션 방어: 자유 텍스트는 줄바꿈 제거 + 80자 제한, size_raw는 숫자/*만 추출
+    const sanitize = (s) => String(s).replace(/[\r\n]+/g, ' ').slice(0, 80);
+    const sanitizeSize = (s) => (String(s).match(/[\d*\sx×]+/g) || []).join(' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+
+    // 견적 요약 문자열 (enum/숫자 필드 위주, 화이트리스트)
+    const parts = [];
+    if (data.layout)        parts.push(`형태 ${sanitize(data.layout)}`);
+    if (data.size_raw)      parts.push(`치수 ${sanitizeSize(data.size_raw)}`);
+    if (data.frame_color)   parts.push(`프레임 ${sanitize(data.frame_color)}`);
+    if (data.shelf_color)   parts.push(`선반 ${sanitize(data.shelf_color)}`);
+    if (data.estimated_price && Number.isFinite(Number(data.estimated_price))) {
+      parts.push(`견적 ${Number(data.estimated_price).toLocaleString()}원`);
+    }
+
+    sess.previousQuoteSummary = parts.length > 0 ? parts.join(' · ') : null;
+  } catch (err) {
+    console.warn('[detectReturningCustomer] 실패:', err.message);
+    sess.isReturning = false;
+  }
+}
 
 // ── 어드민: 유입 소스 통계 ────────────────────────────────
 const _sourceStatsCache = new Map(); // period -> { payload, expiresAt }
@@ -1732,8 +1791,28 @@ app.post('/api/summarize', async (req, res) => {
   }
 });
 
+// ── customer 스키마 probe (재방문 감지에 필요한 컬럼 존재 여부) ──
+// conversations 테이블에 customer_name 컬럼이 있는지 1회 확인.
+// 없으면 detectReturningCustomer는 즉시 스킵 (안전 fallback).
+let customerSchemaAvailable = false;
+async function probeCustomerSchema() {
+  try {
+    const { error } = await supabase
+      .from('conversations')
+      .select('customer_name', { head: true, count: 'exact' })
+      .limit(1);
+    if (error) throw error;
+    customerSchemaAvailable = true;
+    console.log('✅ conversations.customer_name 스키마 사용 가능 — 재방문 감지 활성');
+  } catch (err) {
+    customerSchemaAvailable = false;
+    console.warn('⚠️ conversations.customer_name 스키마 사용 불가 — 재방문 감지 비활성:', err.message);
+  }
+}
+
 // ── 서버 시작 ─────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ 루마네 서버 실행 중: http://localhost:${PORT}`);
   console.log(`📱 채팅 화면: http://localhost:${PORT}/chat.html`);
+  probeCustomerSchema();
 });
