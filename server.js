@@ -971,16 +971,25 @@ async function detectReturningCustomer(sess) {
 
     sess.isReturning = true;
 
-    // 인젝션 방어: 자유 텍스트는 줄바꿈 제거 + 80자 제한, size_raw는 숫자/*만 추출
-    const sanitize = (s) => String(s).replace(/[\r\n]+/g, ' ').slice(0, 80);
+    // 인젝션 방어: enum 화이트리스트 + 자유 텍스트 sanitize
+    const LAYOUT_ENUM = new Set(['ㅡ자','일자','1자','ㄱ자','ㄷ자','ㅁ자','11자','11자형','코너','일자형','ㄱ자형','ㄷ자형','ㅁ자형']);
+    const FRAME_COLOR_ENUM = new Set(['화이트','블랙','실버','샴페인골드','샴페인','골드']);
+    const SHELF_COLOR_ENUM = new Set(['화이트오크','솔리드화이트','메이플','스톤그레이','진그레이','다크월넛','민트그린']);
     const sanitizeSize = (s) => (String(s).match(/[\d*\sx×]+/g) || []).join(' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+    const enumCheck = (s, set) => {
+      const v = String(s).trim().slice(0, 20);
+      return set.has(v) ? v : null;
+    };
 
-    // 견적 요약 문자열 (enum/숫자 필드 위주, 화이트리스트)
+    // 견적 요약 문자열 (모든 필드 strict 검증, 화이트리스트 외 입력은 폐기)
     const parts = [];
-    if (data.layout)        parts.push(`형태 ${sanitize(data.layout)}`);
-    if (data.size_raw)      parts.push(`치수 ${sanitizeSize(data.size_raw)}`);
-    if (data.frame_color)   parts.push(`프레임 ${sanitize(data.frame_color)}`);
-    if (data.shelf_color)   parts.push(`선반 ${sanitize(data.shelf_color)}`);
+    const layoutChecked = data.layout ? enumCheck(data.layout, LAYOUT_ENUM) : null;
+    if (layoutChecked)     parts.push(`형태 ${layoutChecked}`);
+    if (data.size_raw)     parts.push(`치수 ${sanitizeSize(data.size_raw)}`);
+    const frameChecked = data.frame_color ? enumCheck(data.frame_color, FRAME_COLOR_ENUM) : null;
+    if (frameChecked)      parts.push(`프레임 ${frameChecked}`);
+    const shelfChecked = data.shelf_color ? enumCheck(data.shelf_color, SHELF_COLOR_ENUM) : null;
+    if (shelfChecked)      parts.push(`선반 ${shelfChecked}`);
     if (data.estimated_price && Number.isFinite(Number(data.estimated_price))) {
       parts.push(`견적 ${Number(data.estimated_price).toLocaleString()}원`);
     }
