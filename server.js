@@ -1372,6 +1372,65 @@ app.get('/api/admin/conversations', async (req, res) => {
   }
 });
 
+// ── 어드민: 휴지통 — 삭제된 상담 목록 (deleted_at NOT NULL) ──
+// 테스트 상담(test_conversations)은 별도 흐름으로 관리되므로 휴지통 표시 제외
+app.get('/api/admin/conversations/trash', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    res.json({ conversations: data || [] });
+  } catch (err) {
+    console.error('[FAIL_TRASH_LIST]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── 어드민: 휴지통 — 상담 복원 (deleted_at NULL) ──────────────
+app.patch('/api/admin/conversations/:id/restore', requireAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .update({ deleted_at: null })
+      .eq('id', req.params.id)
+      .not('deleted_at', 'is', null)
+      .select('id')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: '복원 대상이 없습니다 (이미 복원되었거나 존재하지 않음)' });
+    console.log(`♻ 상담 복원: id=${req.params.id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(`[FAIL_RESTORE_CONV] id=${req.params.id} err=${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── 어드민: 휴지통 — 영구 삭제 (hard-delete, 안전장치 포함) ───
+app.delete('/api/admin/conversations/:id/purge', requireAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', req.params.id)
+      .not('deleted_at', 'is', null)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: '영구삭제 대상이 없습니다 (휴지통에 없거나 존재하지 않음)' });
+    }
+    console.log(`🔥 상담 영구삭제: id=${req.params.id}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(`[FAIL_PURGE_CONV] id=${req.params.id} err=${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── 어드민: 저장된 상담 상세 (전체 메시지 포함) ─────────────
 app.get('/api/admin/conversations/:id', async (req, res) => {
   try {
