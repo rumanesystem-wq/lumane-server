@@ -808,7 +808,7 @@ export function setQuick(labels, isChoice = false) {
   $quickArea.appendChild(hint);
 
   const wrap = document.createElement('div');
-  wrap.className = 'quick-btns';
+  wrap.className = 'quick-btns quick-btns--stack';
 
   labels.forEach(label => {
     const b = document.createElement('button');
@@ -821,6 +821,17 @@ export function setQuick(labels, isChoice = false) {
     };
     wrap.appendChild(b);
   });
+
+  if (!isChoice) {
+    const manual = document.createElement('button');
+    manual.className = 'qbtn qbtn--manual';
+    manual.textContent = '✏️ 직접 입력';
+    manual.onclick = () => {
+      $quickArea.innerHTML = '';
+      $inp.focus();
+    };
+    wrap.appendChild(manual);
+  }
 
   $quickArea.appendChild(wrap);
 }
