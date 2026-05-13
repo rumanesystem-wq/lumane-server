@@ -925,7 +925,8 @@ app.post('/api/session/register', async (req, res) => {
       const { count } = await supabase
         .from('conversations')
         .select('id', { count: 'exact', head: true })
-        .eq('customer_name', sess.nickname);
+        .eq('customer_name', sess.nickname)
+        .is('deleted_at', null);
       sess.isReturning = (count || 0) > 0;
     } catch { sess.isReturning = false; }
   }
@@ -1065,6 +1066,7 @@ app.get('/api/admin/stats', async (_req, res) => {
     const { data, error } = await supabase
       .from('conversations')
       .select('id, phone, started_at')
+      .is('deleted_at', null)
       .order('id', { ascending: true });
     if (error) throw error;
 
@@ -1113,6 +1115,7 @@ app.get('/api/admin/stat-sessions', async (req, res) => {
     let query = supabase
       .from('conversations')
       .select('id, customer_name, phone, region, layout, started_at')
+      .is('deleted_at', null)
       .order('started_at', { ascending: false });
 
     if (from) query = query.gte('started_at', from.toISOString());
@@ -1286,8 +1289,8 @@ app.post('/api/admin/message', (req, res) => {
 app.get('/api/admin/conversations', async (req, res) => {
   try {
     const [{ data: real, error: e1 }, { data: test, error: e2 }] = await Promise.all([
-      supabase.from('conversations').select('*').order('id', { ascending: false }).limit(200),
-      supabase.from('test_conversations').select('*').order('id', { ascending: false }).limit(200),
+      supabase.from('conversations').select('*').is('deleted_at', null).order('id', { ascending: false }).limit(200),
+      supabase.from('test_conversations').select('*').is('deleted_at', null).order('id', { ascending: false }).limit(200),
     ]);
     if (e1) throw e1;
     if (e2) throw e2;
@@ -1308,8 +1311,10 @@ app.get('/api/admin/conversations/:id', async (req, res) => {
       .from('conversations')
       .select('*')
       .eq('id', req.params.id)
-      .single();
+      .is('deleted_at', null)
+      .maybeSingle();
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: '삭제된 상담이거나 존재하지 않습니다' });
     res.json({ conversation: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1323,13 +1328,13 @@ app.delete('/api/admin/conversations/:id', requireAdmin, async (req, res) => {
   try {
     const { error } = await supabase
       .from('conversations')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', req.params.id);
     if (error) throw error;
-    console.log(`🗑 상담 삭제됨: ${req.params.id}`);
+    console.log(`🗑 상담 soft-delete: id=${req.params.id}`);
     res.json({ ok: true });
   } catch (err) {
-    console.error('상담 삭제 오류:', err.message);
+    console.error(`[FAIL_DELETE_CONV] id=${req.params.id} err=${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1339,19 +1344,20 @@ app.delete('/api/admin/sessions/:sessionId', requireAdmin, async (req, res) => {
   const sessionId = req.params.sessionId;
   if (!sessionId) return res.status(400).json({ error: 'sessionId 필요' });
   try {
-    // 메모리 세션 제거
+    // 메모리 세션은 제거 (어차피 휘발성, soft-delete 의미 없음)
     const existed = sessions.delete(sessionId);
-    // DB 저장 행도 함께 제거 (두 테이블 병렬, 한쪽 실패해도 다른 쪽 진행)
+    // DB는 soft-delete (양 테이블 병렬)
+    const nowIso = new Date().toISOString();
     const [r1, r2] = await Promise.allSettled([
-      supabase.from('conversations').delete().eq('session_id', sessionId),
-      supabase.from('test_conversations').delete().eq('session_id', sessionId),
+      supabase.from('conversations').update({ deleted_at: nowIso }).eq('session_id', sessionId),
+      supabase.from('test_conversations').update({ deleted_at: nowIso }).eq('session_id', sessionId),
     ]);
-    if (r1.status === 'rejected' || r1.value?.error) console.warn('conversations 삭제 경고:', r1.reason?.message || r1.value?.error?.message);
-    if (r2.status === 'rejected' || r2.value?.error) console.warn('test_conversations 삭제 경고:', r2.reason?.message || r2.value?.error?.message);
-    console.log(`🗑 라이브 세션 삭제: ${sessionId} (memory=${existed})`);
+    if (r1.status === 'rejected' || r1.value?.error) console.warn('conversations soft-delete 경고:', r1.reason?.message || r1.value?.error?.message);
+    if (r2.status === 'rejected' || r2.value?.error) console.warn('test_conversations soft-delete 경고:', r2.reason?.message || r2.value?.error?.message);
+    console.log(`🗑 라이브 세션 soft-delete: ${sessionId} (memory=${existed})`);
     res.json({ ok: true });
   } catch (err) {
-    console.error('라이브 세션 삭제 오류:', err.message);
+    console.error(`[FAIL_DELETE_SESSION] id=${sessionId} err=${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1363,8 +1369,10 @@ app.post('/api/admin/conversations/:id/register-quote', requireAdmin, async (req
       .from('conversations')
       .select('*')
       .eq('id', req.params.id)
-      .single();
+      .is('deleted_at', null)
+      .maybeSingle();
     if (error) throw error;
+    if (!c) return res.status(404).json({ error: '삭제된 상담이거나 존재하지 않습니다' });
 
     const quoteNumber = 'KB-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(Date.now()).slice(-4);
 
