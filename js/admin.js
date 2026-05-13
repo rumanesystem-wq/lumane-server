@@ -696,6 +696,9 @@ function switchTab(tab) {
   } else if (tab === 'tokens') {
     document.getElementById('topbarTitle').textContent = '🪙 토큰 사용량';
     loadTokenStats();
+  } else if (tab === 'visitor-stats') {
+    document.getElementById('topbarTitle').textContent = '📈 방문자 통계';
+    if (typeof loadVisitorStats === 'function') loadVisitorStats(window.currentVsRange || 7);
   } else if (tab === 'trash') {
     document.getElementById('topbarTitle').textContent = '🗑 휴지통';
     if (typeof loadTrash === 'function') loadTrash();

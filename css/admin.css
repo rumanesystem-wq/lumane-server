@@ -1081,6 +1081,28 @@ body {
 }
 
 /* =============================================
+   방문자 통계 (Visitor Stats)
+============================================= */
+.vs-range-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+}
+.vs-range-btn.active {
+  background: #fff;
+  color: #7c3aed;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.vs-range-btn:hover:not(.active) { color: #111827; }
+
+/* =============================================
    인쇄 스타일
 ============================================= */
 /* 인쇄 스타일 */

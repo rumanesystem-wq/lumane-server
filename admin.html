@@ -12,6 +12,9 @@
   <!-- SheetJS (엑셀 내보내기용) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+  <!-- Chart.js (방문자 통계용) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <link rel="stylesheet" href="css/admin.css?v=4" />
 </head>
 <body>
@@ -109,6 +112,7 @@
     <button class="tab-btn" id="tab-stat-detail" style="display:none;"></button>
     <button class="tab-btn" id="tab-quotes" onclick="switchTab('quotes')">📋 견적 목록 <span class="new-badge" id="quoteTabBadge" style="display:none;vertical-align:middle;"></span></button>
     <button class="tab-btn" id="tab-live" onclick="switchTab('live')">💬 대화</button>
+    <button class="tab-btn" id="tab-visitor-stats" onclick="switchTab('visitor-stats')">📈 방문자 통계</button>
     <button class="tab-btn" id="tab-tokens" onclick="switchTab('tokens')">🪙 토큰 사용량</button>
     <button class="tab-btn" id="tab-trash" onclick="switchTab('trash')">🗑 휴지통 <span class="trash-badge" id="trashTabBadge" style="display:none;background:#9ca3af;color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;vertical-align:middle;margin-left:2px;"></span></button>
     <button class="tab-btn" id="tab-backup" onclick="switchTab('backup')" style="display:none;">📦 백업</button>
@@ -126,7 +130,7 @@
         <div class="stats-value" id="statUnread">0</div>
         <div class="stats-sub">확인 안 한 새 상담</div>
       </div>
-      <div class="stats-card">
+      <div class="stats-card stats-card--clickable" onclick="switchTab('visitor-stats')" title="방문자 통계 자세히 보기">
         <div class="stats-label">오늘 방문자</div>
         <div class="stats-value" id="statVisitorsToday">—</div>
         <div class="stats-sub" id="statEngagedToday">그 중 대화: — 명 (—)</div>
@@ -368,6 +372,97 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- =============================================
+       방문자 통계 탭
+  ============================================= -->
+  <div class="section" id="section-visitor-stats">
+
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:18px;font-weight:700;">📈 방문자 통계</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="vs-range-toggle" style="display:flex;gap:4px;background:#f3f4f6;border-radius:8px;padding:3px;">
+          <button class="vs-range-btn active" data-range="7" onclick="loadVisitorStats(7)">7일</button>
+          <button class="vs-range-btn" data-range="30" onclick="loadVisitorStats(30)">30일</button>
+        </div>
+        <button onclick="loadVisitorStats(currentVsRange)" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">↻ 새로고침</button>
+      </div>
+    </div>
+
+    <!-- KPI 카드 -->
+    <div class="vs-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;">
+      <div class="vs-kpi-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">오늘 방문자</div>
+        <div id="vsKpiVisitors" style="font-size:26px;font-weight:700;color:#111827;">—</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px;">visitor_logs 기준</div>
+      </div>
+      <div class="vs-kpi-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">대화 전환</div>
+        <div id="vsKpiEngaged" style="font-size:26px;font-weight:700;color:#3b82f6;">—</div>
+        <div id="vsKpiEngagedRate" style="font-size:11px;color:#9ca3af;margin-top:4px;">—</div>
+      </div>
+      <div class="vs-kpi-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">견적 출력</div>
+        <div id="vsKpiQuoted" style="font-size:26px;font-weight:700;color:#10b981;">—</div>
+        <div id="vsKpiQuotedRate" style="font-size:11px;color:#9ca3af;margin-top:4px;">—</div>
+      </div>
+      <div class="vs-kpi-card" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">접수 처리</div>
+        <div id="vsKpiSubmitted" style="font-size:26px;font-weight:700;color:#f59e0b;">—</div>
+        <div id="vsKpiSubmittedRate" style="font-size:11px;color:#9ca3af;margin-top:4px;">—</div>
+      </div>
+    </div>
+
+    <!-- 일별 추이 그래프 -->
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#111827;">📊 일별 추이 (<span id="vsRangeLabel">7일</span>)</div>
+      <div style="position:relative;height:280px;">
+        <canvas id="vsDailyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- 깔때기 + 시간대별 (2단) -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:20px;">
+
+      <!-- 전환 깔때기 -->
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#111827;">🔻 전환 깔때기 (전체 기간)</div>
+        <div id="vsFunnel"></div>
+      </div>
+
+      <!-- 시간대별 분포 -->
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#111827;">🕐 시간대별 대화 시작 (오늘)</div>
+        <div style="position:relative;height:220px;">
+          <canvas id="vsHourlyChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 유입소스별 성과 표 -->
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:#111827;">🚪 유입소스별 성과</div>
+      <div style="overflow-x:auto;">
+        <table id="vsSourceTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f9fafb;text-align:left;">
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;">소스</th>
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">방문</th>
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">대화</th>
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">견적</th>
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">접수</th>
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">대화율</th>
+              <th style="padding:10px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">견적률</th>
+            </tr>
+          </thead>
+          <tbody id="vsSourceTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <!-- =============================================
@@ -825,6 +920,7 @@
 <script src="js/admin-modal.js"></script>
 <script src="js/admin-quote.js"></script>
 <script src="js/admin-trash.js"></script>
+<script src="js/admin-stats.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/admin-backup.js"></script>
 

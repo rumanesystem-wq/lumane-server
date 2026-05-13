@@ -68,7 +68,7 @@ app.use(cors({
     'http://127.0.0.1:3001',
   ],
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // M1 fix: 견적 폼 사진(base64) 수용
 
 // ── Rate Limit — IP당 1분 10회 제한 ──────────────────────────
 const chatRateLimit = rateLimit({
@@ -2066,6 +2066,39 @@ app.post('/api/quote', chatRateLimit, async (req, res) => {
       return res.status(400).json({ error: '전화번호 형식이 올바르지 않습니다' });
     }
 
+    // M1 fix: 첨부 사진 처리 — base64 dataURL → Storage 업로드 → URL을 request_memo에 첨부
+    let photoUrl = '';
+    if (typeof b.file_data === 'string' && /^data:image\/(jpe?g|png|webp);base64,/.test(b.file_data)) {
+      try {
+        const m = b.file_data.match(/^data:image\/(jpe?g|png|webp);base64,(.+)$/);
+        if (m) {
+          const ext = m[1] === 'jpeg' ? 'jpg' : m[1];
+          const buf = Buffer.from(m[2], 'base64');
+          if (buf.length <= 5 * 1024 * 1024) {
+            const fname = `quote-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.${ext}`;
+            const { error: upErr } = await supabase.storage
+              .from(STORAGE_BUCKET)
+              .upload(fname, buf, { contentType: `image/${m[1]}`, upsert: false });
+            if (!upErr) {
+              const { data: { publicUrl } } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(fname);
+              photoUrl = publicUrl;
+            } else {
+              console.warn('[QUOTE_PHOTO_UPLOAD]', upErr.message);
+            }
+          } else {
+            console.warn('[QUOTE_PHOTO_SIZE] base64 decode 결과 5MB 초과 — 사진 미저장');
+          }
+        }
+      } catch (e) {
+        console.warn('[QUOTE_PHOTO_ERR]', e.message);
+      }
+    }
+
+    const memoBase = str(b.request_memo, 2000);
+    const memoFinal = photoUrl
+      ? `${memoBase}${memoBase ? '\n\n' : ''}[첨부 사진] ${photoUrl}`
+      : memoBase;
+
     const payload = {
       quote_number:   'KB-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + crypto.randomBytes(3).toString('hex').toUpperCase(),
       name:           str(b.name, 50),
@@ -2078,12 +2111,12 @@ app.post('/api/quote', chatRateLimit, async (req, res) => {
       options:        Array.isArray(b.options) ? b.options.slice(0, 50).map(o => String(o).slice(0, 100)) : [],
       frame_color:    str(b.frame_color, 50),
       shelf_color:    str(b.shelf_color, 100),
-      request_memo:   str(b.request_memo, 2000),
+      request_memo:   memoFinal.slice(0, 3000),
       privacy_agreed: true,
       status:         '접수',
       source:         '폼제출',
       file_name:      str(b.file_name, 200),
-      has_photo:      str(b.has_photo, 20),
+      has_photo:      photoUrl ? '사진있음' : str(b.has_photo, 20),
     };
 
     const { data, error } = await supabase
