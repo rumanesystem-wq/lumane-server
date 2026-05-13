@@ -762,44 +762,43 @@
      백업 섹션
 ============================================= -->
 <div class="section" id="section-backup">
-  <div style="max-width:760px;margin:0 auto;padding:24px 16px;">
-    <h2 style="margin:0 0 6px;font-size:22px;font-weight:700;color:#111827;">데이터 백업</h2>
-    <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">상담기록·테스트상담·견적 데이터를 CSV로 다운로드합니다.</p>
+  <div class="backup-wrap">
+    <h2 class="backup-title">데이터 백업</h2>
+    <p class="backup-subtitle">상담기록·테스트상담·견적 데이터를 CSV로 다운로드합니다.</p>
 
     <!-- 마지막 백업 안내 -->
-    <div id="backupLastInfo" style="margin-bottom:16px;padding:12px 14px;border-radius:8px;background:#f3f4f6;color:#374151;font-size:14px;">
+    <div id="backupLastInfo" class="backup-last-info">
       마지막 백업: <span id="backupLastTime">-</span>
     </div>
 
     <!-- 7일 경과 경고 (조건부) -->
-    <div id="backupWarn" style="display:none;margin-bottom:16px;padding:12px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:14px;font-weight:500;"></div>
+    <div id="backupWarn" class="backup-warn"></div>
 
     <!-- 전체 다운로드 큰 버튼 -->
-    <button id="backupAllBtn" type="button" onclick="window.lumaneBackup && lumaneBackup.downloadAll()"
-      style="width:100%;padding:18px 20px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-size:17px;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,0.25);transition:background 0.15s;"
-      onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+    <button id="backupAllBtn" type="button" class="backup-all-btn"
+      onclick="window.lumaneBackup && lumaneBackup.downloadAll()">
       📦 전체 백업 다운로드 (ZIP)
-      <div style="font-size:13px;font-weight:400;margin-top:4px;opacity:0.85;">3개 테이블 한 번에 받기</div>
+      <div class="backup-all-btn__sub">3개 테이블 한 번에 받기</div>
     </button>
 
     <!-- 개별 다운로드 3개 -->
-    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
-      <button type="button" onclick="window.lumaneBackup && lumaneBackup.downloadOne('conversations')"
-        style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font-size:14px;font-weight:500;cursor:pointer;">
+    <div class="backup-grid">
+      <button type="button" class="backup-csv-btn"
+        onclick="window.lumaneBackup && lumaneBackup.downloadOne('conversations')">
         상담기록.csv
       </button>
-      <button type="button" onclick="window.lumaneBackup && lumaneBackup.downloadOne('test_conversations')"
-        style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font-size:14px;font-weight:500;cursor:pointer;">
+      <button type="button" class="backup-csv-btn"
+        onclick="window.lumaneBackup && lumaneBackup.downloadOne('test_conversations')">
         테스트상담.csv
       </button>
-      <button type="button" onclick="window.lumaneBackup && lumaneBackup.downloadOne('quotes')"
-        style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font-size:14px;font-weight:500;cursor:pointer;">
+      <button type="button" class="backup-csv-btn"
+        onclick="window.lumaneBackup && lumaneBackup.downloadOne('quotes')">
         견적.csv
       </button>
     </div>
 
     <!-- 안내 박스 -->
-    <div style="margin-top:24px;padding:14px 16px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:13.5px;line-height:1.6;">
+    <div class="backup-help">
       📘 받은 ZIP은 외장하드나 클라우드에 꼭 보관하세요. Supabase 무료 플랜은 자동 백업이 없습니다.
     </div>
   </div>

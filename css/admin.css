@@ -1089,3 +1089,72 @@ body {
   .main { margin-left: 0; }
   .quote-card { page-break-inside: avoid; }
 }
+
+/* =============================================
+   백업 섹션 (L2 fix: 인라인 스타일 → 클래스 분리)
+============================================= */
+.backup-wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+.backup-title { margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #111827; }
+.backup-subtitle { margin: 0 0 20px; color: #6b7280; font-size: 14px; }
+.backup-last-info {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 14px;
+}
+.backup-warn {
+  display: none;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 500;
+}
+.backup-all-btn {
+  width: 100%;
+  padding: 18px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  transition: background 0.15s;
+}
+.backup-all-btn:hover { background: #1d4ed8; }
+.backup-all-btn__sub { font-size: 13px; font-weight: 400; margin-top: 4px; opacity: 0.85; }
+.backup-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.backup-csv-btn {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.backup-csv-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+.backup-help {
+  margin-top: 24px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
