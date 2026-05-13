@@ -130,10 +130,15 @@ export function printQuote() {
 export async function autoSaveConversation(history) {
   if (!history || history.length === 0) return;
   try {
+    /* M2 fix: 서버가 세션 검증 — sessionId 같이 전송 */
+    const sid = localStorage.getItem('루마네_세션ID') || '';
     const res = await fetch(`${SERVER}/api/summarize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history.filter(m => m.role === 'user' || m.role === 'assistant') }),
+      body: JSON.stringify({
+        messages: history.filter(m => m.role === 'user' || m.role === 'assistant'),
+        sessionId: sid,
+      }),
     });
     if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
     const data = await res.json();

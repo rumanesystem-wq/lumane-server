@@ -2218,11 +2218,25 @@ app.patch('/api/quotes/:id', requireAdmin, async (req, res) => {
 // ── 상담 요약 저장 API ─────────────────────────────────────────
 // chat.html에서 "상담 저장" 버튼 클릭 시 호출
 // Claude가 대화 내용을 분석해서 기획서 항목대로 자동 추출 후 Supabase 저장
-app.post('/api/summarize', async (req, res) => {
+// M2 fix: chatRateLimit + 어드민 토큰 or 유효 sessionId 검증
+app.post('/api/summarize', chatRateLimit, async (req, res) => {
   const { messages } = req.body;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages 배열이 필요합니다.' });
+  }
+
+  // M2 fix: 인증 — 어드민 토큰 또는 유효 sessionId
+  const auth = req.headers.authorization || '';
+  const isAdminCall = ADMIN_TOKEN && auth === `Bearer ${ADMIN_TOKEN}`;
+  if (!isAdminCall) {
+    const sessionId = req.body?.sessionId;
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.length < 8) {
+      return res.status(401).json({ error: '유효한 세션이 필요합니다' });
+    }
+    if (!sessions.has(sessionId)) {
+      return res.status(403).json({ error: '세션이 등록되지 않았습니다. 페이지를 새로고침해 주세요.' });
+    }
   }
 
   const recentMessages = messages.slice(-30);
