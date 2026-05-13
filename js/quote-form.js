@@ -153,6 +153,8 @@ async function submitQuote(event) {
       status:         '접수',
       file_name:      fileName || '',
       has_photo:      fileName ? '사진있음' : '',
+      /* M1 fix: 압축된 사진 데이터(base64 dataURL) 같이 전송 — 서버에서 Storage 업로드 후 URL을 request_memo에 첨부 */
+      file_data:      fileData || '',
     };
 
     const res = await fetch(apiUrl('api/quote'), {
