@@ -1,7 +1,7 @@
 # 🤖 루마네 프로젝트 설정 (케이트블랑 드레스룸 AI 상담)
 
 > 공통 작업 규칙은 전역 CLAUDE.md (`~/.claude/CLAUDE.md`) 에 있음.
-> 백업 위치: `C:\Users\kateb\시스템행거_AI_상담원_루마네\시스템행거 AI 루마네\백업본`
+> 본인 작업 스타일·환경 전용 설정은 `CLAUDE.local.md` (gitignore) 에 있음.
 
 ---
 
@@ -15,103 +15,6 @@ Claude Code는 **빠르게 작업하되, 위험한 수정은 반드시 멈추고
 - 불명확하면 추측해서 수정하지 말고 먼저 질문한다.
 - `server.js`, Supabase/DB, 로그인, 저장, 삭제, 관리자 기능, 배포 관련 작업은 신중하게 처리한다.
 - 큰 수정이 아니면 과도한 절차로 시간을 끌지 않는다.
-
-### 설명 톤 — 항상 "쉬운 버전" 포함 (필수)
-
-사용자는 코딩·기술 용어에 익숙하지 않다. 기술적 설명·계획·보고를 할 때 **반드시 "쉬운 설명"을 함께 제공한다.**
-
-**적용 형식:**
-- 기술 용어가 들어간 설명을 한 직후, 같은 내용을 일상어로 한 번 더 풀어준다
-- 또는 "📘 쉬운 설명:" 같은 라벨로 별도 블록 추가
-
-**예시 (나쁨 — 기술 설명만):**
-> "Haiku 사전 필터의 regex pre-check 로직을 isRelevantMessage 함수에 추가하겠습니다."
-
-**예시 (좋음 — 쉬운 설명 동반):**
-> "Haiku 사전 필터의 regex pre-check 로직을 isRelevantMessage 함수에 추가하겠습니다.
-> 📘 **쉬운 설명:** 메시지를 검사하기 전에 "전화번호 모양이면 무조건 통과시켜라"는 규칙을 먼저 넣는 거예요.
-
-**대상이 되는 상황:**
-- 수정 계획 보고
-- 원인·해결 방법 설명
-- 코드 구조·DB·API 등 기술 개념 언급
-- 에러·실패 사유 설명
-
-**예외 (쉬운 설명 생략 가능):**
-- 단순 진행 확인 ("진행할까요?", "완료했습니다")
-- 사용자가 명백히 기술적 답변만 원할 때 ("git status 보여줘" 등)
-- 한 줄짜리 짧은 답변
-
----
-
-## 0-1. 멀티 탭 + 배포 분리 규칙 (2026-05-08 추가)
-
-이 프로젝트는 여러 Claude Code 작업 탭을 동시에 사용한다. 탭별 역할은 고정하지 않지만 **배포 권한은 탭에 따라 다르다.**
-
-### 작업 탭 (3번, 4번, 5번 등 일반 작업 탭)
-- 작업과 푸시는 **dev 서버(Render)** 에만 — `git push`로 자동 배포
-- **cloudtype(운영) 폴더 절대 건드리지 말 것** (기존 규칙 유지)
-- 사용자가 "양쪽 다 배포" 같이 말해도 → **dev만 처리**, 운영 배포는 메인(배포몬) 탭에서 진행해 달라고 안내
-- "운영 배포해" / "cloudtype 배포해" 명령 받으면 → **거부하고 메인 탭에서 진행 안내**
-
-### 메인 탭 (배포몬)
-- 운영(cloudtype) 배포 전담 탭
-- 사용자가 **"운영 배포해"** 등 명시 명령할 때만 cloudtype 처리
-- 운영 배포 시간대는 **사용자가 직접 판단해서 명령**한다 (Claude는 시간 자동 검증 X)
-
-### 메인 탭 운영 배포 워크플로우 (필수 단계)
-
-사용자가 운영 배포 명령 시 아래 순서를 반드시 따른다:
-
-**1단계 — dev 최신 동기화**
-```
-git -C "시스템행거 AI 루마네" pull
-```
-
-**2단계 — 마지막 운영 배포 이후 변경 내역 추출**
-- 기준점: cloudtype 리포의 `last-prod-deploy` 태그 (없으면 사용자에게 기준 시점 확인)
-- dev 리포에서 그 시점 이후 커밋 추출
-```
-git -C "시스템행거 AI 루마네" log [기준]..HEAD --oneline
-```
-
-**3단계 — 한국어 변경 요약 보고**
-사용자에게 다음 형식으로 보고:
-```
-지난 운영 배포 이후 dev에 푸시된 작업:
-- [커밋해시] [한국어 요약 — 어느 파일 어떤 변경]
-- ...
-
-영향받는 파일:
-- 시스템행거 AI 루마네/server.js (line X-Y 추가)
-- 시스템행거 AI 루마네/js/admin-live.js (수정)
-- ...
-
-cloudtype에 동기화하고 푸시할까요?
-```
-
-**4단계 — 사용자 확인 후 동기화**
-- 변경된 파일만 cp (전체 덮어쓰기 X)
-- cloudtype 전용 라인 보존 필수:
-  - server.js: `{ db: { schema: process.env.DB_SCHEMA || 'public' } }`
-  - server.js: `const PORT = process.env.PORT || 3001;`
-  - 그 외 cloudtype-specific 라인이 있으면 신중히 머지
-
-**5단계 — cloudtype 커밋·푸시**
-```
-git -C "lumane-cloudtype" add [변경 파일]
-git -C "lumane-cloudtype" commit -m "..."
-git -C "lumane-cloudtype" push
-```
-
-**6단계 — 배포 시점 태깅 (양쪽)**
-- cloudtype에 `last-prod-deploy` 태그 갱신 (다음 배포 기준점):
-```
-git -C "lumane-cloudtype" tag -f last-prod-deploy
-git -C "lumane-cloudtype" push -f origin last-prod-deploy
-```
-
-이 태그가 다음 운영 배포 시 변경 내역 추출 기준이 된다.
 
 ---
 
@@ -155,7 +58,7 @@ git -C "lumane-cloudtype" push -f origin last-prod-deploy
 - 기능 구조를 바꾸는 리팩토링
 - 배포 명령 실행
 - 데이터 삭제 또는 초기화
-- 사용자가 “먼저 확인해”, “계획부터 말해”, “어디 고칠지 먼저 알려줘”라고 말한 작업
+- 사용자가 "먼저 확인해", "계획부터 말해", "어디 고칠지 먼저 알려줘"라고 말한 작업
 
 이 경우 아래 형식으로 짧게 보고한다.
 
@@ -168,7 +71,7 @@ git -C "lumane-cloudtype" push -f origin last-prod-deploy
 진행해도 될까요?
 ```
 
-사용자가 “진행”이라고 답하기 전까지 파일 수정 금지.
+사용자가 "진행"이라고 답하기 전까지 파일 수정 금지.
 
 ---
 
@@ -186,46 +89,13 @@ git -C "lumane-cloudtype" push -f origin last-prod-deploy
 - 배포 전 큰 수정
 - 사용자가 백업을 요청한 경우
 
-백업 위치:
-
-```text
-C:\Users\kateb\시스템행거_AI_상담원_루마네\시스템행거 AI 루마네\백업본
-```
+백업 위치는 본인 PC 경로라 `CLAUDE.local.md` 참조.
 
 백업 후에는 백업한 파일명만 간단히 보고한다.
 
 ---
 
-## 3. team-orchestrator 실행 기준
-
-HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.  
-아래 경우에만 `@team-orchestrator`를 실행한다.
-
-### 실행해야 하는 경우
-- 새 기능 추가
-- 여러 파일 수정
-- 배포 전 최종 점검
-- 로그인 / DB / 저장 / 삭제 / 관리자 기능 수정
-- 화면 흐름이나 상태 관리가 바뀌는 작업
-- 사용자가 명시적으로 검토를 요청한 경우
-
-### 실행하지 않아도 되는 경우
-- 오타 수정
-- 단순 문구 수정
-- 작은 CSS 조정
-- 한 파일 안에서 끝나는 간단한 버그 수정
-- 주석 수정
-- console 로그 제거
-
-실행해야 하는 경우에는 수정 직후 아래처럼 진행한다.
-
-```text
-@team-orchestrator 방금 수정한 내용 검토해줘.
-```
-
----
-
-## 4. 작업 완료 후 보고
+## 3. 작업 완료 후 보고
 
 작업 완료 후에는 길게 설명하지 말고 아래 형식으로 보고한다.
 
@@ -248,18 +118,7 @@ HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.
 
 추가 확인 필요:
 - 없음 / 있음
-
-자체 리뷰 체크리스트:
-- [ ] 요청한 범위만 수정 (임의 리팩토링·디자인·문구 변경 없음)
-- [ ] server.js 무단 수정 없음
-- [ ] lumane-cloudtype 폴더 건드리지 않음
-- [ ] 위험 작업(DB·저장·삭제·로그인·배포)이면 사용자 확인 받음
-- [ ] 백업 규칙(섹션 2) 해당 시 백업 완료
-- [ ] 지침 폴더 관련 작업이면 먼저 읽고 진행
-- [ ] team-orchestrator 실행 기준(섹션 3) 해당 시 실행 또는 안내
 ```
-
-각 항목은 ✅ / ⚠️ / N/A 중 하나로 표시한다. ⚠️ 항목이 있으면 무엇이 미달인지 한 줄 덧붙인다.
 
 실패한 경우에는 결과를 "실패"로 표시하고 이유를 간단히 적는다.
 
@@ -277,9 +136,7 @@ HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.
 
 ---
 
-## 5. 절대 금지사항
-
-> ⚠️ `C:\Users\kateb\시스템행거_AI_상담원_루마네\lumane-cloudtype` 폴더는 명시적 지시 전까지 절대 건드리지 않는다.
+## 4. 절대 금지사항
 
 - 요청하지 않은 기능 추가 금지
 - 요청하지 않은 디자인 변경 금지
@@ -292,103 +149,7 @@ HTML/CSS/JS를 수정했다고 해서 매번 실행하지 않는다.
 
 ---
 
-## 6. 에이전트 팀 구성
-
-이 프로젝트는 6개의 전문 에이전트로 구성된 팀을 사용합니다.
-
-| 에이전트 | 역할 |
-|---------|------|
-| `team-orchestrator` | 헤드 에이전트 - 팀 전체 조율 |
-| `html-css-js-reviewer` | HTML/CSS/JS 코드 품질 검토 |
-| `web-security-auditor` | 보안 취약점 검사 |
-| `code-bug-fixer` | 버그 탐지 및 수정 |
-| `frontend-test-validator` | 테스트 검증 |
-| `final-reviewer` | 작업 완료 후 최종 검토 (요청-결과 일치, 규칙 준수, 사용자 관점) |
-
----
-
-## 7. 에이전트 사용 기준
-
-### 팀 전체 검토가 필요한 경우 → `@team-orchestrator`
-- 새 기능 완성 후
-- 여러 파일을 함께 수정한 후
-- 배포 전 최종 검토
-- 코드 전반적인 품질 점검이 필요할 때
-
-### 개별 에이전트 사용
-- 코드 스타일만 확인 → `@html-css-js-reviewer`
-- 보안만 빠르게 확인 → `@web-security-auditor`
-- 버그만 확인 → `@code-bug-fixer`
-- 테스트만 확인 → `@frontend-test-validator`
-- 작업 다 끝났는지 최종 점검 → `@final-reviewer`
-
----
-
-## 8. 사용 방법
-
-### 기본 사용
-
-```text
-@team-orchestrator 로그인 폼 새로 만들었어, 검토해줘
-@code-bug-fixer 이 파일에서 오류 찾아줘
-@web-security-auditor 보안 점검해줘
-```
-
-### 터미널에서 사용
-
-```bash
-claude
-```
-
-그 다음 채팅에서:
-
-```text
-@team-orchestrator 코드 검토해줘
-```
-
----
-
-## 9. 주의사항
-
-- 기획서 분석, Supabase 연결 등 코드 외 작업은 `@team-orchestrator`가 직접 처리한다.
-- 서브 에이전트 병렬 실행은 HTML/CSS/JS 코드 관련 작업에서만 동작한다.
-- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 환경변수가 설정되어 있어야 한다.
-
----
-
-## 10. 환경 변수 확인
-
-Windows PowerShell에서 확인:
-
-```powershell
-$env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS
-```
-
-결과가 `1`이면 정상.
-
-설정 안 되어 있으면:
-
-```powershell
-$env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
-```
-
----
-
-## 11. 에이전트 파일 위치
-
-```text
-C:\Users\kateb\.claude\agents\
-├── team-orchestrator.md
-├── html-css-js-reviewer.md
-├── web-security-auditor.md
-├── code-bug-fixer.md
-├── frontend-test-validator.md
-└── final-reviewer.md
-```
-
----
-
-## 12. 프로젝트 구조
+## 5. 프로젝트 구조
 
 ### 주요 파일
 - `chat.html` + `css/chat.css` + `js/` → AI 상담 채팅 앱 루마네
@@ -396,11 +157,11 @@ C:\Users\kateb\.claude\agents\
 - `admin.html` → 어드민 패널
 - `server.js` → Express 서버, Anthropic API, Supabase, Notion 연동 **허락 없이 수정 금지**
 - `preview_site/` → 작업 샌드박스, 배포 전 테스트용
-- `백업본/` → 백업 저장소
+- `백업본/` → 백업 저장소 (gitignore)
 
 ---
 
-## 13. 루마네 AI 지침 폴더
+## 6. 루마네 AI 지침 폴더
 
 서버가 시작될 때 `지침/` 폴더의 모든 `.md` 파일을 읽어 루마네 시스템 프롬프트에 자동 포함한다.
 
@@ -432,7 +193,7 @@ git push
 
 ---
 
-## 14. 전체 작업 순서 요약
+## 7. 전체 작업 순서 요약
 
 ### 작은 작업
 ```text
@@ -441,7 +202,7 @@ git push
 
 ### 위험 작업
 ```text
-요청 요약 → 수정 예상 파일 보고 → 사용자 확인 → 백업 → 수정 → 필요 시 team-orchestrator → 테스트 → 완료 보고
+요청 요약 → 수정 예상 파일 보고 → 사용자 확인 → 백업 → 수정 → 필요 시 검토 → 테스트 → 완료 보고
 ```
 
 ### 배포 작업

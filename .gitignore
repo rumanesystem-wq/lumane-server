@@ -21,3 +21,6 @@ scripts/migrate-dressroom-images.js
 scripts/migrate-dressroom-storage.js
 scripts/export-dressroom-images.js
 skill/
+
+# 본인 전용 Claude Code 설정 (gitignore)
+CLAUDE.local.md
