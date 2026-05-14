@@ -843,11 +843,13 @@ const SHAPE_CARDS = [
   { value: 'ㄷ자형', emoji: 'ㄷ',   label: 'ㄷ자형', sub: '3면 활용' },
   { value: '11자형', emoji: '‖', label: '11자형', sub: '양면 배치' },
 ];
+/* 예산 구간 — 지침/10_예외처리규칙.md 형태별 참고 가격대에 맞춰 설계
+   1자형 소형 기본 ~35만 / 1자형 옵션포함 35~70만 / ㄱ자형 60~90만 / ㄷ자형 옵션포함 80~150만 */
 const BUDGET_CARDS = [
-  { value: '100만원 이하',     emoji: '💡', label: '100만원 이하',  sub: '기본 1자형 구성' },
-  { value: '100~200만원',      emoji: '🪑', label: '100 ~ 200만원',  sub: '일반 구성' },
-  { value: '200~300만원',      emoji: '✨', label: '200 ~ 300만원',  sub: '옵션 포함 구성' },
-  { value: '300만원 이상',     emoji: '💎', label: '300만원 이상',  sub: '풀옵션 구성' },
+  { value: '50만원 이하',       emoji: '💡', label: '50만원 이하',     sub: '1자형 기본 구성' },
+  { value: '50~100만원',        emoji: '🪑', label: '50 ~ 100만원',    sub: '1자형 옵션 또는 ㄱ자형 기본' },
+  { value: '100~150만원',       emoji: '✨', label: '100 ~ 150만원',   sub: 'ㄱ자형 옵션 또는 ㄷ자형 기본' },
+  { value: '150만원 이상',      emoji: '💎', label: '150만원 이상',    sub: 'ㄷ자형 풀옵션 구성' },
 ];
 const OPTION_CARDS = [
   { value: '거울장',     emoji: '🪞', label: '거울장',     price: '+169,000원' },
