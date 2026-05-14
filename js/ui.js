@@ -939,11 +939,87 @@ export function setOptionCards() {
   $quickArea.appendChild(wrap);
 }
 
+/* ── 시공 사례 캐러셀 (킵3 디자인) ── */
+const PROJECT_SAMPLES = [
+  { emoji: '🏠',  title: '강남 ㄱ자형 풀옵션', price: '약 185만원' },
+  { emoji: '🛋️', title: '분당 ㄱ자+서랍',    price: '약 145만원' },
+  { emoji: '✨',  title: '송파 ㄱ자 미니멀',  price: '약 120만원' },
+  { emoji: '🪞',  title: '마포 ㄱ자+거울장',  price: '약 165만원' },
+];
+
+export function setProjectCarousel() {
+  $quickArea.innerHTML = '';
+  const hint = document.createElement('div');
+  hint.className = 'quick-hint-label';
+  hint.textContent = '💡 비슷한 시공 사례 — 좌우로 스크롤';
+  $quickArea.appendChild(hint);
+  const wrap = document.createElement('div');
+  wrap.className = 'project-carousel';
+  PROJECT_SAMPLES.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'pc-card';
+    card.innerHTML = `
+      <div class="pc-img"></div>
+      <div class="pc-info">
+        <div class="pc-title"></div>
+        <div class="pc-price"></div>
+      </div>
+    `;
+    card.querySelector('.pc-img').textContent = p.emoji;
+    card.querySelector('.pc-title').textContent = p.title;
+    card.querySelector('.pc-price').textContent = p.price;
+    wrap.appendChild(card);
+  });
+  $quickArea.appendChild(wrap);
+}
+
+/* ── 인라인 견적 카드 (킵3 디자인) ── */
+export function setInlineQuoteFromText(text) {
+  /* 견적서 텍스트에서 형태/구성/옵션/배송비/합계 파싱 */
+  const layoutM = text.match(/\[설치\s*공간\][^\n]*\n?\s*([^\n]+)/);
+  /* H1 fix: 할인 후 금액 우선, 없으면 총 합계, 마지막으로 [금액] 라벨 폴백 */
+  const priceM = text.match(/할인\s*후\s*금액\s*[:：]?\s*([\d,]+)\s*원/)
+              || text.match(/총\s*합계\s*[:：]?\s*([\d,]+)\s*원/)
+              || text.match(/\[금액\][\s\S]*?([\d,]+)\s*원/);
+  if (!priceM) { setQuick([]); return; }
+
+  $quickArea.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'inline-quote';
+  card.innerHTML = `
+    <div class="iq-header"><div class="iq-dot"></div><div class="iq-title">예상 견적서</div></div>
+    <div class="iq-body"></div>
+    <div class="iq-total">
+      <span class="iqt-label">예상 합계</span>
+      <span class="iqt-price"></span>
+    </div>
+    <button class="iq-cta">정식 견적서 받기 →</button>
+  `;
+  const body = card.querySelector('.iq-body');
+  if (layoutM) {
+    const row = document.createElement('div');
+    row.className = 'iq-row';
+    row.innerHTML = `<span>형태</span><span class="val"></span>`;
+    row.querySelector('.val').textContent = layoutM[1].trim();
+    body.appendChild(row);
+  }
+  card.querySelector('.iqt-price').textContent = `약 ${(Number(priceM[1].replace(/,/g, '')) / 10000).toFixed(0)}만원`;
+  card.querySelector('.iq-cta').onclick = () => {
+    _sendCardValue('네, 정식 견적서 받을게요');
+  };
+  $quickArea.appendChild(card);
+}
+
 /* ── AI 응답에서 퀵 버튼 자동 감지 ── */
 export function updateQuickFromText(text) {
-  /* 견적서 완료 텍스트면 퀵버튼 감지 스킵 */
+  /* 견적서 완료 텍스트면 인라인 견적 카드 표시 */
   const isQuote = /\[설치\s*공간\]/.test(text) && /\[금액\]/.test(text);
-  if (isQuote) { setQuick([]); return; }
+  if (isQuote) { setInlineQuoteFromText(text); return; }
+
+  /* 시공 사례 안내 */
+  if (/(비슷한.*사례|시공.*사례|참고.*사례|이런.*경우)/.test(text)) {
+    setProjectCarousel(); return;
+  }
 
   /* ①②③ 스타일 선택지 자동 감지 */
   const circled = '①②③④⑤⑥⑦⑧⑨⑩';

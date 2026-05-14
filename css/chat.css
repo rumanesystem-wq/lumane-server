@@ -697,6 +697,92 @@ html, body {
 .card-option.co-manual .co-name { color: #b08850; }
 .card-option.co-manual .co-price { color: #a8a8a8; font-weight: 500; }
 
+/* ── 시공 사례 캐러셀 ── */
+.project-carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-top: 4px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.project-carousel::-webkit-scrollbar { height: 3px; }
+.project-carousel::-webkit-scrollbar-thumb { background: #ebe6df; border-radius: 2px; }
+.pc-card {
+  flex-shrink: 0;
+  width: 180px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f3ead8;
+  scroll-snap-align: start;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  border: 1px solid #ebe6df;
+}
+.pc-img {
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(135deg, #e8dfc7, #d4c4a0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.pc-info { padding: 10px 12px; background: #fff; }
+.pc-title { font-size: 12px; font-weight: 700; margin-bottom: 2px; color: #1a1a1a; }
+.pc-price { font-size: 11px; color: #c9a96e; font-weight: 600; }
+
+/* ── 인라인 견적 카드 ── */
+.inline-quote {
+  background: #fff;
+  border: 1.5px solid #ebe6df;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  margin-top: 4px;
+}
+.iq-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.iq-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9a96e; }
+.iq-title { font-size: 13px; font-weight: 700; color: #6b6b6b; letter-spacing: 1px; text-transform: uppercase; }
+.iq-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 7px 0;
+  border-bottom: 1px solid #ebe6df;
+  color: #6b6b6b;
+}
+.iq-row .val { font-weight: 600; color: #1a1a1a; }
+.iq-total {
+  margin-top: 10px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #c9a96e, #b08850);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+}
+.iqt-label { font-size: 12px; font-weight: 600; opacity: .9; }
+.iqt-price { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+.iq-cta {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px;
+  background: #faf5ec;
+  border: 1.5px solid #e8d5b0;
+  border-radius: 10px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #b08850;
+  cursor: pointer;
+  text-align: center;
+  transition: background .15s;
+}
+.iq-cta:hover { background: #f3ead8; }
+
 .qbtn {
   padding: 6px 14px;
   border-radius: 16px;
