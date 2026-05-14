@@ -839,9 +839,9 @@ export function setQuick(labels, isChoice = false) {
 /* ── 카드형 퀵 UI — 킵3 디자인 (예산/형태/옵션) ── */
 const SHAPE_CARDS = [
   { value: '1자형',  emoji: 'ㅡㅡ',  label: '1자형',  sub: '한쪽 벽면' },
-  { value: 'ㄱ자형', emoji: 'ㄴ',   label: 'ㄱ자형', sub: '코너 활용' },
-  { value: 'ㄷ자형', emoji: 'ㄷ',   label: 'ㄷ자형', sub: '3면 활용' },
-  { value: '11자형', emoji: '‖', label: '11자형', sub: '양면 배치' },
+  { value: 'ㄱ자형', emoji: 'ㄴ',   label: 'ㄱ자형', sub: '두 벽면 (코너)' },
+  { value: 'ㄷ자형', emoji: 'ㄷ',   label: 'ㄷ자형', sub: '세 벽면 둘러싸기' },
+  { value: '11자형', emoji: '‖', label: '11자형', sub: '마주보는 두 벽면' },
 ];
 /* 예산 구간 — 지침/10_예외처리규칙.md 형태별 참고 가격대에 맞춰 설계
    1자형 소형 기본 ~35만 / 1자형 옵션포함 35~70만 / ㄱ자형 60~90만 / ㄷ자형 옵션포함 80~150만 */
