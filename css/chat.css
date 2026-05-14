@@ -1870,3 +1870,53 @@ mark.search-hl-active {
   width: 38px; height: 38px;
   border-radius: 10px;
 }
+
+/* ============================================ */
+/* 킵3 메시지 스타일 완전 이식                  */
+/* ============================================ */
+
+/* 발신자 이름 라벨 제거 (킵3는 아바타로 충분) */
+.msg-sender { display: none !important; }
+
+/* 메시지 그룹 간격 */
+.msg-group { gap: 10px; margin-bottom: 16px; }
+
+/* 메시지 본문 — 세로 흐름 (말풍선 → 시간) */
+.msg-group .msg-body { gap: 4px; max-width: 72%; }
+.msg-group.user .msg-body { align-items: flex-end; }
+.msg-group.bot  .msg-body { align-items: flex-start; }
+
+/* 말풍선 행을 세로로: 말풍선 위, 시간 아래 */
+.msg-group .msg-bubbles-row { flex-direction: column; align-items: stretch; gap: 4px; max-width: 100%; }
+.msg-group.user .msg-bubbles-row { align-items: flex-end; max-width: 100%; }
+.msg-group.bot  .msg-bubbles-row { align-items: flex-start; }
+
+/* 메타(시간/읽음)를 가로로 정렬하고 말풍선 아래 배치 */
+.msg-group .msg-meta { flex-direction: row; align-items: center; gap: 6px; padding: 0 4px; }
+.msg-group.user .msg-meta { justify-content: flex-end; }
+
+/* 시간 — 킵3 사양 */
+.msg-time { font-size: 10px; color: #a8a8a8; }
+
+/* 말풍선 — 킵3 사양 (패딩·꼬리 4px) */
+.bubble { padding: 11px 15px; font-size: 14px; line-height: 1.6; }
+.bubble.bot {
+  background: #ffffff;
+  border: 1px solid #ebe6df;
+  border-radius: 4px 16px 16px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.msg-bubbles .bubble.bot:not(:first-child) {
+  border-radius: 4px 16px 16px 4px;
+}
+.bubble.user {
+  background: linear-gradient(135deg, #c9a96e, #b08850);
+  color: #ffffff;
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: 0 2px 8px rgba(201,169,110,.25);
+}
+
+/* 모바일에선 본문 폭 더 넓게 */
+@media (max-width: 767px) {
+  .msg-group .msg-body { max-width: 80%; }
+}
