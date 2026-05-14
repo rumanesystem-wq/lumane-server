@@ -1920,3 +1920,17 @@ mark.search-hl-active {
 @media (max-width: 767px) {
   .msg-group .msg-body { max-width: 80%; }
 }
+
+/* 말풍선 아래 인라인 카드 컨테이너 (예산/형태/옵션/캐러셀) */
+.card-insert {
+  margin-top: 6px;
+  width: 100%;
+}
+.card-insert > * { max-width: 100%; }
+.card-insert .cards-budget,
+.card-insert .cards-shape,
+.card-insert .cards-option,
+.card-insert .project-carousel { margin-top: 0; }
+@media (max-width: 767px) {
+  .msg-group.bot:has(.card-insert) .msg-body { max-width: 88%; }
+}

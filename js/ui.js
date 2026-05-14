@@ -861,18 +861,53 @@ const OPTION_CARDS = [
   { value: '아일랜드장', emoji: '🏝️', label: '아일랜드장', price: '+169,000원' },
 ];
 
-function _sendCardValue(value) {
+function _sendCardValue(value, inlineHost) {
+  /* 인라인 모드: 카드 삽입 영역 제거 (말풍선은 유지) */
+  if (inlineHost && inlineHost.parentNode) inlineHost.remove();
   $inp.value = value;
   refreshSendBtn();
   $sendBtn.click();
 }
 
-export function setShapeCards() {
+/* 마지막 봇 메시지의 .msg-bubbles-row 안에 카드 삽입용 호스트 생성/회수
+   DOM 구조: .msg-group.bot > .msg-body > .msg-bubbles-row > [.msg-bubbles, .msg-meta]
+   → 카드는 bubblesRow 안 meta 앞에 삽입해서 [말풍선 → 카드 → 시간] 순서 유지 */
+function _inlineHost() {
+  const groups = $msgs.querySelectorAll('.msg-group.bot');
+  const last = groups[groups.length - 1];
+  if (!last) return null;
+  const body = last.querySelector('.msg-body');
+  if (!body) return null;
+  const row = body.querySelector('.msg-bubbles-row');
+  if (!row) return null;
+  let host = row.querySelector(':scope > .card-insert');
+  if (host) { host.innerHTML = ''; return host; }
+  host = document.createElement('div');
+  host.className = 'card-insert';
+  const meta = row.querySelector(':scope > .msg-meta');
+  if (meta) row.insertBefore(host, meta);
+  else row.appendChild(host);
+  return host;
+}
+
+/* 카드 컨테이너 결정: inline 옵션이면 마지막 봇 말풍선 안, 아니면 하단 quickArea */
+function _cardTarget(opts) {
+  if (opts && opts.inline) {
+    const host = _inlineHost();
+    if (host) return { el: host, inline: true };
+  }
   $quickArea.innerHTML = '';
-  const hint = document.createElement('div');
-  hint.className = 'quick-hint-label';
-  hint.textContent = '아래 카드에서 선택해 주세요';
-  $quickArea.appendChild(hint);
+  return { el: $quickArea, inline: false };
+}
+
+export function setShapeCards(opts) {
+  const t = _cardTarget(opts);
+  if (!t.inline) {
+    const hint = document.createElement('div');
+    hint.className = 'quick-hint-label';
+    hint.textContent = '아래 카드에서 선택해 주세요';
+    t.el.appendChild(hint);
+  }
   const grid = document.createElement('div');
   grid.className = 'cards-shape';
   SHAPE_CARDS.forEach(c => {
@@ -882,18 +917,20 @@ export function setShapeCards() {
     btn.querySelector('.cs-icon').textContent = c.emoji;
     btn.querySelector('.cs-label').textContent = c.label;
     btn.querySelector('.cs-desc').textContent = c.sub;
-    btn.onclick = () => _sendCardValue(c.value);
+    btn.onclick = () => _sendCardValue(c.value, t.inline ? t.el : null);
     grid.appendChild(btn);
   });
-  $quickArea.appendChild(grid);
+  t.el.appendChild(grid);
 }
 
-export function setBudgetCards() {
-  $quickArea.innerHTML = '';
-  const hint = document.createElement('div');
-  hint.className = 'quick-hint-label';
-  hint.textContent = '아래 카드에서 선택해 주세요';
-  $quickArea.appendChild(hint);
+export function setBudgetCards(opts) {
+  const t = _cardTarget(opts);
+  if (!t.inline) {
+    const hint = document.createElement('div');
+    hint.className = 'quick-hint-label';
+    hint.textContent = '아래 카드에서 선택해 주세요';
+    t.el.appendChild(hint);
+  }
   const wrap = document.createElement('div');
   wrap.className = 'cards-budget';
   BUDGET_CARDS.forEach(c => {
@@ -903,18 +940,20 @@ export function setBudgetCards() {
     btn.querySelector('.cb-emoji').textContent = c.emoji;
     btn.querySelector('.cb-amount').textContent = c.label;
     btn.querySelector('.cb-desc').textContent = c.sub;
-    btn.onclick = () => _sendCardValue(c.value);
+    btn.onclick = () => _sendCardValue(c.value, t.inline ? t.el : null);
     wrap.appendChild(btn);
   });
-  $quickArea.appendChild(wrap);
+  t.el.appendChild(wrap);
 }
 
-export function setOptionCards() {
-  $quickArea.innerHTML = '';
-  const hint = document.createElement('div');
-  hint.className = 'quick-hint-label';
-  hint.textContent = '💡 중복 선택 가능 — 원하는 항목을 누르면 한 번에 한 개씩 전송돼요';
-  $quickArea.appendChild(hint);
+export function setOptionCards(opts) {
+  const t = _cardTarget(opts);
+  if (!t.inline) {
+    const hint = document.createElement('div');
+    hint.className = 'quick-hint-label';
+    hint.textContent = '💡 중복 선택 가능 — 원하는 항목을 누르면 한 번에 한 개씩 전송돼요';
+    t.el.appendChild(hint);
+  }
   const wrap = document.createElement('div');
   wrap.className = 'cards-option';
   OPTION_CARDS.forEach(c => {
@@ -924,7 +963,7 @@ export function setOptionCards() {
     btn.querySelector('.co-emoji').textContent = c.emoji;
     btn.querySelector('.co-name').textContent = c.label;
     btn.querySelector('.co-price').textContent = c.price;
-    btn.onclick = () => _sendCardValue(c.value);
+    btn.onclick = () => _sendCardValue(c.value, t.inline ? t.el : null);
     wrap.appendChild(btn);
   });
   /* 직접 입력 버튼 */
@@ -932,11 +971,12 @@ export function setOptionCards() {
   manual.className = 'card-option co-manual';
   manual.innerHTML = `<span class="co-emoji">✏️</span><div class="co-info"><div class="co-name">직접 입력</div><div class="co-price">원하는 옵션을 자유롭게 적어주세요</div></div>`;
   manual.onclick = () => {
-    $quickArea.innerHTML = '';
+    if (t.inline && t.el.parentNode) t.el.remove();
+    else $quickArea.innerHTML = '';
     $inp.focus();
   };
   wrap.appendChild(manual);
-  $quickArea.appendChild(wrap);
+  t.el.appendChild(wrap);
 }
 
 /* ── 시공 사례 캐러셀 (킵3 디자인) ── */
@@ -947,12 +987,14 @@ const PROJECT_SAMPLES = [
   { emoji: '🪞',  title: '마포 ㄱ자+거울장',  price: '약 165만원' },
 ];
 
-export function setProjectCarousel() {
-  $quickArea.innerHTML = '';
-  const hint = document.createElement('div');
-  hint.className = 'quick-hint-label';
-  hint.textContent = '💡 비슷한 시공 사례 — 좌우로 스크롤';
-  $quickArea.appendChild(hint);
+export function setProjectCarousel(opts) {
+  const t = _cardTarget(opts);
+  if (!t.inline) {
+    const hint = document.createElement('div');
+    hint.className = 'quick-hint-label';
+    hint.textContent = '💡 비슷한 시공 사례 — 좌우로 스크롤';
+    t.el.appendChild(hint);
+  }
   const wrap = document.createElement('div');
   wrap.className = 'project-carousel';
   PROJECT_SAMPLES.forEach(p => {
@@ -970,7 +1012,7 @@ export function setProjectCarousel() {
     card.querySelector('.pc-price').textContent = p.price;
     wrap.appendChild(card);
   });
-  $quickArea.appendChild(wrap);
+  t.el.appendChild(wrap);
 }
 
 /* ── 인라인 견적 카드 (킵3 디자인) ── */
@@ -1018,7 +1060,7 @@ export function updateQuickFromText(text) {
 
   /* 시공 사례 안내 */
   if (/(비슷한.*사례|시공.*사례|참고.*사례|이런.*경우)/.test(text)) {
-    setProjectCarousel(); return;
+    setProjectCarousel({ inline: true }); return;
   }
 
   /* ①②③ 스타일 선택지 자동 감지 */
@@ -1030,10 +1072,10 @@ export function updateQuickFromText(text) {
 
   /* 예산 질문 — 카드 UI */
   if (/(예산.*얼마|예산.*어느|얼마.*생각|얼마.*예산|얼마쯤|얼마 정도|희망 금액|희망금액|얼마.*까지)/.test(text)) {
-    setBudgetCards(); return;
+    setBudgetCards({ inline: true }); return;
   }
   if (/(드레스룸\s*형태|형태.*어떻게|어떤\s*형태|형태.*선택|어느\s*형태)/.test(text)) {
-    setShapeCards(); return;
+    setShapeCards({ inline: true }); return;
   }
   /* 선반 색상 질문 — 견적서 항목 언급이 아닌 실제 질문만 */
   if (/(선반\s*색상.*어떻게|선반\s*색상.*알려|선반\s*색상.*선택|선반\s*색상.*원하|어떤\s*선반\s*색상|선반\s*색상은)/.test(text)) {
@@ -1049,7 +1091,7 @@ export function updateQuickFromText(text) {
   }
   /* 옵션 추가 질문 — 카드 UI (가격 포함) */
   if (/(옵션.*추가|어떤\s*옵션|옵션.*뭐|옵션.*선택|옵션.*원하|구성.*원하|뭐\s*넣|추가.*원하시는)/.test(text)) {
-    setOptionCards(); return;
+    setOptionCards({ inline: true }); return;
   }
   /* 선반 단수 질문 */
   if (/(선반.*몇\s*단|선반.*단수|몇\s*단으로|단수.*어떻게|단수.*선택|몇단)/.test(text)) {

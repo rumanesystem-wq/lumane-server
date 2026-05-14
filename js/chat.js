@@ -617,7 +617,7 @@ function greet() {
         addMsg('bot', msg2);
         saveHistory();
         setLoading(false);
-        try { setBudgetCards(); } catch (_) { /* ui.js에 함수 없으면 조용히 무시 */ }
+        try { setBudgetCards({ inline: true }); } catch (_) { /* ui.js에 함수 없으면 조용히 무시 */ }
       }, 500);
     }, 300);
   }, 500);
