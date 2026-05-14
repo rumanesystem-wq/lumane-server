@@ -535,10 +535,7 @@ async function send(prefilledText) {
     if (!/케이트블랑.*견적서/.test(reply)) updateQuickFromText(reply);
     saveHistory();
 
-    if (completedQuote) {
-      // 견적서 PNG 렌더링 + 사용자 확인 시간 확보 (응급조치 — 차후 근본 수정 예정)
-      setTimeout(() => showConfirm(completedQuote), 6000);
-    }
+    // (자동 화면 전환 제거 — 견적서가 채팅창에서 혼자 사라지는 버그 수정)
 
     // 부모 페이지(2패널 레이아웃)에 수집된 고객 정보 전달
     postFieldsToParent();
