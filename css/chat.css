@@ -1700,3 +1700,164 @@ mark.search-hl-active {
   background: #f3f4f6;
   color: #374151;
 }
+
+/* ============================================ */
+/* 킵3 디자인 — 헤더·입력바·모바일 햄버거 이식  */
+/* ============================================ */
+
+/* 헤더 — 흰 배경 + 골드 아바타 + 온라인 점 */
+.header {
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+  border-bottom: 1px solid #ebe6df;
+  padding: 12px 16px;
+}
+.header .h-back {
+  background: #faf5ec;
+  color: #6b6b6b;
+  border: 1px solid #ebe6df;
+}
+.header .h-back:hover { background: #f3ead8; }
+.header .h-name { color: #1a1a1a; }
+.header .h-sub  { color: #6b6b6b; opacity: 1; }
+.header .h-status { color: #6b6b6b; opacity: 1; }
+.header .h-search-btn,
+.header .h-collect-btn,
+.header .h-history-btn {
+  background: #ffffff;
+  border: 1.5px solid #ebe6df;
+  color: #6b6b6b;
+}
+.header .h-search-btn:hover,
+.header .h-collect-btn:hover,
+.header .h-history-btn:hover { background: #faf5ec; border-color: #e8d5b0; }
+.header .h-history-text { color: #6b6b6b; }
+
+/* 헤더용 골드 아바타 (h-av는 기존 코드 유지, 새 .hd-avatar 사용) */
+.hd-avatar {
+  position: relative;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a96e, #b08850);
+  color: #ffffff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px;
+  flex-shrink: 0;
+}
+.hd-online {
+  position: absolute;
+  bottom: 1px; right: 1px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 2px solid #ffffff;
+}
+.header .header-hd-avatar { display: flex; }
+
+/* 채팅 헤더 우측 골드 액션 버튼 (참고용 — 아직 미사용) */
+.hd-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid #ebe6df;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: #6b6b6b;
+  transition: all .15s;
+  font-family: inherit;
+}
+.hd-btn:hover { background: #faf5ec; border-color: #e8d5b0; }
+
+/* 모바일 햄버거 헤더 — 모바일에서만 표시 */
+.mobile-header { display: none; }
+@media (max-width: 767px) {
+  .mobile-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    height: 56px;
+    background: #ffffff;
+    border-bottom: 1px solid #ebe6df;
+    flex-shrink: 0;
+  }
+  .mobile-header .hd-avatar { width: 34px; height: 34px; font-size: 13px; }
+  .mobile-hd-info { flex: 1; min-width: 0; }
+  .mobile-hd-name { font-size: 14px; font-weight: 700; color: #1a1a1a; }
+  .mobile-hd-sub  { font-size: 11px; color: #6b6b6b; }
+  .mobile-hd-actions { display: flex; gap: 6px; }
+  .mobile-header .hd-btn { width: 38px; height: 38px; font-size: 16px; }
+  .hamburger-btn {
+    width: 40px; height: 40px;
+    border: none; background: transparent;
+    font-size: 22px; color: #1a1a1a;
+    cursor: pointer; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .hamburger-btn:hover { background: #faf5ec; }
+  /* PC 사이드바를 모바일에서 슬라이드 드로어로 전환 */
+  .pc-panel {
+    position: fixed !important;
+    top: 0; left: 0;
+    width: 85vw; max-width: 320px;
+    height: 100vh; height: 100dvh;
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform .3s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,.15);
+    display: flex !important;
+  }
+  .pc-panel.mobile-open { transform: translateX(0); }
+  body.pc-panel-mobile-open::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 250;
+    animation: pcpFadeIn .25s ease;
+  }
+  @keyframes pcpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  /* 모바일에선 기존 .header 숨기고 mobile-header 사용 */
+  .header { display: none !important; }
+}
+
+/* 입력창 안내문구 (킵3) */
+.input-hint {
+  text-align: center;
+  font-size: 11px;
+  color: #a8a8a8;
+  padding: 6px 12px 0;
+  background: var(--white);
+  flex-shrink: 0;
+}
+
+/* 입력창 — 베이지 둥근 박스 (킵3 스타일) */
+.input-bar {
+  padding: 8px 12px 12px;
+  gap: 6px;
+  align-items: center;
+  background: var(--white);
+  border-top: 1px solid #ebe6df;
+}
+.input-bar .inp-side-btn {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b6b6b;
+  font-size: 17px;
+}
+.input-bar .inp-side-btn:hover { background: #faf5ec; color: #1a1a1a; }
+.input-bar .inp {
+  background: #faf5ec;
+  border: 1.5px solid #ebe6df;
+  border-radius: 18px;
+  padding: 10px 16px;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.input-bar .inp:focus {
+  background: #ffffff;
+  border-color: #c9a96e;
+  box-shadow: 0 0 0 3px rgba(201,169,110,.1);
+}
+.input-bar .send {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+}

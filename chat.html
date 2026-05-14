@@ -109,9 +109,23 @@
 
   <div class="shell">
 
+    <!-- 모바일 햄버거 헤더 (킵3) — 모바일에서만 표시 -->
+    <header class="mobile-header" id="mobileHeader">
+      <button class="hamburger-btn" id="mobileSidebarBtn" aria-label="메뉴 열기" type="button">☰</button>
+      <div class="hd-avatar">루<span class="hd-online"></span></div>
+      <div class="mobile-hd-info">
+        <div class="mobile-hd-name">루마네</div>
+        <div class="mobile-hd-sub"><span id="mobileStatusText">연결 중…</span></div>
+      </div>
+      <div class="mobile-hd-actions">
+        <button class="hd-btn" onclick="toggleHistory()" title="이전상담">📚</button>
+      </div>
+    </header>
+
     <!-- 채팅 헤더 -->
     <header class="header">
       <a class="h-back" href="/">←</a>
+      <div class="hd-avatar header-hd-avatar">루<span class="hd-online"></span></div>
       <div class="h-info">
         <div class="h-name">루마네 상담원</div>
         <div class="h-sub">케이트블랑 드레스룸 · 견적상담</div>
@@ -320,8 +334,9 @@
       <!-- 수정 중 바 -->
       <div class="edit-bar" id="editBar" style="display:none"></div>
       <div class="attach-bar" id="attachBar" style="display:none"></div>
+      <div class="input-hint">루마네가 24시간 답변해요 · 평균 응답 30초</div>
       <div class="input-bar">
-        <button class="inp-side-btn" id="attachBtn" title="파일 첨부">＋</button>
+        <button class="inp-side-btn" id="attachBtn" title="파일 첨부">📎</button>
         <textarea class="inp" id="inp" rows="1"
           placeholder="메시지를 입력하세요"></textarea>
         <button class="send" id="sendBtn" disabled>➤</button>
@@ -365,8 +380,24 @@
       document.getElementById('site-header')?.remove();
       document.querySelector('.h-back')?.remove();
       document.querySelector('.pc-panel')?.remove();
+      document.querySelector('.mobile-header')?.remove();
       document.body.classList.add('embed-mode');
     }
+    (function(){
+      var btn = document.getElementById('mobileSidebarBtn');
+      var panel = document.querySelector('.pc-panel');
+      if (!btn || !panel) return;
+      function close(){ panel.classList.remove('mobile-open'); document.body.classList.remove('pc-panel-mobile-open'); }
+      function open(){ panel.classList.add('mobile-open'); document.body.classList.add('pc-panel-mobile-open'); }
+      btn.addEventListener('click', function(e){ e.stopPropagation(); panel.classList.contains('mobile-open') ? close() : open(); });
+      document.addEventListener('click', function(e){
+        if (!panel.classList.contains('mobile-open')) return;
+        if (panel.contains(e.target)) return;
+        if (e.target === btn) return;
+        close();
+      });
+      panel.querySelectorAll('a, .pc-panel-nav-link').forEach(function(el){ el.addEventListener('click', close); });
+    })();
   </script>
 </body>
 </html>
