@@ -61,6 +61,7 @@ import {
   uploadFilePending, getPendingFile,
   setMsgActionHandlers, allocMid,
   setQuick, updateQuickFromText,
+  setBudgetCards,
   setBanner, setStatusText,
   initInputListeners, initDateSep, appendDateSep,
   clearMessages, clearInput,
@@ -535,7 +536,8 @@ async function send(prefilledText) {
     saveHistory();
 
     if (completedQuote) {
-      setTimeout(() => showConfirm(completedQuote), 1200);
+      // 견적서 PNG 렌더링 + 사용자 확인 시간 확보 (응급조치 — 차후 근본 수정 예정)
+      setTimeout(() => showConfirm(completedQuote), 6000);
     }
 
     // 부모 페이지(2패널 레이아웃)에 수집된 고객 정보 전달
@@ -596,34 +598,29 @@ async function send(prefilledText) {
    첫 인사
 ================================================================ */
 function greet() {
-  if (serverOnline) {
-    setLoading(true);
-    fetch(`${SERVER}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [], sessionId: SESSION_ID, isTest: IS_TEST }),
-    })
-    .then(r => { if (!r.ok) throw new Error('greet failed'); return r.json(); })
-    .then(data => {
-      const reply = data.message;
-      if (!reply) throw new Error('no message');
-      history.push({ role: 'assistant', content: reply, ts: new Date().toISOString() });
-      addMsg('bot', reply);
-      saveHistory();
-      setLoading(false);
-      // 첫 인사 후 시작 도우미 — 모바일 진입 손님이 키보드 없이도 대화 시작 가능
-      setQuick([
-        '드레스룸 견적 받고 싶어요',
-        '옵션이랑 가격 궁금해요',
-        '그냥 둘러볼게요',
-      ]);
-    })
-    .catch(() => {
-      demoGreet();
-    });
-  } else {
-    demoGreet();
-  }
+  /* 킵3 오프닝 — 인사 + 예산 질문 + 예산 카드
+     서버 호출 없이 로컬 메시지 2개를 history에 push해서
+     사용자가 예산 카드를 선택하면 서버는 그 컨텍스트로 다음 응대 시작 */
+  const msg1 = '안녕하세요! 저는 케이트블랑 드레스룸 AI 상담원 루마네예요 😊\n원하시는 드레스룸 구성을 빠르게 안내해드릴게요.';
+  const msg2 = '혹시 생각하신 금액이 얼마쯤이세요?';
+
+  setLoading(true);
+  setTimeout(() => {
+    history.push({ role: 'assistant', content: msg1, ts: new Date().toISOString() });
+    addMsg('bot', msg1);
+    setLoading(false);
+
+    setTimeout(() => {
+      setLoading(true);
+      setTimeout(() => {
+        history.push({ role: 'assistant', content: msg2, ts: new Date().toISOString() });
+        addMsg('bot', msg2);
+        saveHistory();
+        setLoading(false);
+        try { setBudgetCards(); } catch (_) { /* ui.js에 함수 없으면 조용히 무시 */ }
+      }, 500);
+    }, 300);
+  }, 500);
 }
 
 function demoGreet() {
