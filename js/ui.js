@@ -37,7 +37,6 @@ export function initUI() {
   $statusTxt = document.getElementById('statusText');
   initEmojiPicker();
   initAttachBtn();
-  initVoiceBtn();
 }
 
 /* ── 로딩 상태 ── */
@@ -1340,39 +1339,6 @@ function initAttachBtn() {
   btn.addEventListener('click', () => input.click());
 }
 
-/* 음성 입력 — Web Speech API (Chrome/Edge 등) */
-function initVoiceBtn() {
-  const btn = document.getElementById('voiceBtn');
-  if (!btn) return;
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    btn.addEventListener('click', () => {
-      alert('이 브라우저는 음성 입력을 지원하지 않아요.\nChrome 또는 Edge에서 시도해주세요.');
-    });
-    return;
-  }
-  let recog = null;
-  let listening = false;
-  btn.addEventListener('click', () => {
-    if (listening) { try { recog?.stop(); } catch (_) {} return; }
-    recog = new SR();
-    recog.lang = 'ko-KR';
-    recog.interimResults = false;
-    recog.maxAlternatives = 1;
-    recog.onstart = () => { listening = true; btn.classList.add('voice-listening'); btn.textContent = '⏺'; };
-    recog.onend   = () => { listening = false; btn.classList.remove('voice-listening'); btn.textContent = '🎙️'; };
-    recog.onerror = (e) => { console.warn('음성 인식 오류:', e.error); };
-    recog.onresult = (e) => {
-      const transcript = e.results[0]?.[0]?.transcript || '';
-      if (!transcript) return;
-      $inp.value = ($inp.value ? $inp.value + ' ' : '') + transcript;
-      autoResize();
-      refreshSendBtn();
-      $inp.focus();
-    };
-    try { recog.start(); } catch (_) {}
-  });
-}
 
 /* ── 파일 업로드 후 이미지/파일 메시지 렌더 ── */
 export function addFileMsg(url, name, isImage) {
