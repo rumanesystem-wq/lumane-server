@@ -456,10 +456,10 @@ export function addMsg(role, text, { mid = null, replyTo = null, time = null, sk
     group.className = 'msg-group bot';
     group.dataset.mid = msgMid;
 
-    /* 아바타 */
+    /* 아바타 — 킵3 골드 원형 */
     const av = document.createElement('div');
     av.className = 'av';
-    av.textContent = '👩‍💼';
+    av.textContent = '루';
     group.appendChild(av);
 
     /* 본문 */
@@ -758,7 +758,7 @@ export function showTyping() {
   el.className = 'typing';
   el.id = 'typing';
   el.innerHTML =
-    `<div class="av">👩‍💼</div>` +
+    `<div class="av">루</div>` +
     `<div class="typing-body">` +
       `<div class="typing-name">루마네</div>` +
       `<div class="typing-bubble">` +
@@ -780,7 +780,7 @@ export function showAdminTyping() {
   el.className = 'typing';
   el.id = 'adminTyping';
   el.innerHTML =
-    `<div class="av">👩‍💼</div>` +
+    `<div class="av">담</div>` +
     `<div class="typing-body">` +
       `<div class="typing-name">담당자</div>` +
       `<div class="typing-bubble">` +
