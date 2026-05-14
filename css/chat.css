@@ -586,6 +586,117 @@ html, body {
   background: var(--purple-pale) !important;
 }
 
+/* ── 킵3 카드형 퀵 UI (예산/형태/옵션) ── */
+.cards-shape {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+.card-shape {
+  border: 1.5px solid #ebe6df;
+  border-radius: 12px;
+  padding: 14px 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: all .18s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  font-family: 'Noto Sans KR', sans-serif;
+}
+.card-shape:hover {
+  border-color: #c9a96e;
+  background: #faf5ec;
+  transform: translateY(-1px);
+}
+.cs-icon { font-size: 28px; margin-bottom: 6px; height: 40px; display: flex; align-items: center; justify-content: center; color: #c9a96e; font-weight: 700; }
+.cs-label { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.cs-desc { font-size: 11px; color: #6b6b6b; }
+
+.cards-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.card-budget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1.5px solid #ebe6df;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  text-align: left;
+  transition: all .18s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.card-budget:hover {
+  border-color: #c9a96e;
+  background: #faf5ec;
+  transform: translateX(2px);
+}
+.cb-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  background: #f3ead8;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cb-info { flex: 1; }
+.cb-amount { font-size: 14px; font-weight: 700; margin-bottom: 1px; color: #1a1a1a; }
+.cb-desc { font-size: 11.5px; color: #6b6b6b; }
+.cb-arrow { color: #c9a96e; font-size: 14px; font-weight: 700; opacity: 0; transition: opacity .15s; }
+.card-budget:hover .cb-arrow { opacity: 1; }
+
+.cards-option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.card-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1.5px solid #ebe6df;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  text-align: left;
+  transition: all .18s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+.card-option:hover {
+  border-color: #c9a96e;
+  background: #faf5ec;
+}
+.co-emoji { font-size: 18px; flex-shrink: 0; }
+.co-info { flex: 1; }
+.co-name { font-size: 13.5px; font-weight: 700; color: #1a1a1a; }
+.co-price { font-size: 11.5px; color: #c9a96e; font-weight: 600; }
+.co-box {
+  width: 20px; height: 20px; border-radius: 5px;
+  border: 2px solid #ebe6df;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: transparent;
+  transition: all .18s; flex-shrink: 0;
+}
+.card-option.co-manual {
+  background: transparent;
+  border-style: dashed;
+}
+.card-option.co-manual .co-name { color: #b08850; }
+.card-option.co-manual .co-price { color: #a8a8a8; font-weight: 500; }
+
 .qbtn {
   padding: 6px 14px;
   border-radius: 16px;

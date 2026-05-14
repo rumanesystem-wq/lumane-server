@@ -836,6 +836,109 @@ export function setQuick(labels, isChoice = false) {
   $quickArea.appendChild(wrap);
 }
 
+/* ── 카드형 퀵 UI — 킵3 디자인 (예산/형태/옵션) ── */
+const SHAPE_CARDS = [
+  { value: '1자형',  emoji: 'ㅡㅡ',  label: '1자형',  sub: '한쪽 벽면' },
+  { value: 'ㄱ자형', emoji: 'ㄴ',   label: 'ㄱ자형', sub: '코너 활용' },
+  { value: 'ㄷ자형', emoji: 'ㄷ',   label: 'ㄷ자형', sub: '3면 활용' },
+  { value: '11자형', emoji: '‖', label: '11자형', sub: '양면 배치' },
+];
+const BUDGET_CARDS = [
+  { value: '100만원 이하',     emoji: '💡', label: '100만원 이하',  sub: '기본 1자형 구성' },
+  { value: '100~200만원',      emoji: '🪑', label: '100 ~ 200만원',  sub: '일반 구성' },
+  { value: '200~300만원',      emoji: '✨', label: '200 ~ 300만원',  sub: '옵션 포함 구성' },
+  { value: '300만원 이상',     emoji: '💎', label: '300만원 이상',  sub: '풀옵션 구성' },
+];
+const OPTION_CARDS = [
+  { value: '거울장',     emoji: '🪞', label: '거울장',     price: '+169,000원' },
+  { value: '디바이더',   emoji: '📏', label: '디바이더',   price: '+69,000원'  },
+  { value: '2단 서랍장', emoji: '🗄️', label: '2단 서랍장', price: '+99,000원'  },
+  { value: '3단 서랍장', emoji: '🗄️', label: '3단 서랍장', price: '+119,000원' },
+  { value: '4단 서랍장', emoji: '🗄️', label: '4단 서랍장', price: '+160,000원' },
+  { value: '바지걸이',   emoji: '👖', label: '바지걸이',   price: '+138,000원' },
+  { value: '이불장',     emoji: '🛏️', label: '이불장',     price: '+200,000원' },
+  { value: '화장대',     emoji: '💄', label: '화장대',     price: '+250,000원' },
+  { value: '아일랜드장', emoji: '🏝️', label: '아일랜드장', price: '+169,000원' },
+];
+
+function _sendCardValue(value) {
+  $inp.value = value;
+  refreshSendBtn();
+  $sendBtn.click();
+}
+
+export function setShapeCards() {
+  $quickArea.innerHTML = '';
+  const hint = document.createElement('div');
+  hint.className = 'quick-hint-label';
+  hint.textContent = '아래 카드에서 선택해 주세요';
+  $quickArea.appendChild(hint);
+  const grid = document.createElement('div');
+  grid.className = 'cards-shape';
+  SHAPE_CARDS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'card-shape';
+    btn.innerHTML = `<div class="cs-icon"></div><div class="cs-label"></div><div class="cs-desc"></div>`;
+    btn.querySelector('.cs-icon').textContent = c.emoji;
+    btn.querySelector('.cs-label').textContent = c.label;
+    btn.querySelector('.cs-desc').textContent = c.sub;
+    btn.onclick = () => _sendCardValue(c.value);
+    grid.appendChild(btn);
+  });
+  $quickArea.appendChild(grid);
+}
+
+export function setBudgetCards() {
+  $quickArea.innerHTML = '';
+  const hint = document.createElement('div');
+  hint.className = 'quick-hint-label';
+  hint.textContent = '아래 카드에서 선택해 주세요';
+  $quickArea.appendChild(hint);
+  const wrap = document.createElement('div');
+  wrap.className = 'cards-budget';
+  BUDGET_CARDS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'card-budget';
+    btn.innerHTML = `<div class="cb-emoji"></div><div class="cb-info"><div class="cb-amount"></div><div class="cb-desc"></div></div><div class="cb-arrow">→</div>`;
+    btn.querySelector('.cb-emoji').textContent = c.emoji;
+    btn.querySelector('.cb-amount').textContent = c.label;
+    btn.querySelector('.cb-desc').textContent = c.sub;
+    btn.onclick = () => _sendCardValue(c.value);
+    wrap.appendChild(btn);
+  });
+  $quickArea.appendChild(wrap);
+}
+
+export function setOptionCards() {
+  $quickArea.innerHTML = '';
+  const hint = document.createElement('div');
+  hint.className = 'quick-hint-label';
+  hint.textContent = '💡 중복 선택 가능 — 원하는 항목을 누르면 한 번에 한 개씩 전송돼요';
+  $quickArea.appendChild(hint);
+  const wrap = document.createElement('div');
+  wrap.className = 'cards-option';
+  OPTION_CARDS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'card-option';
+    btn.innerHTML = `<span class="co-emoji"></span><div class="co-info"><div class="co-name"></div><div class="co-price"></div></div><div class="co-box">✓</div>`;
+    btn.querySelector('.co-emoji').textContent = c.emoji;
+    btn.querySelector('.co-name').textContent = c.label;
+    btn.querySelector('.co-price').textContent = c.price;
+    btn.onclick = () => _sendCardValue(c.value);
+    wrap.appendChild(btn);
+  });
+  /* 직접 입력 버튼 */
+  const manual = document.createElement('button');
+  manual.className = 'card-option co-manual';
+  manual.innerHTML = `<span class="co-emoji">✏️</span><div class="co-info"><div class="co-name">직접 입력</div><div class="co-price">원하는 옵션을 자유롭게 적어주세요</div></div>`;
+  manual.onclick = () => {
+    $quickArea.innerHTML = '';
+    $inp.focus();
+  };
+  wrap.appendChild(manual);
+  $quickArea.appendChild(wrap);
+}
+
 /* ── AI 응답에서 퀵 버튼 자동 감지 ── */
 export function updateQuickFromText(text) {
   /* 견적서 완료 텍스트면 퀵버튼 감지 스킵 */
@@ -849,8 +952,12 @@ export function updateQuickFromText(text) {
     setQuick(choiceLines.map(l => l.trim()), true); return;
   }
 
+  /* 예산 질문 — 카드 UI */
+  if (/(예산.*얼마|예산.*어느|얼마.*생각|얼마.*예산|얼마쯤|얼마 정도|희망 금액|희망금액|얼마.*까지)/.test(text)) {
+    setBudgetCards(); return;
+  }
   if (/(드레스룸\s*형태|형태.*어떻게|어떤\s*형태|형태.*선택|어느\s*형태)/.test(text)) {
-    setQuick(['1자형', 'ㄱ자형', 'ㄷ자형', '11자형'], true); return;
+    setShapeCards(); return;
   }
   /* 선반 색상 질문 — 견적서 항목 언급이 아닌 실제 질문만 */
   if (/(선반\s*색상.*어떻게|선반\s*색상.*알려|선반\s*색상.*선택|선반\s*색상.*원하|어떤\s*선반\s*색상|선반\s*색상은)/.test(text)) {
@@ -864,9 +971,9 @@ export function updateQuickFromText(text) {
   if (/(색상.*골라|색상.*선택|어떤\s*색|원하시는\s*색|색상은|색상\s*어떻게|선반이랑\s*프레임)/.test(text)) {
     setQuick(['화이트 계열', '그레이 계열', '우드 계열', '블랙 계열'], true); return;
   }
-  /* 옵션 추가 질문 — 거울장·서랍장 등 품목 (직접 입력도 허용) */
+  /* 옵션 추가 질문 — 카드 UI (가격 포함) */
   if (/(옵션.*추가|어떤\s*옵션|옵션.*뭐|옵션.*선택|옵션.*원하|구성.*원하|뭐\s*넣|추가.*원하시는)/.test(text)) {
-    setQuick(['거울장', '디바이더', '서랍장', '바지걸이', '이불장', '화장대', '아일랜드장', '없음/스킵'], false); return;
+    setOptionCards(); return;
   }
   /* 선반 단수 질문 */
   if (/(선반.*몇\s*단|선반.*단수|몇\s*단으로|단수.*어떻게|단수.*선택|몇단)/.test(text)) {
