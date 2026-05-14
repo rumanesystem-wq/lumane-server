@@ -37,6 +37,7 @@ export function initUI() {
   $statusTxt = document.getElementById('statusText');
   initEmojiPicker();
   initAttachBtn();
+  initVoiceBtn();
 }
 
 /* ── 로딩 상태 ── */
@@ -979,6 +980,18 @@ export function setOptionCards(opts) {
   };
   wrap.appendChild(manual);
   t.el.appendChild(wrap);
+
+  /* 킵3 — 옵션 카드 아래 빠른 응답 칩 3개 */
+  const chips = document.createElement('div');
+  chips.className = 'option-quick-chips';
+  ['괜찮아요', '잘 모르겠어요', '더 알려주세요'].forEach(label => {
+    const chip = document.createElement('button');
+    chip.className = 'option-chip';
+    chip.textContent = label;
+    chip.onclick = () => _sendCardValue(label, t.inline ? t.el : null);
+    chips.appendChild(chip);
+  });
+  t.el.appendChild(chips);
 }
 
 /* ── 시공 사례 캐러셀 (킵3 디자인) ── */
@@ -1027,7 +1040,10 @@ export function setInlineQuoteFromText(text) {
               || text.match(/\[금액\][\s\S]*?([\d,]+)\s*원/);
   if (!priceM) { setQuick([]); return; }
 
-  $quickArea.innerHTML = '';
+  /* 인라인 호스트 우선, 없으면 quickArea */
+  const host = _inlineHost();
+  const container = host || (function(){ $quickArea.innerHTML=''; return $quickArea; })();
+
   const card = document.createElement('div');
   card.className = 'inline-quote';
   card.innerHTML = `
@@ -1040,18 +1056,51 @@ export function setInlineQuoteFromText(text) {
     <button class="iq-cta">정식 견적서 받기 →</button>
   `;
   const body = card.querySelector('.iq-body');
-  if (layoutM) {
+  const addRow = (label, val) => {
+    if (!val) return;
     const row = document.createElement('div');
     row.className = 'iq-row';
-    row.innerHTML = `<span>형태</span><span class="val"></span>`;
-    row.querySelector('.val').textContent = layoutM[1].trim();
+    row.innerHTML = `<span></span><span class="val"></span>`;
+    row.children[0].textContent = label;
+    row.children[1].textContent = val;
     body.appendChild(row);
-  }
+  };
+
+  /* 형태 */
+  if (layoutM) addRow('형태', layoutM[1].trim());
+
+  /* 기본 구성 (행거 + 선반 또는 텍스트에서 파싱) */
+  let baseStr = '행거';
+  if (/선반/.test(text)) baseStr += ' + 선반';
+  addRow('기본 구성', baseStr);
+
+  /* 옵션 — 거울장/서랍장/디바이더/바지걸이/이불장/아일랜드장/화장대 등 매칭 */
+  const OPTION_PATTERNS = [
+    { name: '거울장',     re: /거울장[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '디바이더',   re: /디바이더[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '2단 서랍장', re: /2\s*단\s*서랍[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '3단 서랍장', re: /3\s*단\s*서랍[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '4단 서랍장', re: /4\s*단\s*서랍[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '바지걸이',   re: /바지걸이[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '이불장',     re: /이불장[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '화장대',     re: /화장대[^0-9]{0,15}([\d,]+)\s*원/ },
+    { name: '아일랜드장', re: /아일랜드장[^0-9]{0,15}([\d,]+)\s*원/ },
+  ];
+  OPTION_PATTERNS.forEach(op => {
+    const m = text.match(op.re);
+    if (m) addRow(op.name, `+${m[1]}원`);
+  });
+
+  /* 배송비 */
+  const shipM = text.match(/배송비\s*[:：]?\s*([\d,]+)\s*원/);
+  if (shipM) addRow('배송비', `${shipM[1]}원 별도`);
+  else if (/배송비/.test(text)) addRow('배송비', '지역 확인 필요');
+
   card.querySelector('.iqt-price').textContent = `약 ${(Number(priceM[1].replace(/,/g, '')) / 10000).toFixed(0)}만원`;
   card.querySelector('.iq-cta').onclick = () => {
-    _sendCardValue('네, 정식 견적서 받을게요');
+    _sendCardValue('네, 정식 견적서 받을게요', host);
   };
-  $quickArea.appendChild(card);
+  container.appendChild(card);
 }
 
 /* ── AI 응답에서 퀵 버튼 자동 감지 ── */
@@ -1289,6 +1338,40 @@ function initAttachBtn() {
   const input = document.getElementById('fileInput');
   if (!btn || !input) return;
   btn.addEventListener('click', () => input.click());
+}
+
+/* 음성 입력 — Web Speech API (Chrome/Edge 등) */
+function initVoiceBtn() {
+  const btn = document.getElementById('voiceBtn');
+  if (!btn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    btn.addEventListener('click', () => {
+      alert('이 브라우저는 음성 입력을 지원하지 않아요.\nChrome 또는 Edge에서 시도해주세요.');
+    });
+    return;
+  }
+  let recog = null;
+  let listening = false;
+  btn.addEventListener('click', () => {
+    if (listening) { try { recog?.stop(); } catch (_) {} return; }
+    recog = new SR();
+    recog.lang = 'ko-KR';
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+    recog.onstart = () => { listening = true; btn.classList.add('voice-listening'); btn.textContent = '⏺'; };
+    recog.onend   = () => { listening = false; btn.classList.remove('voice-listening'); btn.textContent = '🎙️'; };
+    recog.onerror = (e) => { console.warn('음성 인식 오류:', e.error); };
+    recog.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript || '';
+      if (!transcript) return;
+      $inp.value = ($inp.value ? $inp.value + ' ' : '') + transcript;
+      autoResize();
+      refreshSendBtn();
+      $inp.focus();
+    };
+    try { recog.start(); } catch (_) {}
+  });
 }
 
 /* ── 파일 업로드 후 이미지/파일 메시지 렌더 ── */

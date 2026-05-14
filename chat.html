@@ -337,8 +337,9 @@
       <div class="input-hint">루마네가 24시간 답변해요 · 평균 응답 30초</div>
       <div class="input-bar">
         <button class="inp-side-btn" id="attachBtn" title="파일 첨부">📎</button>
+        <button class="inp-side-btn" id="voiceBtn" title="음성 입력" type="button">🎙️</button>
         <textarea class="inp" id="inp" rows="1"
-          placeholder="메시지를 입력하세요"></textarea>
+          placeholder="자유롭게 질문하거나 답변해주세요"></textarea>
         <button class="send" id="sendBtn" disabled>➤</button>
       </div>
     </div>
@@ -383,6 +384,8 @@
       document.querySelector('.mobile-header')?.remove();
       document.body.classList.add('embed-mode');
     }
+    /* 음성 입력 핸들러는 ui.js initVoiceBtn()에서 일원화 관리 */
+
     (function(){
       var btn = document.getElementById('mobileSidebarBtn');
       var panel = document.querySelector('.pc-panel');
