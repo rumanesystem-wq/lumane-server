@@ -12,24 +12,13 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/chat.css" />
   <style>
-    /* 사이트 네비게이션 높이만큼 채팅 레이아웃 오프셋 */
-    .page {
-      height: calc(100vh - var(--header-h));
-      min-height: unset;
-      margin-top: var(--header-h);
-    }
-    .shell {
-      height: calc(100vh - var(--header-h));
-      min-height: unset;
-    }
-    @media (min-width: 768px) {
-      .page  { height: calc(100vh - var(--header-h)); min-height: unset; }
-      .shell { height: calc(100vh - var(--header-h)); min-height: unset; }
-    }
-    /* 모바일: 네비 높이 제외한 정확한 뷰포트 */
+    /* 킵3 디자인 — 채팅 페이지에서 상단 site-header 제거, 사이드바로 흡수 */
+    .site-header { display: none !important; }
+    .page  { height: 100vh; min-height: unset; margin-top: 0; }
+    .shell { height: 100vh; min-height: unset; }
     @media (max-width: 767px) {
-      .page  { height: calc(100dvh - var(--header-h)); min-height: unset; }
-      .shell { height: calc(100dvh - var(--header-h)); min-height: unset; }
+      .page  { height: 100dvh; min-height: unset; }
+      .shell { height: 100dvh; min-height: unset; }
     }
   </style>
 </head>
@@ -72,24 +61,49 @@
   <!-- ===== 기존 채팅 앱 (원본 유지) ===== -->
   <div class="page">
 
-  <!-- PC 전용 사이드 패널 -->
+  <!-- PC 전용 사이드 패널 (킵3 디자인) -->
   <aside class="pc-panel">
-    <div class="pc-panel-logo">🏠</div>
-    <div class="pc-panel-title">루마네 상담원</div>
-    <div class="pc-panel-sub">케이트블랑 드레스룸<br>AI 상담 서비스</div>
-    <div class="pc-panel-div"></div>
-    <div class="pc-panel-status">
-      <div class="dot-live"></div>
-      <span id="pcStatusText">연결 중…</span>
+    <div class="pc-panel-brand">
+      <div class="pc-panel-brand-logo">Kate Blanc</div>
+      <div class="pc-panel-brand-name">드레스룸 상담</div>
+      <div class="pc-panel-brand-tagline">AI 견적 · 24시간 응답</div>
     </div>
-    <div class="pc-panel-actions">
-      <button class="pc-panel-btn" onclick="toggleHistory()">📚 이전 상담 이력</button>
-      <!-- 수집현황 버튼 고객 페이지에서 제외 -->
+
+    <div class="pc-panel-nav">
+      <div class="pc-panel-nav-section">상담</div>
+      <a href="/chat" class="pc-panel-nav-link active">
+        <span class="pcn-icon">💬</span> 루마네와 채팅
+      </a>
+      <a href="/quote" class="pc-panel-nav-link">
+        <span class="pcn-icon">📋</span> 견적요청
+      </a>
+      <button class="pc-panel-nav-link" onclick="toggleHistory()" style="background:none;border:none;font-family:inherit;width:100%;text-align:left;cursor:pointer;">
+        <span class="pcn-icon">📚</span> 이전 상담 이력
+      </button>
+
+      <div class="pc-panel-nav-section">케이트블랑</div>
+      <a href="/" class="pc-panel-nav-link">
+        <span class="pcn-icon">🏠</span> 홈
+      </a>
+      <a href="/blog" class="pc-panel-nav-link">
+        <span class="pcn-icon">📝</span> 블로그
+      </a>
+      <a href="https://www.instagram.com/kateblanc_official/" target="_blank" rel="noopener" class="pc-panel-nav-link">
+        <span class="pcn-icon">📷</span> 인스타그램
+      </a>
+      <a href="tel:01037845215" class="pc-panel-nav-link">
+        <span class="pcn-icon">📞</span> 010-3784-5215
+      </a>
     </div>
-    <div class="pc-panel-footer">
-      케이트블랑 드레스룸<br>
-      AI 상담은 24시간 운영됩니다<br><br>
-      접수 완료 시 상담 내용이 자동 저장됩니다
+
+    <div class="pc-panel-profile">
+      <div class="pc-panel-profile-avatar">루</div>
+      <div class="pc-panel-profile-info">
+        <div class="pc-panel-profile-name">루마네</div>
+        <div class="pc-panel-profile-status">
+          <span class="dot-live"></span><span id="pcStatusText">연결 중…</span>
+        </div>
+      </div>
     </div>
   </aside>
 
